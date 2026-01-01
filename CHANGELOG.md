@@ -5,6 +5,30 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.7.0] - 2026-01-01
+
+### Ajouté
+- **Page d'accueil** : Nouvelle page principale avec 3 boutons pour choisir l'emplacement
+  - 🧊 Congélateur (actif)
+  - 🧃 Réfrigérateur (à venir)
+  - 🥫 Réserve (à venir)
+- **Fichier LICENSE** : Ajout de la licence MIT
+- **Architecture modulaire** : Découpage du code en modules
+  - `panel.js` : Router principal
+  - `home.js` : Page d'accueil
+  - `freezer.js` : Gestion du congélateur (ancien panel.js)
+- **Bouton retour** : Navigation depuis le congélateur vers la page d'accueil
+
+### Modifié
+- Refonte complète de l'architecture frontend
+- Interface plus claire avec séparation des emplacements de stockage
+- Préparation pour la gestion du réfrigérateur et de la réserve
+
+### Technique
+- Code divisé en composants web réutilisables
+- Système de navigation par événements personnalisés
+- Meilleure organisation du code (réduction de la taille de panel.js)
+
 ## [1.6.3] - 2026-01-01
 
 ### Ajouté
