@@ -3,9 +3,8 @@
     "step": {
       "user": {
         "title": "Inventory Manager Configuration",
-        "description": "Configure your food inventory manager. Available locations: {locations}",
+        "description": "Configure your food inventory manager.",
         "data": {
-          "enabled_locations": "Enabled locations",
           "notify_expiry": "Expiry notifications"
         }
       }

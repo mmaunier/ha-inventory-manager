@@ -3,9 +3,8 @@
     "step": {
       "user": {
         "title": "Configuration du Gestionnaire d'Inventaire",
-        "description": "Configurez votre gestionnaire d'inventaire alimentaire. Emplacements disponibles : {locations}",
+        "description": "Configurez votre gestionnaire d'inventaire alimentaire.",
         "data": {
-          "enabled_locations": "Emplacements activés",
           "notify_expiry": "Notifications de péremption"
         }
       }
