@@ -155,14 +155,15 @@ class InventoryCoordinator(DataUpdateCoordinator):
         now = dt_util.now()
         today = now.date()
 
-        # Only check once per hour
+        # Only check once per 6 hours
         if (
             self._last_notification_check
-            and (now - self._last_notification_check).total_seconds() < 3600
+            and (now - self._last_notification_check).total_seconds() < 21600  # 6h
         ):
             return
 
         self._last_notification_check = now
+        _LOGGER.info("Checking for expiring products...")
 
         for product_id, product in self._products.items():
             expiry_str = product.get("expiry_date")
@@ -173,29 +174,23 @@ class InventoryCoordinator(DataUpdateCoordinator):
                 expiry_date = datetime.fromisoformat(expiry_str).date()
                 days_until_expiry = (expiry_date - today).days
                 
-                should_notify = False
-                notification_type = ""
+                notification_type = None
 
-                # Logique de notification selon les critères demandés
+                # Logique simplifiée
                 if days_until_expiry < 0:
-                    should_notify = True
                     notification_type = "expired"
-                elif days_until_expiry < EXPIRY_THRESHOLD_URGENT:
-                    # < 3 jours : rappel d'utilisation le jour même
-                    should_notify = True
-                    notification_type = "use_today"
-                elif days_until_expiry <= EXPIRY_THRESHOLD_SOON:
-                    # 3-5 jours : rappel 1 jour avant
-                    if days_until_expiry == 1:
-                        should_notify = True
-                        notification_type = "expiring_soon"
-                elif days_until_expiry >= EXPIRY_THRESHOLD_NORMAL:
-                    # >= 7 jours : rappel 2 jours avant
-                    if days_until_expiry == 2:
-                        should_notify = True
-                        notification_type = "expiring_warning"
+                elif days_until_expiry == 0:
+                    notification_type = "expires_today"
+                elif days_until_expiry <= 3:
+                    notification_type = "expires_soon"
 
-                if should_notify:
+                if notification_type:
+                    _LOGGER.info(
+                        "Sending expiry event for %s (%s, %d days)",
+                        product.get("name"),
+                        notification_type,
+                        days_until_expiry
+                    )
                     self.hass.bus.async_fire(
                         EVENT_PRODUCT_EXPIRING,
                         {
