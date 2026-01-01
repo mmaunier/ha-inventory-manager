@@ -949,23 +949,15 @@ class InventoryManagerPanel extends HTMLElement {
     this._closeModals();
 
     // Appeler le service en arrière-plan
-    // Si on a un barcode, utiliser scan_product, sinon add_product
+    // Toujours utiliser add_product car on a déjà le nom (évite les doublons)
     try {
-      if (barcode) {
-        await this._hass.callService('inventory_manager', 'scan_product', {
-          barcode: barcode,
-          expiry_date: date,
-          location: 'freezer',
-          quantity: qty
-        });
-      } else {
-        await this._hass.callService('inventory_manager', 'add_product', {
-          name: name,
-          expiry_date: date,
-          location: 'freezer',
-          quantity: qty
-        });
-      }
+      await this._hass.callService('inventory_manager', 'add_product', {
+        name: name,
+        expiry_date: date,
+        location: 'freezer',
+        quantity: qty,
+        barcode: barcode || undefined
+      });
     } catch (err) {
       console.error('Erreur scan:', err);
       // Rollback en cas d'erreur
