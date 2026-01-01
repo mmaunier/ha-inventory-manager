@@ -363,8 +363,7 @@ class InventoryManagerPanel extends HTMLElement {
         </div>
         
         <div class="actions">
-          <button class="btn-primary" id="btn-add">➕ Ajouter manuellement</button>
-          <button class="btn-secondary" id="btn-scan">📷 Scanner code-barres</button>
+          <button class="btn-primary" id="btn-add" style="grid-column: span 2;">➕ Ajouter un produit</button>
         </div>
         
         <div class="products-table">
@@ -383,28 +382,6 @@ class InventoryManagerPanel extends HTMLElement {
       </div>
       
       <div class="modal" id="add-modal">
-        <div class="modal-content">
-          <h2>➕ Ajouter un produit</h2>
-          <div class="form-group">
-            <label>Nom du produit</label>
-            <input type="text" id="product-name" placeholder="Ex: Pizza 4 fromages">
-          </div>
-          <div class="form-group">
-            <label>Date de péremption</label>
-            <input type="date" id="product-date">
-          </div>
-          <div class="form-group">
-            <label>Quantité</label>
-            <input type="number" id="product-qty" value="1" min="1" max="99">
-          </div>
-          <div class="modal-actions">
-            <button class="btn-cancel" id="btn-cancel">Annuler</button>
-            <button class="btn-primary" id="btn-save">Ajouter</button>
-          </div>
-        </div>
-      </div>
-      
-      <div class="modal" id="scan-modal">
         <div class="modal-content">
           <h2>📷 Scanner un produit</h2>
           
@@ -472,12 +449,9 @@ class InventoryManagerPanel extends HTMLElement {
 
     // Event listeners
     this.shadowRoot.getElementById('btn-add').onclick = () => this._openAddModal();
-    this.shadowRoot.getElementById('btn-scan').onclick = () => this._openScanModal();
-    this.shadowRoot.getElementById('btn-cancel').onclick = () => this._closeModals();
-    this.shadowRoot.getElementById('btn-scan-cancel').onclick = () => this._closeScanModal();
+    this.shadowRoot.getElementById('btn-scan-cancel').onclick = () => this._closeAddModal();
     this.shadowRoot.getElementById('btn-edit-cancel').onclick = () => this._closeModals();
-    this.shadowRoot.getElementById('btn-save').onclick = () => this._addProduct();
-    this.shadowRoot.getElementById('btn-scan-save').onclick = () => this._scanProduct();
+    this.shadowRoot.getElementById('btn-scan-save').onclick = () => this._addProduct();
     this.shadowRoot.getElementById('btn-edit-save').onclick = () => this._saveEditProduct();
     this.shadowRoot.getElementById('btn-start-camera').onclick = () => this._startCamera();
     this.shadowRoot.getElementById('btn-lookup').onclick = () => this._lookupBarcode();
@@ -499,21 +473,15 @@ class InventoryManagerPanel extends HTMLElement {
       }
     };
     
-    // Set default dates
+    // Set default date
     const defaultDate = new Date();
     defaultDate.setDate(defaultDate.getDate() + 30);
     const dateStr = defaultDate.toISOString().split('T')[0];
-    this.shadowRoot.getElementById('product-date').value = dateStr;
     this.shadowRoot.getElementById('scan-date').value = dateStr;
   }
 
   _openAddModal() {
     this.shadowRoot.getElementById('add-modal').classList.add('open');
-    this.shadowRoot.getElementById('product-name').focus();
-  }
-
-  _openScanModal() {
-    this.shadowRoot.getElementById('scan-modal').classList.add('open');
     // Reset form
     this.shadowRoot.getElementById('scan-barcode').value = '';
     this.shadowRoot.getElementById('scan-name').value = '';
@@ -522,6 +490,11 @@ class InventoryManagerPanel extends HTMLElement {
     this.shadowRoot.getElementById('camera-container').style.display = 'none';
     this.shadowRoot.getElementById('camera-status').textContent = '';
     this.shadowRoot.getElementById('btn-start-camera').style.display = 'flex';
+    // Reset date to +30 days
+    const defaultDate = new Date();
+    defaultDate.setDate(defaultDate.getDate() + 30);
+    this.shadowRoot.getElementById('scan-date').value = defaultDate.toISOString().split('T')[0];
+    this.shadowRoot.getElementById('scan-qty').value = 1;
   }
 
   _openEditModal(productId) {
@@ -536,14 +509,14 @@ class InventoryManagerPanel extends HTMLElement {
   }
 
   _closeModals() {
+    this._stopCamera();
     this.shadowRoot.getElementById('add-modal').classList.remove('open');
-    this.shadowRoot.getElementById('scan-modal').classList.remove('open');
     this.shadowRoot.getElementById('edit-modal').classList.remove('open');
   }
 
-  _closeScanModal() {
+  _closeAddModal() {
     this._stopCamera();
-    this.shadowRoot.getElementById('scan-modal').classList.remove('open');
+    this.shadowRoot.getElementById('add-modal').classList.remove('open');
   }
 
   // Recherche du produit via l'API Open Food Facts
@@ -816,48 +789,6 @@ class InventoryManagerPanel extends HTMLElement {
   }
 
   async _addProduct() {
-    const nameEl = this.shadowRoot.getElementById('product-name');
-    const dateEl = this.shadowRoot.getElementById('product-date');
-    const qtyEl = this.shadowRoot.getElementById('product-qty');
-    const btnSave = this.shadowRoot.getElementById('btn-save');
-    
-    const name = nameEl.value.trim();
-    const date = dateEl.value;
-    const qty = parseInt(qtyEl.value) || 1;
-
-    if (!name || !date) {
-      alert('Veuillez remplir le nom et la date');
-      return;
-    }
-
-    // Désactiver le bouton pendant l'ajout
-    btnSave.disabled = true;
-    btnSave.textContent = '⏳ Ajout...';
-
-    try {
-      await this._hass.callService('inventory_manager', 'add_product', {
-        name: name,
-        expiry_date: date,
-        location: 'freezer',
-        quantity: qty
-      });
-      
-      // Fermer le modal et reset
-      nameEl.value = '';
-      this._closeModals();
-      
-      // Le produit apparaîtra via _syncFromHass quand HA mettra à jour le sensor
-      
-    } catch (err) {
-      console.error('Erreur ajout:', err);
-      alert('Erreur: ' + err.message);
-    } finally {
-      btnSave.disabled = false;
-      btnSave.textContent = 'Ajouter';
-    }
-  }
-
-  async _scanProduct() {
     const barcodeEl = this.shadowRoot.getElementById('scan-barcode');
     const nameEl = this.shadowRoot.getElementById('scan-name');
     const dateEl = this.shadowRoot.getElementById('scan-date');
@@ -892,7 +823,7 @@ class InventoryManagerPanel extends HTMLElement {
       barcodeEl.value = '';
       nameEl.value = '';
       this.shadowRoot.getElementById('product-info-box').style.display = 'none';
-      this._closeModals();
+      this._closeAddModal();
       
       // Le produit apparaîtra via _syncFromHass quand HA mettra à jour le sensor
       
