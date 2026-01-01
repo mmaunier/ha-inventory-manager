@@ -61,19 +61,45 @@ ATTR_ADDED_DATE = "added_date"
 ATTR_OLD_NAME = "old_name"
 ATTR_NEW_NAME = "new_name"
 
-# Default categories (can be customized by user)
-DEFAULT_CATEGORIES = [
-    "Viande",
-    "Poisson",
-    "Légumes",
-    "Fruits",
-    "Produits laitiers",
-    "Plats préparés",
-    "Pain/Pâtisserie",
-    "Glaces/Desserts",
-    "Condiments/Sauces",
-    "Autre",
-]
+# Default categories by location (can be customized by user)
+DEFAULT_CATEGORIES = {
+    STORAGE_FREEZER: [
+        "Viande",
+        "Poisson",
+        "Légumes",
+        "Fruits",
+        "Plats préparés",
+        "Pain/Pâtisserie",
+        "Glaces/Desserts",
+        "Condiments/Sauces",
+        "Autre",
+    ],
+    STORAGE_FRIDGE: [
+        "Viande/Charcuterie",
+        "Poisson/Fruits de mer",
+        "Produits laitiers",
+        "Fromages",
+        "Légumes frais",
+        "Fruits frais",
+        "Boissons",
+        "Sauces/Condiments",
+        "Plats préparés",
+        "Autre",
+    ],
+    STORAGE_PANTRY: [
+        "Conserves",
+        "Pâtes/Riz/Céréales",
+        "Farines/Sucres",
+        "Huiles/Vinaigres",
+        "Épices/Aromates",
+        "Biscuits/Gâteaux secs",
+        "Boissons",
+        "Condiments/Sauces",
+        "Produits d'épicerie",
+        "Œufs",
+        "Autre",
+    ],
+}
 
 # Category mapping from Open Food Facts tags to our categories
 CATEGORY_MAPPING = {
@@ -88,12 +114,12 @@ CATEGORY_MAPPING = {
     "Condiments/Sauces": ["sauce", "condiment", "dressing", "ketchup"],
 }
 
-# Default zones (can be customized by user)
-DEFAULT_ZONES = [
-    "Zone 1",
-    "Zone 2",
-    "Zone 3",
-]
+# Default zones by location (can be customized by user)
+DEFAULT_ZONES = {
+    STORAGE_FREEZER: ["Zone 1", "Zone 2", "Zone 3"],
+    STORAGE_FRIDGE: ["Zone 1", "Zone 2", "Zone 3"],
+    STORAGE_PANTRY: ["Zone 1", "Zone 2", "Zone 3"],
+}
 
 # Events
 EVENT_PRODUCT_ADDED = "inventory_manager_product_added"

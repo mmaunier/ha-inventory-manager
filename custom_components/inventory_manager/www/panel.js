@@ -1,6 +1,8 @@
 // Import components
 import './home.js';
 import './freezer.js';
+import './fridge.js';
+import './pantry.js';
 
 class InventoryManagerPanel extends HTMLElement {
   constructor() {
@@ -61,6 +63,10 @@ class InventoryManagerPanel extends HTMLElement {
       component = document.createElement('inventory-manager-home');
     } else if (this._currentView === 'freezer') {
       component = document.createElement('inventory-manager-freezer');
+    } else if (this._currentView === 'fridge') {
+      component = document.createElement('inventory-manager-fridge');
+    } else if (this._currentView === 'pantry') {
+      component = document.createElement('inventory-manager-pantry');
     }
 
     if (component) {

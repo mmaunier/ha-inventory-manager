@@ -5,6 +5,30 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.8.0] - 2026-01-01
+
+### Ajouté
+- **Réfrigérateur et Réserve** : Ajout de deux nouvelles zones de stockage
+  - 🧃 Réfrigérateur : Gestion dédiée avec catégories adaptées
+  - 🥫 Réserve : Gestion de la réserve alimentaire avec catégories spécifiques
+- **Catégories par emplacement** : Chaque zone a ses propres catégories personnalisables
+  - Congélateur (9 catégories) : Viande, Poisson, Légumes, Fruits, Plats préparés, Pain/Pâtisserie, Glaces/Desserts, Condiments/Sauces, Autre
+  - Réfrigérateur (10 catégories) : Viande/Charcuterie, Poisson/Fruits de mer, Produits laitiers, Fromages, Légumes frais, Fruits frais, Boissons, Sauces/Condiments, Plats préparés, Autre
+  - Réserve (11 catégories) : Conserves, Pâtes/Riz/Céréales, Farines/Sucres, Huiles/Vinaigres, Épices/Aromates, Biscuits/Gâteaux secs, Boissons, Condiments/Sauces, Produits d'épicerie, Œufs, Autre
+- **Zones par emplacement** : Chaque zone a ses propres zones personnalisables (Zone 1/2/3 par défaut)
+- **Navigation améliorée** : Page d'accueil avec 3 cartes cliquables pour accéder à chaque emplacement
+- **Composants modulaires** : freezer.js, fridge.js, pantry.js pour une meilleure organisation du code
+
+### Modifié
+- **Services** : Tous les services de gestion catégories/zones acceptent maintenant un paramètre `location`
+- **Backend** : Gestion de 3 inventaires distincts (congélateur, réfrigérateur, réserve)
+- **Sensors** : Ajout des sensors dédiés pour réfrigérateur et réserve
+
+### Technique
+- Architecture modulaire avec routeur dans panel.js
+- Gestion des catégories et zones par emplacement dans le coordinator
+- Support complet des 3 emplacements dans tous les services
+
 ## [1.7.4] - 2026-01-01
 
 ### Corrigé

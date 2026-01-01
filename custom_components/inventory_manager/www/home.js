@@ -103,34 +103,39 @@ class InventoryManagerHome extends HTMLElement {
             <div class="location-status active">✓ Actif</div>
           </div>
           
-          <div class="location-card disabled" id="fridge-card">
+          <div class="location-card" id="fridge-card">
             <div class="location-icon">🧃</div>
             <div class="location-name">Réfrigérateur</div>
-            <div class="location-status coming-soon">Bientôt disponible</div>
+            <div class="location-status active">✓ Actif</div>
           </div>
           
-          <div class="location-card disabled" id="pantry-card">
+          <div class="location-card" id="pantry-card">
             <div class="location-icon">🥫</div>
             <div class="location-name">Réserve</div>
-            <div class="location-status coming-soon">Bientôt disponible</div>
+            <div class="location-status active">✓ Actif</div>
           </div>
         </div>
         
         <div class="footer">
-          <p>Version 1.7.0 • Inventory Manager</p>
+          <p>Version 1.8.0 • Inventory Manager</p>
         </div>
       </div>
     `;
 
     // Event listeners
     const freezerCard = this.shadowRoot.getElementById('freezer-card');
-    freezerCard.onclick = () => this._navigateToFreezer();
+    const fridgeCard = this.shadowRoot.getElementById('fridge-card');
+    const pantryCard = this.shadowRoot.getElementById('pantry-card');
+    
+    freezerCard.onclick = () => this._navigate('freezer');
+    fridgeCard.onclick = () => this._navigate('fridge');
+    pantryCard.onclick = () => this._navigate('pantry');
   }
 
-  _navigateToFreezer() {
-    // Dispatch event to navigate to freezer view
+  _navigate(view) {
+    // Dispatch event to navigate to specified view
     this.dispatchEvent(new CustomEvent('navigate', {
-      detail: { view: 'freezer' },
+      detail: { view },
       bubbles: true,
       composed: true
     }));

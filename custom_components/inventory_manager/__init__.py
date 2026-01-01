@@ -34,7 +34,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Inventory Manager from a config entry."""
     _LOGGER.info("Setting up Inventory Manager integration")
 
-    # Initialize categories and zones in options if not present (for new installations)
+    # Initialize categories and zones by location in options if not present (for new installations)
     if "categories" not in entry.options or "zones" not in entry.options:
         new_options = {**entry.options}
         if "categories" not in new_options:
@@ -42,7 +42,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if "zones" not in new_options:
             new_options["zones"] = DEFAULT_ZONES
         hass.config_entries.async_update_entry(entry, options=new_options)
-        _LOGGER.info("Initialized default categories and zones")
+        _LOGGER.info("Initialized default categories and zones by location")
 
     # Create coordinator
     coordinator = InventoryCoordinator(hass, entry)

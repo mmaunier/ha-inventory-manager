@@ -105,12 +105,18 @@ UPDATE_PRODUCT_SCHEMA = vol.Schema(
 ADD_CATEGORY_SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_NAME): cv.string,
+        vol.Optional(ATTR_LOCATION, default=STORAGE_FREEZER): vol.In(
+            list(STORAGE_LOCATIONS.keys())
+        ),
     }
 )
 
 REMOVE_CATEGORY_SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_NAME): cv.string,
+        vol.Optional(ATTR_LOCATION, default=STORAGE_FREEZER): vol.In(
+            list(STORAGE_LOCATIONS.keys())
+        ),
     }
 )
 
@@ -118,18 +124,27 @@ RENAME_CATEGORY_SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_OLD_NAME): cv.string,
         vol.Required(ATTR_NEW_NAME): cv.string,
+        vol.Optional(ATTR_LOCATION, default=STORAGE_FREEZER): vol.In(
+            list(STORAGE_LOCATIONS.keys())
+        ),
     }
 )
 
 ADD_ZONE_SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_NAME): cv.string,
+        vol.Optional(ATTR_LOCATION, default=STORAGE_FREEZER): vol.In(
+            list(STORAGE_LOCATIONS.keys())
+        ),
     }
 )
 
 REMOVE_ZONE_SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_NAME): cv.string,
+        vol.Optional(ATTR_LOCATION, default=STORAGE_FREEZER): vol.In(
+            list(STORAGE_LOCATIONS.keys())
+        ),
     }
 )
 
@@ -137,6 +152,25 @@ RENAME_ZONE_SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_OLD_NAME): cv.string,
         vol.Required(ATTR_NEW_NAME): cv.string,
+        vol.Optional(ATTR_LOCATION, default=STORAGE_FREEZER): vol.In(
+            list(STORAGE_LOCATIONS.keys())
+        ),
+    }
+)
+
+RESET_CATEGORIES_SCHEMA = vol.Schema(
+    {
+        vol.Optional(ATTR_LOCATION, default=STORAGE_FREEZER): vol.In(
+            list(STORAGE_LOCATIONS.keys())
+        ),
+    }
+)
+
+RESET_ZONES_SCHEMA = vol.Schema(
+    {
+        vol.Optional(ATTR_LOCATION, default=STORAGE_FREEZER): vol.In(
+            list(STORAGE_LOCATIONS.keys())
+        ),
     }
 )
 
@@ -309,71 +343,86 @@ async def async_setup_services(
     async def handle_add_category(call: ServiceCall) -> ServiceResponse:
         """Handle add category service call."""
         name = call.data[ATTR_NAME]
-        await coordinator.async_add_category(name)
+        location = call.data.get(ATTR_LOCATION, STORAGE_FREEZER)
+        await coordinator.async_add_category(name, location)
         return {
             "success": True,
             "category": name,
+            "location": location,
         }
 
     async def handle_remove_category(call: ServiceCall) -> ServiceResponse:
         """Handle remove category service call."""
         name = call.data[ATTR_NAME]
-        await coordinator.async_remove_category(name)
+        location = call.data.get(ATTR_LOCATION, STORAGE_FREEZER)
+        await coordinator.async_remove_category(name, location)
         return {
             "success": True,
             "category": name,
+            "location": location,
         }
 
     async def handle_rename_category(call: ServiceCall) -> ServiceResponse:
         """Handle rename category service call."""
         old_name = call.data[ATTR_OLD_NAME]
         new_name = call.data[ATTR_NEW_NAME]
-        await coordinator.async_rename_category(old_name, new_name)
+        location = call.data.get(ATTR_LOCATION, STORAGE_FREEZER)
+        await coordinator.async_rename_category(old_name, new_name, location)
         return {
             "success": True,
             "old_name": old_name,
             "new_name": new_name,
+            "location": location,
         }
 
     async def handle_add_zone(call: ServiceCall) -> ServiceResponse:
         """Handle add zone service call."""
         name = call.data[ATTR_NAME]
-        await coordinator.async_add_zone(name)
+        location = call.data.get(ATTR_LOCATION, STORAGE_FREEZER)
+        await coordinator.async_add_zone(name, location)
         return {
             "success": True,
             "zone": name,
+            "location": location,
         }
 
     async def handle_remove_zone(call: ServiceCall) -> ServiceResponse:
         """Handle remove zone service call."""
         name = call.data[ATTR_NAME]
-        await coordinator.async_remove_zone(name)
+        location = call.data.get(ATTR_LOCATION, STORAGE_FREEZER)
+        await coordinator.async_remove_zone(name, location)
         return {
             "success": True,
             "zone": name,
+            "location": location,
         }
 
     async def handle_rename_zone(call: ServiceCall) -> ServiceResponse:
         """Handle rename zone service call."""
         old_name = call.data[ATTR_OLD_NAME]
         new_name = call.data[ATTR_NEW_NAME]
-        await coordinator.async_rename_zone(old_name, new_name)
+        location = call.data.get(ATTR_LOCATION, STORAGE_FREEZER)
+        await coordinator.async_rename_zone(old_name, new_name, location)
         return {
             "success": True,
             "old_name": old_name,
             "new_name": new_name,
+            "location": location,
         }
 
     async def handle_reset_categories(call: ServiceCall) -> ServiceResponse:
         """Handle reset categories service call."""
-        await coordinator.async_reset_categories()
+        location = call.data.get(ATTR_LOCATION, STORAGE_FREEZER)
+        await coordinator.async_reset_categories(location)
         return {
             "success": True,
+            "location": location,
         }
 
     async def handle_reset_zones(call: ServiceCall) -> ServiceResponse:
         """Handle reset zones service call."""
-        await coordinator.async_reset_zones()
+        location = call.data.get(ATTR_LOCATION, STORAGE_FREEZER)
+        await coordinator.async_reset_zones(location)
         return {
             "success": True,
         }
@@ -479,6 +528,7 @@ async def async_setup_services(
         DOMAIN,
         SERVICE_RESET_CATEGORIES,
         handle_reset_categories,
+        schema=RESET_CATEGORIES_SCHEMA,
         supports_response=SupportsResponse.OPTIONAL,
     )
 
@@ -486,6 +536,7 @@ async def async_setup_services(
         DOMAIN,
         SERVICE_RESET_ZONES,
         handle_reset_zones,
+        schema=RESET_ZONES_SCHEMA,
         supports_response=SupportsResponse.OPTIONAL,
     )
 

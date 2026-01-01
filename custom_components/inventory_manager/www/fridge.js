@@ -1,4 +1,4 @@
-class InventoryManagerFreezer extends HTMLElement {
+class InventoryManagerFridge extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
@@ -8,9 +8,9 @@ class InventoryManagerFreezer extends HTMLElement {
     this._sortBy = 'date'; // 'date', 'name', 'category', 'zone'
     this._sortAsc = true; // true = ascendant
     this._categories = [
-      "Viande", "Poisson", "Légumes", "Fruits",
-      "Plats préparés", "Pain/Pâtisserie",
-      "Glaces/Desserts", "Condiments/Sauces", "Autre"
+      "Viande/Charcuterie", "Poisson/Fruits de mer", "Produits laitiers", "Fromages",
+      "Légumes frais", "Fruits frais", "Boissons", "Sauces/Condiments",
+      "Plats préparés", "Autre"
     ];
     this._zones = ["Zone 1", "Zone 2", "Zone 3"];
   }
@@ -28,8 +28,8 @@ class InventoryManagerFreezer extends HTMLElement {
   _syncFromHass() {
     if (!this._hass) return;
     
-    const freezerSensor = this._hass.states['sensor.gestionnaire_d_inventaire_congelateur'];
-    const serverProducts = freezerSensor?.attributes?.products || [];
+    const fridgeSensor = this._hass.states['sensor.gestionnaire_d_inventaire_refrigerateur'];
+    const serverProducts = fridgeSensor?.attributes?.products || [];
     
     // Filtrer les produits serveur : exclure ceux qu'on a supprimé localement (en attente de confirmation)
     this._localProducts = serverProducts.filter(p => !this._deletedIds.has(p.id));
@@ -124,7 +124,7 @@ class InventoryManagerFreezer extends HTMLElement {
     if (!tbody) return;
     
     if (this._localProducts.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="empty-state">🎉 Aucun produit dans le congélateur</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" class="empty-state">🎉 Aucun produit dans le réfrigérateur</td></tr>';
     } else {
       const sortedProducts = this._getSortedProducts();
       tbody.innerHTML = sortedProducts.map(p => {
@@ -482,7 +482,7 @@ class InventoryManagerFreezer extends HTMLElement {
       <div class="container">
         <h1>
           <button class="btn-back" id="btn-back">← Retour</button>
-          🧊 Gestionnaire d'Inventaire - Congélateur
+          � Gestionnaire d'Inventaire - Réfrigérateur
         </h1>
         
         <div class="stats">
@@ -1061,7 +1061,7 @@ class InventoryManagerFreezer extends HTMLElement {
       await this._hass.callService('inventory_manager', 'add_product', {
         name: name,
         expiry_date: date,
-        location: 'freezer',
+        location: 'fridge',
         quantity: qty,
         category: category,
         zone: zone,
@@ -1290,13 +1290,13 @@ class InventoryManagerFreezer extends HTMLElement {
 
     try {
       await this._hass.callService('inventory_manager', 'reset_categories', {
-        location: 'freezer',
+        location: 'fridge',
       });
       // Recharger les catégories par défaut
       this._categories = [
-        "Viande", "Poisson", "Légumes", "Fruits",
-        "Plats préparés", "Pain/Pâtisserie",
-        "Glaces/Desserts", "Condiments/Sauces", "Autre"
+        "Viande/Charcuterie", "Poisson/Fruits de mer", "Produits laitiers", "Fromages",
+        "Légumes frais", "Fruits frais", "Boissons", "Sauces/Condiments",
+        "Plats préparés", "Autre"
       ];
       this._renderCategoriesList();
       alert('Catégories réinitialisées !');
@@ -1311,7 +1311,7 @@ class InventoryManagerFreezer extends HTMLElement {
 
     try {
       await this._hass.callService('inventory_manager', 'reset_zones', {
-        location: 'freezer',
+        location: 'fridge',
       });
       // Recharger les zones par défaut
       this._zones = ["Zone 1", "Zone 2", "Zone 3"];
@@ -1332,4 +1332,4 @@ class InventoryManagerFreezer extends HTMLElement {
   }
 }
 
-customElements.define('inventory-manager-freezer', InventoryManagerFreezer);
+customElements.define('inventory-manager-fridge', InventoryManagerFridge);

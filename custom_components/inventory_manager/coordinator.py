@@ -268,13 +268,21 @@ class InventoryCoordinator(DataUpdateCoordinator):
         
         return "Autre"
 
-    def get_zones(self) -> list[str]:
-        """Get list of zones from config."""
-        return self.entry.options.get("zones", DEFAULT_ZONES)
+    def get_zones(self, location: str = STORAGE_FREEZER) -> list[str]:
+        """Get list of zones from config for a specific location."""
+        all_zones = self.entry.options.get("zones", DEFAULT_ZONES)
+        if isinstance(all_zones, dict):
+            return all_zones.get(location, DEFAULT_ZONES.get(location, []))
+        # Backward compatibility: if zones is still a list, return it
+        return all_zones if isinstance(all_zones, list) else []
 
-    def get_categories(self) -> list[str]:
-        """Get list of categories from config."""
-        return self.entry.options.get("categories", DEFAULT_CATEGORIES)
+    def get_categories(self, location: str = STORAGE_FREEZER) -> list[str]:
+        """Get list of categories from config for a specific location."""
+        all_categories = self.entry.options.get("categories", DEFAULT_CATEGORIES)
+        if isinstance(all_categories, dict):
+            return all_categories.get(location, DEFAULT_CATEGORIES.get(location, []))
+        # Backward compatibility: if categories is still a list, return it
+        return all_categories if isinstance(all_categories, list) else []
 
     async def async_add_product(
         self,
@@ -291,9 +299,9 @@ class InventoryCoordinator(DataUpdateCoordinator):
         """Add a product to the inventory."""
         product_id = str(uuid.uuid4())[:8]
         
-        # Default zone is the first one
+        # Default zone is the first one for the specified location
         if zone is None:
-            zones = self.get_zones()
+            zones = self.get_zones(location)
             zone = zones[0] if zones else "Zone 1"
         
         # Default category is "Autre"
@@ -521,95 +529,129 @@ class InventoryCoordinator(DataUpdateCoordinator):
 
         return sorted(expiring, key=lambda x: x["days_until_expiry"])
 
-    async def async_add_category(self, name: str) -> None:
-        """Add a new category."""
-        categories = list(self.get_categories())
+    async def async_add_category(self, name: str, location: str = STORAGE_FREEZER) -> None:
+        """Add a new category for a specific location."""
+        all_categories = dict(self.entry.options.get("categories", DEFAULT_CATEGORIES))
+        if location not in all_categories:
+            all_categories[location] = list(DEFAULT_CATEGORIES.get(location, []))
+        
+        categories = list(all_categories[location])
         if name not in categories:
             categories.append(name)
-            new_data = {**self.entry.options, "categories": categories}
+            all_categories[location] = categories
+            new_data = {**self.entry.options, "categories": all_categories}
             self.hass.config_entries.async_update_entry(self.entry, options=new_data)
-            _LOGGER.info("Added category: %s", name)
+            _LOGGER.info("Added category '%s' to location '%s'", name, location)
 
-    async def async_remove_category(self, name: str) -> None:
-        """Remove a category. Products with this category will be set to 'Autre'."""
-        categories = list(self.get_categories())
+    async def async_remove_category(self, name: str, location: str = STORAGE_FREEZER) -> None:
+        """Remove a category for a specific location. Products with this category will be set to 'Autre'."""
+        all_categories = dict(self.entry.options.get("categories", DEFAULT_CATEGORIES))
+        if location not in all_categories:
+            return
+        
+        categories = list(all_categories[location])
         if name in categories:
             categories.remove(name)
-            new_data = {**self.entry.options, "categories": categories}
+            all_categories[location] = categories
+            new_data = {**self.entry.options, "categories": all_categories}
             self.hass.config_entries.async_update_entry(self.entry, options=new_data)
             
-            # Update products that have this category to 'Autre'
+            # Update products in this location that have this category to 'Autre'
             for product in self._products.values():
-                if product.get("category") == name:
+                if product.get("location") == location and product.get("category") == name:
                     product["category"] = "Autre"
             await self.async_save_data()
-            _LOGGER.info("Removed category: %s", name)
+            _LOGGER.info("Removed category '%s' from location '%s'", name, location)
 
-    async def async_rename_category(self, old_name: str, new_name: str) -> None:
-        """Rename a category. All products will be updated."""
-        categories = list(self.get_categories())
+    async def async_rename_category(self, old_name: str, new_name: str, location: str = STORAGE_FREEZER) -> None:
+        """Rename a category for a specific location. All products will be updated."""
+        all_categories = dict(self.entry.options.get("categories", DEFAULT_CATEGORIES))
+        if location not in all_categories:
+            return
+        
+        categories = list(all_categories[location])
         if old_name in categories:
             idx = categories.index(old_name)
             categories[idx] = new_name
-            new_data = {**self.entry.options, "categories": categories}
+            all_categories[location] = categories
+            new_data = {**self.entry.options, "categories": all_categories}
             self.hass.config_entries.async_update_entry(self.entry, options=new_data)
             
-            # Update all products
+            # Update products in this location
             for product in self._products.values():
-                if product.get("category") == old_name:
+                if product.get("location") == location and product.get("category") == old_name:
                     product["category"] = new_name
             await self.async_save_data()
-            _LOGGER.info("Renamed category: %s -> %s", old_name, new_name)
+            _LOGGER.info("Renamed category '%s' -> '%s' for location '%s'", old_name, new_name, location)
 
-    async def async_add_zone(self, name: str) -> None:
-        """Add a new zone."""
-        zones = list(self.get_zones())
+    async def async_add_zone(self, name: str, location: str = STORAGE_FREEZER) -> None:
+        """Add a new zone for a specific location."""
+        all_zones = dict(self.entry.options.get("zones", DEFAULT_ZONES))
+        if location not in all_zones:
+            all_zones[location] = list(DEFAULT_ZONES.get(location, []))
+        
+        zones = list(all_zones[location])
         if name not in zones:
             zones.append(name)
-            new_data = {**self.entry.options, "zones": zones}
+            all_zones[location] = zones
+            new_data = {**self.entry.options, "zones": all_zones}
             self.hass.config_entries.async_update_entry(self.entry, options=new_data)
-            _LOGGER.info("Added zone: %s", name)
+            _LOGGER.info("Added zone '%s' to location '%s'", name, location)
 
-    async def async_remove_zone(self, name: str) -> None:
-        """Remove a zone. Products in this zone will be set to first zone."""
-        zones = list(self.get_zones())
+    async def async_remove_zone(self, name: str, location: str = STORAGE_FREEZER) -> None:
+        """Remove a zone for a specific location. Products in this zone will be set to first zone."""
+        all_zones = dict(self.entry.options.get("zones", DEFAULT_ZONES))
+        if location not in all_zones:
+            return
+        
+        zones = list(all_zones[location])
         if name in zones:
             zones.remove(name)
-            new_data = {**self.entry.options, "zones": zones}
+            all_zones[location] = zones
+            new_data = {**self.entry.options, "zones": all_zones}
             self.hass.config_entries.async_update_entry(self.entry, options=new_data)
             
-            # Update products that have this zone to first zone
+            # Update products in this location that have this zone to first zone
             first_zone = zones[0] if zones else "Zone 1"
             for product in self._products.values():
-                if product.get("zone") == name:
+                if product.get("location") == location and product.get("zone") == name:
                     product["zone"] = first_zone
             await self.async_save_data()
-            _LOGGER.info("Removed zone: %s", name)
+            _LOGGER.info("Removed zone '%s' from location '%s'", name, location)
 
-    async def async_rename_zone(self, old_name: str, new_name: str) -> None:
-        """Rename a zone. All products will be updated."""
-        zones = list(self.get_zones())
+    async def async_rename_zone(self, old_name: str, new_name: str, location: str = STORAGE_FREEZER) -> None:
+        """Rename a zone for a specific location. All products will be updated."""
+        all_zones = dict(self.entry.options.get("zones", DEFAULT_ZONES))
+        if location not in all_zones:
+            return
+        
+        zones = list(all_zones[location])
         if old_name in zones:
             idx = zones.index(old_name)
             zones[idx] = new_name
-            new_data = {**self.entry.options, "zones": zones}
+            all_zones[location] = zones
+            new_data = {**self.entry.options, "zones": all_zones}
             self.hass.config_entries.async_update_entry(self.entry, options=new_data)
             
-            # Update all products
+            # Update products in this location
             for product in self._products.values():
-                if product.get("zone") == old_name:
+                if product.get("location") == location and product.get("zone") == old_name:
                     product["zone"] = new_name
             await self.async_save_data()
-            _LOGGER.info("Renamed zone: %s -> %s", old_name, new_name)
+            _LOGGER.info("Renamed zone '%s' -> '%s' for location '%s'", old_name, new_name, location)
 
-    async def async_reset_categories(self) -> None:
-        """Reset categories to default values."""
-        new_data = {**self.entry.options, "categories": list(DEFAULT_CATEGORIES)}
+    async def async_reset_categories(self, location: str = STORAGE_FREEZER) -> None:
+        """Reset categories to default values for a specific location."""
+        all_categories = dict(self.entry.options.get("categories", DEFAULT_CATEGORIES))
+        all_categories[location] = list(DEFAULT_CATEGORIES.get(location, []))
+        new_data = {**self.entry.options, "categories": all_categories}
         self.hass.config_entries.async_update_entry(self.entry, options=new_data)
-        _LOGGER.info("Reset categories to default")
+        _LOGGER.info("Reset categories to default for location '%s'", location)
 
-    async def async_reset_zones(self) -> None:
-        """Reset zones to default values."""
-        new_data = {**self.entry.options, "zones": list(DEFAULT_ZONES)}
+    async def async_reset_zones(self, location: str = STORAGE_FREEZER) -> None:
+        """Reset zones to default values for a specific location."""
+        all_zones = dict(self.entry.options.get("zones", DEFAULT_ZONES))
+        all_zones[location] = list(DEFAULT_ZONES.get(location, []))
+        new_data = {**self.entry.options, "zones": all_zones}
         self.hass.config_entries.async_update_entry(self.entry, options=new_data)
-        _LOGGER.info("Reset zones to default")
+        _LOGGER.info("Reset zones to default for location '%s'", location)
