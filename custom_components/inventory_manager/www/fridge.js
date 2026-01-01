@@ -482,7 +482,7 @@ class InventoryManagerFridge extends HTMLElement {
       <div class="container">
         <h1>
           <button class="btn-back" id="btn-back">← Retour</button>
-          Gestionnaire d'Inventaire - Réfrigérateur 🧃
+          🧃 Gestionnaire d'Inventaire - Réfrigérateur
         </h1>
         
         <div class="stats">
