@@ -4,7 +4,8 @@ class InventoryManagerPanel extends HTMLElement {
     this.attachShadow({ mode: 'open' });
     this._initialized = false;
     this._localProducts = []; // État local des produits
-    this._pendingOperations = new Set(); // IDs en cours de traitement
+    this._pendingAdds = new Set(); // IDs temporaires en cours d'ajout
+    this._pendingDeletes = new Set(); // IDs en cours de suppression
     this._lastProductsHash = ''; // Pour détecter les vrais changements
   }
 
@@ -28,7 +29,7 @@ class InventoryManagerPanel extends HTMLElement {
     const newHash = JSON.stringify(serverProducts.map(p => p.id).sort());
     
     // Si on a des opérations en cours, on ignore les updates de HA
-    if (this._pendingOperations.size > 0) {
+    if (this._pendingAdds.size > 0 || this._pendingDeletes.size > 0) {
       return;
     }
     
@@ -67,7 +68,8 @@ class InventoryManagerPanel extends HTMLElement {
     } else {
       tbody.innerHTML = this._localProducts.map(p => {
         const days = p.days_until_expiry;
-        const isPending = this._pendingOperations.has(p.id);
+        const isPendingAdd = this._pendingAdds.has(p.id);
+        const isPendingDelete = this._pendingDeletes.has(p.id);
         let statusClass = 'status-ok';
         let statusIcon = '🟢';
         
@@ -75,9 +77,20 @@ class InventoryManagerPanel extends HTMLElement {
         else if (days <= 3) { statusClass = 'status-danger'; statusIcon = '🟠'; }
         else if (days <= 7) { statusClass = 'status-warning'; statusIcon = '🟡'; }
         
-        const rowClass = isPending ? 'pending-row' : '';
-        const btnContent = isPending ? '⏳' : 'Supprimer';
-        const btnDisabled = isPending ? 'disabled' : '';
+        // Suppression = grisé et barré, Ajout = style normal avec indicateur
+        let rowClass = '';
+        let btnContent = 'Supprimer';
+        let btnDisabled = '';
+        
+        if (isPendingDelete) {
+          rowClass = 'pending-delete';
+          btnContent = '⏳';
+          btnDisabled = 'disabled';
+        } else if (isPendingAdd) {
+          rowClass = 'pending-add';
+          btnContent = '⏳';
+          btnDisabled = 'disabled';
+        }
         
         return `<tr class="${rowClass}" data-product-id="${p.id}">
           <td>${p.name || 'Sans nom'}</td>
@@ -176,11 +189,19 @@ class InventoryManagerPanel extends HTMLElement {
           border-bottom: 1px solid #e0e0e0;
         }
         tr:hover { background: #f5f5f5; }
-        tr.pending-row {
+        tr.pending-delete {
           opacity: 0.4;
           background: #ffebee;
           text-decoration: line-through;
           pointer-events: none;
+        }
+        tr.pending-add {
+          background: #e3f2fd;
+          animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.7; }
         }
         tr.new-row {
           background: #e8f5e9;
@@ -423,7 +444,7 @@ class InventoryManagerPanel extends HTMLElement {
     
     // Ajouter au début de la liste locale
     this._localProducts.unshift(newProduct);
-    this._pendingOperations.add(tempId);
+    this._pendingAdds.add(tempId);
     
     // Mettre à jour le compteur
     const totalEl = this.shadowRoot.getElementById('total-count');
@@ -445,7 +466,7 @@ class InventoryManagerPanel extends HTMLElement {
       });
       
       // Opération réussie - on retire du pending et on force une sync dans 2s
-      this._pendingOperations.delete(tempId);
+      this._pendingAdds.delete(tempId);
       
       // Forcer la sync après un délai pour récupérer le vrai ID
       setTimeout(() => {
@@ -456,7 +477,7 @@ class InventoryManagerPanel extends HTMLElement {
     } catch (err) {
       console.error('Erreur ajout:', err);
       // Rollback
-      this._pendingOperations.delete(tempId);
+      this._pendingAdds.delete(tempId);
       this._localProducts = this._localProducts.filter(p => p.id !== tempId);
       totalEl.textContent = Math.max(0, parseInt(totalEl.textContent || '1') - qty);
       this._renderProducts();
@@ -493,7 +514,7 @@ class InventoryManagerPanel extends HTMLElement {
     
     // Ajouter au début de la liste locale
     this._localProducts.unshift(newProduct);
-    this._pendingOperations.add(tempId);
+    this._pendingAdds.add(tempId);
     
     // Mettre à jour le compteur
     const totalEl = this.shadowRoot.getElementById('total-count');
@@ -515,7 +536,7 @@ class InventoryManagerPanel extends HTMLElement {
       });
       
       // Opération réussie
-      this._pendingOperations.delete(tempId);
+      this._pendingAdds.delete(tempId);
       
       // Forcer la sync pour récupérer le vrai nom du produit
       setTimeout(() => {
@@ -526,7 +547,7 @@ class InventoryManagerPanel extends HTMLElement {
     } catch (err) {
       console.error('Erreur scan:', err);
       // Rollback
-      this._pendingOperations.delete(tempId);
+      this._pendingAdds.delete(tempId);
       this._localProducts = this._localProducts.filter(p => p.id !== tempId);
       totalEl.textContent = Math.max(0, parseInt(totalEl.textContent || '1') - qty);
       this._renderProducts();
@@ -547,7 +568,7 @@ class InventoryManagerPanel extends HTMLElement {
     const qty = product.quantity || 1;
     
     // Marquer comme en cours de suppression (grisé barré)
-    this._pendingOperations.add(productId);
+    this._pendingDeletes.add(productId);
     this._renderProducts();
     
     // Mettre à jour le compteur immédiatement
@@ -561,7 +582,7 @@ class InventoryManagerPanel extends HTMLElement {
       
       // Supprimer de la liste locale
       this._localProducts = this._localProducts.filter(p => p.id !== productId);
-      this._pendingOperations.delete(productId);
+      this._pendingDeletes.delete(productId);
       
       // Rendre la liste mise à jour
       this._renderProducts();
@@ -572,7 +593,7 @@ class InventoryManagerPanel extends HTMLElement {
     } catch (err) {
       console.error('Erreur suppression:', err);
       // Rollback
-      this._pendingOperations.delete(productId);
+      this._pendingDeletes.delete(productId);
       totalEl.textContent = parseInt(totalEl.textContent || '0') + qty;
       this._renderProducts();
       alert('Erreur: ' + err.message);
