@@ -3,7 +3,9 @@ class InventoryManagerPanel extends HTMLElement {
     super();
     this.attachShadow({ mode: 'open' });
     this._initialized = false;
-    this._pendingDelete = null;
+    this._localProducts = []; // État local des produits
+    this._pendingOperations = new Set(); // IDs en cours de traitement
+    this._lastProductsHash = ''; // Pour détecter les vrais changements
   }
 
   set hass(hass) {
@@ -12,7 +14,80 @@ class InventoryManagerPanel extends HTMLElement {
       this._initialize();
       this._initialized = true;
     }
-    this._updateData();
+    this._syncFromHass();
+  }
+
+  // Synchronise depuis HA seulement si les données ont changé
+  _syncFromHass() {
+    if (!this._hass) return;
+    
+    const freezerSensor = this._hass.states['sensor.gestionnaire_d_inventaire_congelateur'];
+    const serverProducts = freezerSensor?.attributes?.products || [];
+    
+    // Créer un hash des produits serveur pour détecter les changements
+    const newHash = JSON.stringify(serverProducts.map(p => p.id).sort());
+    
+    // Si on a des opérations en cours, on ignore les updates de HA
+    if (this._pendingOperations.size > 0) {
+      return;
+    }
+    
+    // Si les données n'ont pas changé, on ne fait rien
+    if (newHash === this._lastProductsHash) {
+      return;
+    }
+    
+    // Mise à jour des données locales
+    this._lastProductsHash = newHash;
+    this._localProducts = serverProducts.map(p => ({...p}));
+    
+    // Mettre à jour les stats
+    const expiringSensor = this._hass.states['sensor.gestionnaire_d_inventaire_produits_perimant_bientot'];
+    const expiredSensor = this._hass.states['sensor.gestionnaire_d_inventaire_produits_perimes'];
+    
+    const totalEl = this.shadowRoot.getElementById('total-count');
+    const expiringEl = this.shadowRoot.getElementById('expiring-count');
+    const expiredEl = this.shadowRoot.getElementById('expired-count');
+    
+    if (totalEl) totalEl.textContent = freezerSensor?.state || '0';
+    if (expiringEl) expiringEl.textContent = expiringSensor?.state || '0';
+    if (expiredEl) expiredEl.textContent = expiredSensor?.state || '0';
+    
+    // Mettre à jour le tableau
+    this._renderProducts();
+  }
+
+  // Rendu du tableau depuis l'état local
+  _renderProducts() {
+    const tbody = this.shadowRoot.getElementById('products-list');
+    if (!tbody) return;
+    
+    if (this._localProducts.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty-state">🎉 Aucun produit dans le congélateur</td></tr>';
+    } else {
+      tbody.innerHTML = this._localProducts.map(p => {
+        const days = p.days_until_expiry;
+        const isPending = this._pendingOperations.has(p.id);
+        let statusClass = 'status-ok';
+        let statusIcon = '🟢';
+        
+        if (days < 0) { statusClass = 'status-danger'; statusIcon = '🔴'; }
+        else if (days <= 3) { statusClass = 'status-danger'; statusIcon = '🟠'; }
+        else if (days <= 7) { statusClass = 'status-warning'; statusIcon = '🟡'; }
+        
+        const rowClass = isPending ? 'pending-row' : '';
+        const btnContent = isPending ? '⏳' : 'Supprimer';
+        const btnDisabled = isPending ? 'disabled' : '';
+        
+        return `<tr class="${rowClass}" data-product-id="${p.id}">
+          <td>${p.name || 'Sans nom'}</td>
+          <td>${p.expiry_date || '-'}</td>
+          <td class="${statusClass}">${statusIcon} ${days !== undefined ? days + 'j' : '--'}</td>
+          <td>${p.quantity || 1}</td>
+          <td><button type="button" class="btn-delete" data-id="${p.id}" ${btnDisabled}>${btnContent}</button></td>
+        </tr>`;
+      }).join('');
+    }
   }
 
   _initialize() {
@@ -70,12 +145,16 @@ class InventoryManagerPanel extends HTMLElement {
           gap: 8px;
           transition: transform 0.2s, box-shadow 0.2s;
         }
-        button:hover {
+        button:hover:not(:disabled) {
           transform: translateY(-2px);
           box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
-        button:active {
+        button:active:not(:disabled) {
           transform: translateY(0);
+        }
+        button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
         }
         .btn-primary { background: #03a9f4; color: white; }
         .btn-secondary { background: #ff9800; color: white; }
@@ -97,6 +176,24 @@ class InventoryManagerPanel extends HTMLElement {
           border-bottom: 1px solid #e0e0e0;
         }
         tr:hover { background: #f5f5f5; }
+        tr.pending-row {
+          opacity: 0.4;
+          background: #ffebee;
+          text-decoration: line-through;
+          pointer-events: none;
+        }
+        tr.new-row {
+          background: #e8f5e9;
+          animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeOut {
+          from { opacity: 1; }
+          to { opacity: 0; transform: translateX(20px); }
+        }
         .status-ok { color: #4caf50; }
         .status-warning { color: #ff9800; }
         .status-danger { color: #f44336; }
@@ -109,8 +206,11 @@ class InventoryManagerPanel extends HTMLElement {
           cursor: pointer;
           border: none;
         }
-        .btn-delete:hover {
+        .btn-delete:hover:not(:disabled) {
           background: #d32f2f;
+        }
+        .btn-delete:disabled {
+          background: #999;
         }
         .empty-state {
           text-align: center;
@@ -156,7 +256,6 @@ class InventoryManagerPanel extends HTMLElement {
           margin-top: 24px;
         }
         .btn-cancel { background: #e0e0e0; color: #212121; }
-        .loading { opacity: 0.5; pointer-events: none; }
       </style>
       
       <div class="container">
@@ -243,7 +342,7 @@ class InventoryManagerPanel extends HTMLElement {
       </div>
     `;
 
-    // Static event listeners (only once)
+    // Event listeners
     this.shadowRoot.getElementById('btn-add').onclick = () => this._openAddModal();
     this.shadowRoot.getElementById('btn-scan').onclick = () => this._openScanModal();
     this.shadowRoot.getElementById('btn-cancel').onclick = () => this._closeModals();
@@ -251,10 +350,10 @@ class InventoryManagerPanel extends HTMLElement {
     this.shadowRoot.getElementById('btn-save').onclick = () => this._addProduct();
     this.shadowRoot.getElementById('btn-scan-save').onclick = () => this._scanProduct();
     
-    // Event delegation for delete buttons - ONE listener on tbody
+    // Event delegation for delete buttons
     this.shadowRoot.getElementById('products-list').onclick = (e) => {
       const btn = e.target.closest('.btn-delete');
-      if (btn) {
+      if (btn && !btn.disabled) {
         const productId = btn.dataset.id;
         if (productId) {
           this._deleteProduct(productId);
@@ -268,49 +367,6 @@ class InventoryManagerPanel extends HTMLElement {
     const dateStr = defaultDate.toISOString().split('T')[0];
     this.shadowRoot.getElementById('product-date').value = dateStr;
     this.shadowRoot.getElementById('scan-date').value = dateStr;
-  }
-
-  _updateData() {
-    if (!this._hass) return;
-    
-    const freezerSensor = this._hass.states['sensor.gestionnaire_d_inventaire_congelateur'];
-    const expiringSensor = this._hass.states['sensor.gestionnaire_d_inventaire_produits_perimant_bientot'];
-    const expiredSensor = this._hass.states['sensor.gestionnaire_d_inventaire_produits_perimes'];
-
-    // Update stats
-    const totalEl = this.shadowRoot.getElementById('total-count');
-    const expiringEl = this.shadowRoot.getElementById('expiring-count');
-    const expiredEl = this.shadowRoot.getElementById('expired-count');
-    
-    if (totalEl) totalEl.textContent = freezerSensor?.state || '0';
-    if (expiringEl) expiringEl.textContent = expiringSensor?.state || '0';
-    if (expiredEl) expiredEl.textContent = expiredSensor?.state || '0';
-
-    // Update products list
-    const products = freezerSensor?.attributes?.products || [];
-    const tbody = this.shadowRoot.getElementById('products-list');
-    if (!tbody) return;
-    
-    if (products.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="empty-state">🎉 Aucun produit</td></tr>';
-    } else {
-      tbody.innerHTML = products.map(p => {
-        const days = p.days_until_expiry;
-        let statusClass = 'status-ok';
-        let statusIcon = '🟢';
-        if (days < 0) { statusClass = 'status-danger'; statusIcon = '🔴'; }
-        else if (days <= 3) { statusClass = 'status-danger'; statusIcon = '🟠'; }
-        else if (days <= 7) { statusClass = 'status-warning'; statusIcon = '🟡'; }
-        
-        return `<tr>
-          <td>${p.name || 'Sans nom'}</td>
-          <td>${p.expiry_date || '-'}</td>
-          <td class="${statusClass}">${statusIcon} ${days}j</td>
-          <td>${p.quantity || 1}</td>
-          <td><button type="button" class="btn-delete" data-id="${p.id}">Supprimer</button></td>
-        </tr>`;
-      }).join('');
-    }
   }
 
   _openAddModal() {
@@ -328,6 +384,16 @@ class InventoryManagerPanel extends HTMLElement {
     this.shadowRoot.getElementById('scan-modal').classList.remove('open');
   }
 
+  // Calcul des jours jusqu'à expiration
+  _calculateDaysUntilExpiry(expiryDate) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const expiry = new Date(expiryDate);
+    expiry.setHours(0, 0, 0, 0);
+    const diffTime = expiry - today;
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  }
+
   async _addProduct() {
     const nameEl = this.shadowRoot.getElementById('product-name');
     const dateEl = this.shadowRoot.getElementById('product-date');
@@ -342,29 +408,31 @@ class InventoryManagerPanel extends HTMLElement {
       return;
     }
 
-    // Optimistic update - add visually immediately
+    // Générer un ID temporaire
     const tempId = 'temp_' + Date.now();
-    const tbody = this.shadowRoot.getElementById('products-list');
-    const newRow = document.createElement('tr');
-    newRow.id = 'row_' + tempId;
-    newRow.innerHTML = `
-      <td>${name}</td>
-      <td>${date}</td>
-      <td class="status-ok">🟢 --j</td>
-      <td>${qty}</td>
-      <td><button type="button" class="btn-delete" disabled>⏳</button></td>
-    `;
     
-    // Remove empty state if present
-    const emptyRow = tbody.querySelector('.empty-state');
-    if (emptyRow) emptyRow.parentElement.remove();
+    // Créer le produit optimiste
+    const newProduct = {
+      id: tempId,
+      name: name,
+      expiry_date: date,
+      quantity: qty,
+      days_until_expiry: this._calculateDaysUntilExpiry(date),
+      location: 'freezer'
+    };
     
-    tbody.insertBefore(newRow, tbody.firstChild);
+    // Ajouter au début de la liste locale
+    this._localProducts.unshift(newProduct);
+    this._pendingOperations.add(tempId);
     
-    // Update count optimistically
+    // Mettre à jour le compteur
     const totalEl = this.shadowRoot.getElementById('total-count');
     totalEl.textContent = parseInt(totalEl.textContent || '0') + qty;
     
+    // Rendre immédiatement
+    this._renderProducts();
+    
+    // Fermer le modal et reset
     nameEl.value = '';
     this._closeModals();
 
@@ -376,13 +444,22 @@ class InventoryManagerPanel extends HTMLElement {
         quantity: qty
       });
       
-      // Refresh to get real data after a short delay
-      setTimeout(() => this._updateData(), 500);
+      // Opération réussie - on retire du pending et on force une sync dans 2s
+      this._pendingOperations.delete(tempId);
+      
+      // Forcer la sync après un délai pour récupérer le vrai ID
+      setTimeout(() => {
+        this._lastProductsHash = '';
+        this._syncFromHass();
+      }, 2000);
+      
     } catch (err) {
       console.error('Erreur ajout:', err);
-      // Rollback on error
-      newRow.remove();
-      totalEl.textContent = parseInt(totalEl.textContent || '1') - qty;
+      // Rollback
+      this._pendingOperations.delete(tempId);
+      this._localProducts = this._localProducts.filter(p => p.id !== tempId);
+      totalEl.textContent = Math.max(0, parseInt(totalEl.textContent || '1') - qty);
+      this._renderProducts();
       alert('Erreur: ' + err.message);
     }
   }
@@ -401,29 +478,31 @@ class InventoryManagerPanel extends HTMLElement {
       return;
     }
 
-    // Optimistic update - add visually immediately
+    // Générer un ID temporaire
     const tempId = 'temp_' + Date.now();
-    const tbody = this.shadowRoot.getElementById('products-list');
-    const newRow = document.createElement('tr');
-    newRow.id = 'row_' + tempId;
-    newRow.innerHTML = `
-      <td>🔍 Recherche... (${barcode})</td>
-      <td>${date}</td>
-      <td class="status-ok">🟢 --j</td>
-      <td>${qty}</td>
-      <td><button type="button" class="btn-delete" disabled>⏳</button></td>
-    `;
     
-    // Remove empty state if present
-    const emptyRow = tbody.querySelector('.empty-state');
-    if (emptyRow) emptyRow.parentElement.remove();
+    // Créer le produit optimiste
+    const newProduct = {
+      id: tempId,
+      name: `🔍 Recherche... (${barcode})`,
+      expiry_date: date,
+      quantity: qty,
+      days_until_expiry: this._calculateDaysUntilExpiry(date),
+      location: 'freezer'
+    };
     
-    tbody.insertBefore(newRow, tbody.firstChild);
+    // Ajouter au début de la liste locale
+    this._localProducts.unshift(newProduct);
+    this._pendingOperations.add(tempId);
     
-    // Update count optimistically
+    // Mettre à jour le compteur
     const totalEl = this.shadowRoot.getElementById('total-count');
     totalEl.textContent = parseInt(totalEl.textContent || '0') + qty;
     
+    // Rendre immédiatement
+    this._renderProducts();
+    
+    // Fermer le modal et reset
     barcodeEl.value = '';
     this._closeModals();
 
@@ -435,68 +514,67 @@ class InventoryManagerPanel extends HTMLElement {
         quantity: qty
       });
       
-      // Refresh to get real product name
-      setTimeout(() => this._updateData(), 500);
+      // Opération réussie
+      this._pendingOperations.delete(tempId);
+      
+      // Forcer la sync pour récupérer le vrai nom du produit
+      setTimeout(() => {
+        this._lastProductsHash = '';
+        this._syncFromHass();
+      }, 2000);
+      
     } catch (err) {
       console.error('Erreur scan:', err);
-      // Rollback on error
-      newRow.remove();
-      totalEl.textContent = parseInt(totalEl.textContent || '1') - qty;
+      // Rollback
+      this._pendingOperations.delete(tempId);
+      this._localProducts = this._localProducts.filter(p => p.id !== tempId);
+      totalEl.textContent = Math.max(0, parseInt(totalEl.textContent || '1') - qty);
+      this._renderProducts();
       alert('Erreur: ' + err.message);
     }
   }
 
   async _deleteProduct(productId) {
-    if (!productId) {
-      console.error('No product ID');
-      return;
-    }
+    if (!productId) return;
     
-    if (!confirm('Supprimer ce produit ?')) {
-      return;
-    }
+    if (!confirm('Supprimer ce produit ?')) return;
 
-    // Find and hide the row immediately (optimistic update)
-    const btn = this.shadowRoot.querySelector(`.btn-delete[data-id="${productId}"]`);
-    const row = btn?.closest('tr');
-    let rowHTML = '';
-    let rowIndex = -1;
+    // Trouver le produit dans la liste locale
+    const productIndex = this._localProducts.findIndex(p => p.id === productId);
+    if (productIndex === -1) return;
     
-    if (row) {
-      rowHTML = row.outerHTML;
-      rowIndex = Array.from(row.parentNode.children).indexOf(row);
-      row.style.opacity = '0.3';
-      row.style.pointerEvents = 'none';
-      
-      // Update count optimistically
-      const totalEl = this.shadowRoot.getElementById('total-count');
-      const currentCount = parseInt(totalEl.textContent || '1');
-      totalEl.textContent = Math.max(0, currentCount - 1);
-    }
+    const product = this._localProducts[productIndex];
+    const qty = product.quantity || 1;
+    
+    // Marquer comme en cours de suppression (grisé barré)
+    this._pendingOperations.add(productId);
+    this._renderProducts();
+    
+    // Mettre à jour le compteur immédiatement
+    const totalEl = this.shadowRoot.getElementById('total-count');
+    totalEl.textContent = Math.max(0, parseInt(totalEl.textContent || '1') - qty);
 
     try {
       await this._hass.callService('inventory_manager', 'remove_product', {
         product_id: productId
       });
       
-      // Remove row completely after service call succeeds
-      if (row) row.remove();
+      // Supprimer de la liste locale
+      this._localProducts = this._localProducts.filter(p => p.id !== productId);
+      this._pendingOperations.delete(productId);
       
-      // Check if list is now empty
-      const tbody = this.shadowRoot.getElementById('products-list');
-      if (tbody && tbody.children.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">🎉 Aucun produit</td></tr>';
-      }
+      // Rendre la liste mise à jour
+      this._renderProducts();
       
-      // Still refresh to sync with real data
-      setTimeout(() => this._updateData(), 500);
+      // Mettre à jour le hash pour éviter que la sync restaure l'élément
+      this._lastProductsHash = JSON.stringify(this._localProducts.map(p => p.id).sort());
+      
     } catch (err) {
       console.error('Erreur suppression:', err);
-      // Rollback on error
-      if (row) {
-        row.style.opacity = '1';
-        row.style.pointerEvents = 'auto';
-      }
+      // Rollback
+      this._pendingOperations.delete(productId);
+      totalEl.textContent = parseInt(totalEl.textContent || '0') + qty;
+      this._renderProducts();
       alert('Erreur: ' + err.message);
     }
   }
