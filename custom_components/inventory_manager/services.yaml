@@ -140,3 +140,36 @@ list_products:
               value: "fridge"
             - label: "Réserves"
               value: "pantry"
+
+update_product:
+  name: Modifier un produit
+  description: Modifie les détails d'un produit existant
+  fields:
+    product_id:
+      name: ID du produit
+      description: L'identifiant unique du produit à modifier
+      required: true
+      example: "a1b2c3d4"
+      selector:
+        text:
+    name:
+      name: Nom du produit
+      description: Le nouveau nom du produit (optionnel)
+      required: false
+      selector:
+        text:
+    expiry_date:
+      name: Date de péremption
+      description: La nouvelle date de péremption (format YYYY-MM-DD, optionnel)
+      required: false
+      selector:
+        date:
+    quantity:
+      name: Quantité
+      description: La nouvelle quantité (optionnel)
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 100
+          mode: box

@@ -15,6 +15,7 @@ from .const import (
     SERVICE_ADD_PRODUCT,
     SERVICE_REMOVE_PRODUCT,
     SERVICE_UPDATE_QUANTITY,
+    SERVICE_UPDATE_PRODUCT,
     SERVICE_LIST_PRODUCTS,
     ATTR_BARCODE,
     ATTR_NAME,
@@ -73,6 +74,15 @@ UPDATE_QUANTITY_SCHEMA = vol.Schema(
 LIST_PRODUCTS_SCHEMA = vol.Schema(
     {
         vol.Optional(ATTR_LOCATION): vol.In(list(STORAGE_LOCATIONS.keys())),
+    }
+)
+
+UPDATE_PRODUCT_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_PRODUCT_ID): cv.string,
+        vol.Optional(ATTR_NAME): cv.string,
+        vol.Optional(ATTR_EXPIRY_DATE): cv.string,
+        vol.Optional(ATTR_QUANTITY): vol.All(vol.Coerce(int), vol.Range(min=1)),
     }
 )
 
@@ -197,6 +207,43 @@ async def async_setup_services(
             "products": products,
         }
 
+    async def handle_update_product(call: ServiceCall) -> ServiceResponse:
+        """Handle update product service call."""
+        product_id = call.data[ATTR_PRODUCT_ID]
+        name = call.data.get(ATTR_NAME)
+        expiry_date = call.data.get(ATTR_EXPIRY_DATE)
+        quantity = call.data.get(ATTR_QUANTITY)
+
+        # Validate expiry date format if provided
+        if expiry_date:
+            try:
+                datetime.fromisoformat(expiry_date)
+            except ValueError:
+                for fmt in ["%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y"]:
+                    try:
+                        parsed_date = datetime.strptime(expiry_date, fmt)
+                        expiry_date = parsed_date.date().isoformat()
+                        break
+                    except ValueError:
+                        continue
+                else:
+                    return {
+                        "success": False,
+                        "error": f"Format de date invalide: {expiry_date}. Utilisez YYYY-MM-DD",
+                    }
+
+        success = await coordinator.async_update_product(
+            product_id=product_id,
+            name=name,
+            expiry_date=expiry_date,
+            quantity=quantity,
+        )
+
+        return {
+            "success": success,
+            "product_id": product_id,
+        }
+
     # Register services
     hass.services.async_register(
         DOMAIN,
@@ -238,6 +285,14 @@ async def async_setup_services(
         supports_response=SupportsResponse.OPTIONAL,
     )
 
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_UPDATE_PRODUCT,
+        handle_update_product,
+        schema=UPDATE_PRODUCT_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
     _LOGGER.info("Inventory Manager services registered")
 
 
@@ -247,4 +302,5 @@ async def async_unload_services(hass: HomeAssistant) -> None:
     hass.services.async_remove(DOMAIN, SERVICE_ADD_PRODUCT)
     hass.services.async_remove(DOMAIN, SERVICE_REMOVE_PRODUCT)
     hass.services.async_remove(DOMAIN, SERVICE_UPDATE_QUANTITY)
+    hass.services.async_remove(DOMAIN, SERVICE_UPDATE_PRODUCT)
     hass.services.async_remove(DOMAIN, SERVICE_LIST_PRODUCTS)

@@ -109,7 +109,10 @@ class InventoryManagerPanel extends HTMLElement {
           <td class="col-name">${p.name || 'Sans nom'}</td>
           <td class="col-date">${this._formatDateFR(p.expiry_date)} <span class="${statusClass}">${statusIcon}${days !== undefined ? days + 'j' : ''}</span></td>
           <td class="col-qty">${p.quantity || 1}</td>
-          <td class="col-action"><button type="button" class="btn-delete" data-id="${p.id}" title="Supprimer">🗑️</button></td>
+          <td class="col-action">
+            <button type="button" class="btn-edit" data-id="${p.id}" title="Modifier">✏️</button>
+            <button type="button" class="btn-delete" data-id="${p.id}" title="Supprimer">🗑️</button>
+          </td>
         </tr>`;
       }).join('');
     }
@@ -225,21 +228,48 @@ class InventoryManagerPanel extends HTMLElement {
         .status-ok { color: #4caf50; }
         .status-warning { color: #ff9800; }
         .status-danger { color: #f44336; }
+        .btn-edit, .btn-delete {
+          padding: 6px 8px;
+          border-radius: 6px;
+          font-size: 1em;
+          cursor: pointer;
+          border: none;
+          min-width: 32px;
+        }
+        .btn-edit {
+          background: #2196f3;
+          color: white;
+          margin-right: 4px;
+        }
+        .btn-edit:hover { background: #1976d2; }
         .btn-delete {
           background: #f44336;
           color: white;
-          padding: 6px 10px;
-          border-radius: 6px;
-          font-size: 1.1em;
-          cursor: pointer;
-          border: none;
-          min-width: 36px;
         }
         .btn-delete:hover:not(:disabled) {
           background: #d32f2f;
         }
         .btn-delete:disabled {
           background: #999;
+        }
+        .product-info {
+          background: #e8f5e9;
+          border: 1px solid #4caf50;
+          border-radius: 8px;
+          padding: 12px;
+          margin-bottom: 16px;
+          text-align: center;
+        }
+        .product-info.not-found {
+          background: #fff3e0;
+          border-color: #ff9800;
+        }
+        .product-info.loading {
+          background: #e3f2fd;
+          border-color: #2196f3;
+        }
+        .product-name-input {
+          margin-top: 8px;
         }
         .empty-state {
           text-align: center;
@@ -418,8 +448,16 @@ class InventoryManagerPanel extends HTMLElement {
           <div class="form-group">
             <label>Code-barres</label>
             <div class="barcode-input-row">
-              <input type="text" id="scan-barcode" placeholder="Ou entrez manuellement">
+              <input type="text" id="scan-barcode" placeholder="Scannez ou entrez manuellement">
+              <button class="btn-small" id="btn-lookup" title="Rechercher">🔍</button>
             </div>
+          </div>
+          
+          <div id="product-info-box" class="product-info" style="display:none;"></div>
+          
+          <div class="form-group">
+            <label>Nom du produit</label>
+            <input type="text" id="scan-name" placeholder="Nom du produit (modifiable)">
           </div>
           <div class="form-group">
             <label>Date de péremption</label>
@@ -435,6 +473,29 @@ class InventoryManagerPanel extends HTMLElement {
           </div>
         </div>
       </div>
+      
+      <div class="modal" id="edit-modal">
+        <div class="modal-content">
+          <h2>✏️ Modifier le produit</h2>
+          <input type="hidden" id="edit-id">
+          <div class="form-group">
+            <label>Nom du produit</label>
+            <input type="text" id="edit-name">
+          </div>
+          <div class="form-group">
+            <label>Date de péremption</label>
+            <input type="date" id="edit-date">
+          </div>
+          <div class="form-group">
+            <label>Quantité</label>
+            <input type="number" id="edit-qty" value="1" min="1" max="99">
+          </div>
+          <div class="modal-actions">
+            <button class="btn-cancel" id="btn-edit-cancel">Annuler</button>
+            <button class="btn-primary" id="btn-edit-save">Enregistrer</button>
+          </div>
+        </div>
+      </div>
     `;
 
     // Event listeners
@@ -442,18 +503,27 @@ class InventoryManagerPanel extends HTMLElement {
     this.shadowRoot.getElementById('btn-scan').onclick = () => this._openScanModal();
     this.shadowRoot.getElementById('btn-cancel').onclick = () => this._closeModals();
     this.shadowRoot.getElementById('btn-scan-cancel').onclick = () => this._closeScanModal();
+    this.shadowRoot.getElementById('btn-edit-cancel').onclick = () => this._closeModals();
     this.shadowRoot.getElementById('btn-save').onclick = () => this._addProduct();
     this.shadowRoot.getElementById('btn-scan-save').onclick = () => this._scanProduct();
+    this.shadowRoot.getElementById('btn-edit-save').onclick = () => this._saveEditProduct();
     this.shadowRoot.getElementById('btn-start-camera').onclick = () => this._startCamera();
+    this.shadowRoot.getElementById('btn-lookup').onclick = () => this._lookupBarcode();
     
-    // Event delegation for delete buttons
+    // Auto-lookup when barcode is entered
+    this.shadowRoot.getElementById('scan-barcode').addEventListener('change', () => this._lookupBarcode());
+    
+    // Event delegation for edit and delete buttons
     this.shadowRoot.getElementById('products-list').onclick = (e) => {
-      const btn = e.target.closest('.btn-delete');
-      if (btn && !btn.disabled) {
-        const productId = btn.dataset.id;
-        if (productId) {
-          this._deleteProduct(productId);
-        }
+      const editBtn = e.target.closest('.btn-edit');
+      const deleteBtn = e.target.closest('.btn-delete');
+      
+      if (editBtn) {
+        const productId = editBtn.dataset.id;
+        if (productId) this._openEditModal(productId);
+      } else if (deleteBtn && !deleteBtn.disabled) {
+        const productId = deleteBtn.dataset.id;
+        if (productId) this._deleteProduct(productId);
       }
     };
     
@@ -472,20 +542,121 @@ class InventoryManagerPanel extends HTMLElement {
 
   _openScanModal() {
     this.shadowRoot.getElementById('scan-modal').classList.add('open');
+    // Reset form
+    this.shadowRoot.getElementById('scan-barcode').value = '';
+    this.shadowRoot.getElementById('scan-name').value = '';
+    this.shadowRoot.getElementById('product-info-box').style.display = 'none';
     // Reset camera state
     this.shadowRoot.getElementById('camera-container').style.display = 'none';
     this.shadowRoot.getElementById('camera-status').textContent = '';
     this.shadowRoot.getElementById('btn-start-camera').style.display = 'flex';
   }
 
+  _openEditModal(productId) {
+    const product = this._localProducts.find(p => p.id === productId);
+    if (!product) return;
+    
+    this.shadowRoot.getElementById('edit-id').value = productId;
+    this.shadowRoot.getElementById('edit-name').value = product.name || '';
+    this.shadowRoot.getElementById('edit-date').value = product.expiry_date || '';
+    this.shadowRoot.getElementById('edit-qty').value = product.quantity || 1;
+    this.shadowRoot.getElementById('edit-modal').classList.add('open');
+  }
+
   _closeModals() {
     this.shadowRoot.getElementById('add-modal').classList.remove('open');
     this.shadowRoot.getElementById('scan-modal').classList.remove('open');
+    this.shadowRoot.getElementById('edit-modal').classList.remove('open');
   }
 
   _closeScanModal() {
     this._stopCamera();
     this.shadowRoot.getElementById('scan-modal').classList.remove('open');
+  }
+
+  // Recherche du produit via l'API Open Food Facts
+  async _lookupBarcode() {
+    const barcodeEl = this.shadowRoot.getElementById('scan-barcode');
+    const nameEl = this.shadowRoot.getElementById('scan-name');
+    const infoBox = this.shadowRoot.getElementById('product-info-box');
+    
+    const barcode = barcodeEl.value.trim();
+    if (!barcode || barcode.length < 8) {
+      infoBox.style.display = 'none';
+      return;
+    }
+    
+    infoBox.className = 'product-info loading';
+    infoBox.style.display = 'block';
+    infoBox.innerHTML = '🔍 Recherche en cours...';
+    
+    try {
+      const response = await fetch(`https://world.openfoodfacts.org/api/v2/product/${barcode}.json`);
+      const data = await response.json();
+      
+      if (data.status === 1 && data.product) {
+        const product = data.product;
+        const name = product.product_name_fr || product.product_name || product.generic_name || '';
+        const brand = product.brands || '';
+        const fullName = brand ? `${name} (${brand})` : name;
+        
+        if (fullName) {
+          nameEl.value = fullName;
+          infoBox.className = 'product-info';
+          infoBox.innerHTML = `✅ <strong>${fullName}</strong>`;
+        } else {
+          infoBox.className = 'product-info not-found';
+          infoBox.innerHTML = '⚠️ Produit trouvé mais sans nom. Saisissez le nom manuellement.';
+          nameEl.focus();
+        }
+      } else {
+        infoBox.className = 'product-info not-found';
+        infoBox.innerHTML = '⚠️ Produit non trouvé dans la base. Saisissez le nom manuellement.';
+        nameEl.focus();
+      }
+    } catch (err) {
+      console.error('Erreur lookup:', err);
+      infoBox.className = 'product-info not-found';
+      infoBox.innerHTML = '❌ Erreur de recherche. Saisissez le nom manuellement.';
+      nameEl.focus();
+    }
+  }
+
+  async _saveEditProduct() {
+    const productId = this.shadowRoot.getElementById('edit-id').value;
+    const name = this.shadowRoot.getElementById('edit-name').value.trim();
+    const date = this.shadowRoot.getElementById('edit-date').value;
+    const qty = parseInt(this.shadowRoot.getElementById('edit-qty').value) || 1;
+
+    if (!name || !date) {
+      alert('Veuillez remplir le nom et la date');
+      return;
+    }
+
+    // Mettre à jour localement immédiatement
+    const productIndex = this._localProducts.findIndex(p => p.id === productId);
+    if (productIndex !== -1) {
+      this._localProducts[productIndex].name = name;
+      this._localProducts[productIndex].expiry_date = date;
+      this._localProducts[productIndex].quantity = qty;
+      this._localProducts[productIndex].days_until_expiry = this._calculateDaysUntilExpiry(date);
+      this._renderProducts();
+    }
+
+    this._closeModals();
+
+    // Appeler le service en arrière-plan
+    try {
+      await this._hass.callService('inventory_manager', 'update_product', {
+        product_id: productId,
+        name: name,
+        expiry_date: date,
+        quantity: qty
+      });
+    } catch (err) {
+      console.error('Erreur modification:', err);
+      alert('Erreur: ' + err.message);
+    }
   }
 
   async _startCamera() {
@@ -629,10 +800,13 @@ class InventoryManagerPanel extends HTMLElement {
         
         // Remplir le champ
         barcodeInput.value = code;
-        status.textContent = '✅ Code détecté : ' + code;
+        status.textContent = '✅ Code détecté : ' + code + ' - Recherche...';
         
         // Vibrer si possible
         if (navigator.vibrate) navigator.vibrate(200);
+        
+        // Lancer automatiquement la recherche du produit
+        await this._lookupBarcode();
       }
     } catch (err) {
       console.error('Erreur détection:', err);
@@ -731,30 +905,32 @@ class InventoryManagerPanel extends HTMLElement {
 
   async _scanProduct() {
     const barcodeEl = this.shadowRoot.getElementById('scan-barcode');
+    const nameEl = this.shadowRoot.getElementById('scan-name');
     const dateEl = this.shadowRoot.getElementById('scan-date');
     const qtyEl = this.shadowRoot.getElementById('scan-qty');
     
     const barcode = barcodeEl.value.trim();
+    const name = nameEl.value.trim();
     const date = dateEl.value;
     const qty = parseInt(qtyEl.value) || 1;
 
-    if (!barcode || !date) {
-      alert('Veuillez remplir le code-barres et la date');
+    if (!name || !date) {
+      alert('Veuillez remplir le nom du produit et la date de péremption');
       return;
     }
 
     // Générer un ID temporaire
     const tempId = 'temp_' + Date.now();
     
-    // Créer le produit temporaire (nom sera mis à jour par HA)
+    // Créer le produit temporaire avec le vrai nom
     const newProduct = {
       id: tempId,
-      name: `🔍 ${barcode}`,
+      name: name,
       expiry_date: date,
       quantity: qty,
       days_until_expiry: this._calculateDaysUntilExpiry(date),
       location: 'freezer',
-      barcode: barcode // Pour matcher avec le produit réel
+      barcode: barcode
     };
     
     // Ajouter aux produits temp ET à la liste locale
@@ -768,17 +944,28 @@ class InventoryManagerPanel extends HTMLElement {
     
     // Fermer le modal et reset
     barcodeEl.value = '';
+    nameEl.value = '';
+    this.shadowRoot.getElementById('product-info-box').style.display = 'none';
     this._closeModals();
 
     // Appeler le service en arrière-plan
+    // Si on a un barcode, utiliser scan_product, sinon add_product
     try {
-      await this._hass.callService('inventory_manager', 'scan_product', {
-        barcode: barcode,
-        expiry_date: date,
-        location: 'freezer',
-        quantity: qty
-      });
-      // Le produit sera remplacé automatiquement par syncFromHass quand HA confirmera
+      if (barcode) {
+        await this._hass.callService('inventory_manager', 'scan_product', {
+          barcode: barcode,
+          expiry_date: date,
+          location: 'freezer',
+          quantity: qty
+        });
+      } else {
+        await this._hass.callService('inventory_manager', 'add_product', {
+          name: name,
+          expiry_date: date,
+          location: 'freezer',
+          quantity: qty
+        });
+      }
     } catch (err) {
       console.error('Erreur scan:', err);
       // Rollback en cas d'erreur

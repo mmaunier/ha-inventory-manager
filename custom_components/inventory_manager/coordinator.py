@@ -386,6 +386,44 @@ class InventoryCoordinator(DataUpdateCoordinator):
         _LOGGER.info("Updated quantity for %s: %d", product_id, quantity)
         return True
 
+    async def async_update_product(
+        self,
+        product_id: str,
+        name: str | None = None,
+        expiry_date: str | None = None,
+        quantity: int | None = None,
+    ) -> bool:
+        """Update a product's details."""
+        if product_id not in self._products:
+            _LOGGER.warning("Product not found: %s", product_id)
+            return False
+
+        product = self._products[product_id]
+        
+        if name is not None:
+            product["name"] = name
+        
+        if expiry_date is not None:
+            product["expiry_date"] = expiry_date
+            # Recalculate days until expiry
+            now = dt_util.now().date()
+            try:
+                expiry = datetime.fromisoformat(expiry_date).date()
+                product["days_until_expiry"] = (expiry - now).days
+            except ValueError:
+                pass
+        
+        if quantity is not None:
+            if quantity <= 0:
+                return await self.async_remove_product(product_id)
+            product["quantity"] = quantity
+        
+        await self.async_save_data()
+        await self.async_request_refresh()
+        
+        _LOGGER.info("Updated product: %s", product_id)
+        return True
+
     def get_products_by_location(self, location: str) -> list[dict[str, Any]]:
         """Get all products in a specific location."""
         return [

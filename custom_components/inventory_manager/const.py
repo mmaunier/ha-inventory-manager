@@ -34,6 +34,7 @@ SERVICE_SCAN_PRODUCT = "scan_product"
 SERVICE_ADD_PRODUCT = "add_product"
 SERVICE_REMOVE_PRODUCT = "remove_product"
 SERVICE_UPDATE_QUANTITY = "update_quantity"
+SERVICE_UPDATE_PRODUCT = "update_product"
 SERVICE_LIST_PRODUCTS = "list_products"
 
 # Attributes
