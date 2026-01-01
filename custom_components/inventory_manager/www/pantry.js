@@ -482,7 +482,7 @@ class InventoryManagerPantry extends HTMLElement {
       <div class="container">
         <h1>
           <button class="btn-back" id="btn-back">← Retour</button>
-          � Gestionnaire d'Inventaire - Réserve
+          Gestionnaire d'Inventaire - Réserve 🥫
         </h1>
         
         <div class="stats">

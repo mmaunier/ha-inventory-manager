@@ -12,7 +12,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 
 from .const import DOMAIN
-from .const import DEFAULT_CATEGORIES, DEFAULT_ZONES
+from .const import DEFAULT_CATEGORIES, DEFAULT_ZONES, STORAGE_FREEZER, STORAGE_FRIDGE, STORAGE_PANTRY
 from .coordinator import InventoryCoordinator
 from .services import async_setup_services, async_unload_services
 
@@ -35,14 +35,43 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _LOGGER.info("Setting up Inventory Manager integration")
 
     # Initialize categories and zones by location in options if not present (for new installations)
-    if "categories" not in entry.options or "zones" not in entry.options:
-        new_options = {**entry.options}
-        if "categories" not in new_options:
-            new_options["categories"] = DEFAULT_CATEGORIES
-        if "zones" not in new_options:
-            new_options["zones"] = DEFAULT_ZONES
+    # Also migrate from old list format to new dict format
+    needs_update = False
+    new_options = {**entry.options}
+    
+    # Migrate or initialize categories
+    if "categories" not in new_options:
+        new_options["categories"] = DEFAULT_CATEGORIES
+        needs_update = True
+    elif isinstance(new_options["categories"], list):
+        # Migration: old list format → new dict format (all locations get the same categories)
+        old_categories = new_options["categories"]
+        new_options["categories"] = {
+            STORAGE_FREEZER: old_categories,
+            STORAGE_FRIDGE: list(DEFAULT_CATEGORIES[STORAGE_FRIDGE]),
+            STORAGE_PANTRY: list(DEFAULT_CATEGORIES[STORAGE_PANTRY]),
+        }
+        needs_update = True
+        _LOGGER.info("Migrated categories from list to dict format")
+    
+    # Migrate or initialize zones
+    if "zones" not in new_options:
+        new_options["zones"] = DEFAULT_ZONES
+        needs_update = True
+    elif isinstance(new_options["zones"], list):
+        # Migration: old list format → new dict format (all locations get the same zones)
+        old_zones = new_options["zones"]
+        new_options["zones"] = {
+            STORAGE_FREEZER: old_zones,
+            STORAGE_FRIDGE: old_zones[:],
+            STORAGE_PANTRY: old_zones[:],
+        }
+        needs_update = True
+        _LOGGER.info("Migrated zones from list to dict format")
+    
+    if needs_update:
         hass.config_entries.async_update_entry(entry, options=new_options)
-        _LOGGER.info("Initialized default categories and zones by location")
+        _LOGGER.info("Updated entry options with migrated/initialized data")
 
     # Create coordinator
     coordinator = InventoryCoordinator(hass, entry)

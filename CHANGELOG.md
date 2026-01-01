@@ -5,6 +5,24 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.8.5] - 2026-01-02
+
+### Corrigé (CRITIQUE - FIX FINAL)
+- **Migration automatique catégories/zones** : Ajout de la migration automatique list → dict
+  - **__init__.py** : Migration au démarrage pour les utilisateurs venant des versions < 1.8.0
+  - **coordinator.py** : Protection dans toutes les méthodes avec conversion list → dict si nécessaire
+  - Les utilisateurs ayant des catégories/zones au format liste (v1.7.x et antérieures) sont maintenant correctement migrés
+  - Toutes les méthodes protégées : add_category, remove_category, rename_category, add_zone, remove_zone, rename_zone, reset_categories, reset_zones
+
+- **Icônes emojis** : Correction définitive des icônes 🧃 et 🥫
+  - Les emojis sont maintenant correctement encodés en UTF-8
+  - Position après le titre au lieu d'avant pour éviter les problèmes d'encodage
+
+### Technique
+- La vraie cause du bug : les utilisateurs gardaient le format **liste** des versions < 1.8.0
+- Quand `dict(liste)` était appelé, Python essayait de convertir la chaîne en dict → erreur
+- Solution à 2 niveaux : migration au démarrage + protection runtime dans toutes les méthodes
+
 ## [1.8.4] - 2026-01-02
 
 ### Corrigé (CRITIQUE)

@@ -21,6 +21,8 @@ from .const import (
     OPENFOODFACTS_API_URL,
     STORAGE_FILE,
     STORAGE_FREEZER,
+    STORAGE_FRIDGE,
+    STORAGE_PANTRY,
     STORAGE_LOCATIONS,
     SCAN_INTERVAL,
     EXPIRY_THRESHOLD_URGENT,
@@ -537,7 +539,18 @@ class InventoryCoordinator(DataUpdateCoordinator):
 
     async def async_add_category(self, name: str, location: str = STORAGE_FREEZER) -> None:
         """Add a new category for a specific location."""
-        all_categories = dict(self.entry.options.get("categories", DEFAULT_CATEGORIES))
+        categories_data = self.entry.options.get("categories", DEFAULT_CATEGORIES)
+        
+        # Handle migration: if categories is a list, convert to dict
+        if isinstance(categories_data, list):
+            all_categories = {
+                STORAGE_FREEZER: categories_data,
+                STORAGE_FRIDGE: list(DEFAULT_CATEGORIES.get(STORAGE_FRIDGE, [])),
+                STORAGE_PANTRY: list(DEFAULT_CATEGORIES.get(STORAGE_PANTRY, [])),
+            }
+        else:
+            all_categories = dict(categories_data)
+        
         if location not in all_categories:
             all_categories[location] = list(DEFAULT_CATEGORIES.get(location, []))
         
@@ -551,7 +564,18 @@ class InventoryCoordinator(DataUpdateCoordinator):
 
     async def async_remove_category(self, name: str, location: str = STORAGE_FREEZER) -> None:
         """Remove a category for a specific location. Products with this category will be set to 'Autre'."""
-        all_categories = dict(self.entry.options.get("categories", DEFAULT_CATEGORIES))
+        categories_data = self.entry.options.get("categories", DEFAULT_CATEGORIES)
+        
+        # Handle migration: if categories is a list, convert to dict
+        if isinstance(categories_data, list):
+            all_categories = {
+                STORAGE_FREEZER: categories_data,
+                STORAGE_FRIDGE: list(DEFAULT_CATEGORIES.get(STORAGE_FRIDGE, [])),
+                STORAGE_PANTRY: list(DEFAULT_CATEGORIES.get(STORAGE_PANTRY, [])),
+            }
+        else:
+            all_categories = dict(categories_data)
+        
         if location not in all_categories:
             return
         
@@ -571,7 +595,18 @@ class InventoryCoordinator(DataUpdateCoordinator):
 
     async def async_rename_category(self, old_name: str, new_name: str, location: str = STORAGE_FREEZER) -> None:
         """Rename a category for a specific location. All products will be updated."""
-        all_categories = dict(self.entry.options.get("categories", DEFAULT_CATEGORIES))
+        categories_data = self.entry.options.get("categories", DEFAULT_CATEGORIES)
+        
+        # Handle migration: if categories is a list, convert to dict
+        if isinstance(categories_data, list):
+            all_categories = {
+                STORAGE_FREEZER: categories_data,
+                STORAGE_FRIDGE: list(DEFAULT_CATEGORIES.get(STORAGE_FRIDGE, [])),
+                STORAGE_PANTRY: list(DEFAULT_CATEGORIES.get(STORAGE_PANTRY, [])),
+            }
+        else:
+            all_categories = dict(categories_data)
+        
         if location not in all_categories:
             return
         
@@ -592,7 +627,18 @@ class InventoryCoordinator(DataUpdateCoordinator):
 
     async def async_add_zone(self, name: str, location: str = STORAGE_FREEZER) -> None:
         """Add a new zone for a specific location."""
-        all_zones = dict(self.entry.options.get("zones", DEFAULT_ZONES))
+        zones_data = self.entry.options.get("zones", DEFAULT_ZONES)
+        
+        # Handle migration: if zones is a list, convert to dict
+        if isinstance(zones_data, list):
+            all_zones = {
+                STORAGE_FREEZER: zones_data,
+                STORAGE_FRIDGE: zones_data[:],
+                STORAGE_PANTRY: zones_data[:],
+            }
+        else:
+            all_zones = dict(zones_data)
+        
         if location not in all_zones:
             all_zones[location] = list(DEFAULT_ZONES.get(location, []))
         
@@ -606,7 +652,18 @@ class InventoryCoordinator(DataUpdateCoordinator):
 
     async def async_remove_zone(self, name: str, location: str = STORAGE_FREEZER) -> None:
         """Remove a zone for a specific location. Products in this zone will be set to first zone."""
-        all_zones = dict(self.entry.options.get("zones", DEFAULT_ZONES))
+        zones_data = self.entry.options.get("zones", DEFAULT_ZONES)
+        
+        # Handle migration: if zones is a list, convert to dict
+        if isinstance(zones_data, list):
+            all_zones = {
+                STORAGE_FREEZER: zones_data,
+                STORAGE_FRIDGE: zones_data[:],
+                STORAGE_PANTRY: zones_data[:],
+            }
+        else:
+            all_zones = dict(zones_data)
+        
         if location not in all_zones:
             return
         
@@ -627,7 +684,18 @@ class InventoryCoordinator(DataUpdateCoordinator):
 
     async def async_rename_zone(self, old_name: str, new_name: str, location: str = STORAGE_FREEZER) -> None:
         """Rename a zone for a specific location. All products will be updated."""
-        all_zones = dict(self.entry.options.get("zones", DEFAULT_ZONES))
+        zones_data = self.entry.options.get("zones", DEFAULT_ZONES)
+        
+        # Handle migration: if zones is a list, convert to dict
+        if isinstance(zones_data, list):
+            all_zones = {
+                STORAGE_FREEZER: zones_data,
+                STORAGE_FRIDGE: zones_data[:],
+                STORAGE_PANTRY: zones_data[:],
+            }
+        else:
+            all_zones = dict(zones_data)
+        
         if location not in all_zones:
             return
         
@@ -648,7 +716,18 @@ class InventoryCoordinator(DataUpdateCoordinator):
 
     async def async_reset_categories(self, location: str = STORAGE_FREEZER) -> None:
         """Reset categories to default values for a specific location."""
-        all_categories = dict(self.entry.options.get("categories", DEFAULT_CATEGORIES))
+        categories_data = self.entry.options.get("categories", DEFAULT_CATEGORIES)
+        
+        # Handle migration: if categories is a list, convert to dict
+        if isinstance(categories_data, list):
+            all_categories = {
+                STORAGE_FREEZER: categories_data,
+                STORAGE_FRIDGE: list(DEFAULT_CATEGORIES.get(STORAGE_FRIDGE, [])),
+                STORAGE_PANTRY: list(DEFAULT_CATEGORIES.get(STORAGE_PANTRY, [])),
+            }
+        else:
+            all_categories = dict(categories_data)
+        
         all_categories[location] = list(DEFAULT_CATEGORIES.get(location, []))
         new_data = {**self.entry.options, "categories": all_categories}
         self.hass.config_entries.async_update_entry(self.entry, options=new_data)
@@ -656,7 +735,18 @@ class InventoryCoordinator(DataUpdateCoordinator):
 
     async def async_reset_zones(self, location: str = STORAGE_FREEZER) -> None:
         """Reset zones to default values for a specific location."""
-        all_zones = dict(self.entry.options.get("zones", DEFAULT_ZONES))
+        zones_data = self.entry.options.get("zones", DEFAULT_ZONES)
+        
+        # Handle migration: if zones is a list, convert to dict
+        if isinstance(zones_data, list):
+            all_zones = {
+                STORAGE_FREEZER: zones_data,
+                STORAGE_FRIDGE: zones_data[:],
+                STORAGE_PANTRY: zones_data[:],
+            }
+        else:
+            all_zones = dict(zones_data)
+        
         all_zones[location] = list(DEFAULT_ZONES.get(location, []))
         new_data = {**self.entry.options, "zones": all_zones}
         self.hass.config_entries.async_update_entry(self.entry, options=new_data)
