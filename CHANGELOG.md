@@ -5,6 +5,13 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.8.6] - 2026-01-02
+
+### Corrigé
+- **Position des icônes** : Les emojis 🧃 et 🥫 sont maintenant avant le titre au lieu d'après
+  - Format correct : "🧃 Gestionnaire d'Inventaire - Réfrigérateur"
+  - Format correct : "🥫 Gestionnaire d'Inventaire - Réserve"
+
 ## [1.8.5] - 2026-01-02
 
 ### Corrigé (CRITIQUE - FIX FINAL)
