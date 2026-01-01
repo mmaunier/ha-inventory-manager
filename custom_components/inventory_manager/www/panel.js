@@ -422,6 +422,43 @@ class InventoryManagerPanel extends HTMLElement {
         .btn-small:hover {
           background: #388e3c;
         }
+        .list-manager {
+          margin: 20px 0;
+        }
+        .list-manager ul {
+          list-style: none;
+          padding: 0;
+          margin: 0 0 16px 0;
+          max-height: 300px;
+          overflow-y: auto;
+        }
+        .list-manager li {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 12px;
+          background: #f5f5f5;
+          border-radius: 8px;
+          margin-bottom: 8px;
+        }
+        .list-manager li:hover {
+          background: #eeeeee;
+        }
+        .list-manager .item-name {
+          flex: 1;
+          font-weight: 500;
+        }
+        .list-manager .item-actions {
+          display: flex;
+          gap: 8px;
+        }
+        .list-manager .form-group {
+          display: flex;
+          gap: 8px;
+        }
+        .list-manager input {
+          flex: 1;
+        }
       </style>
       
       <div class="container">
@@ -443,7 +480,9 @@ class InventoryManagerPanel extends HTMLElement {
         </div>
         
         <div class="actions">
-          <button class="btn-primary" id="btn-add" style="grid-column: span 2;">➕ Ajouter un produit</button>
+          <button class="btn-primary" id="btn-add">➕ Ajouter un produit</button>
+          <button class="btn-secondary" id="btn-manage-categories">🗂️ Gérer catégories</button>
+          <button class="btn-secondary" id="btn-manage-zones">📍 Gérer zones</button>
         </div>
         
         <div class="products-table">
@@ -551,16 +590,54 @@ class InventoryManagerPanel extends HTMLElement {
           </div>
         </div>
       </div>
+      
+      <div class="modal" id="categories-modal">
+        <div class="modal-content">
+          <h2>🗂️ Gérer les catégories</h2>
+          <div class="list-manager">
+            <ul id="categories-list"></ul>
+            <div class="form-group">
+              <input type="text" id="new-category" placeholder="Nouvelle catégorie...">
+              <button class="btn-primary" id="btn-add-category">Ajouter</button>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button class="btn-primary" id="btn-categories-close">Fermer</button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal" id="zones-modal">
+        <div class="modal-content">
+          <h2>📍 Gérer les zones</h2>
+          <div class="list-manager">
+            <ul id="zones-list"></ul>
+            <div class="form-group">
+              <input type="text" id="new-zone" placeholder="Nouvelle zone...">
+              <button class="btn-primary" id="btn-add-zone">Ajouter</button>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button class="btn-primary" id="btn-zones-close">Fermer</button>
+          </div>
+        </div>
+      </div>
     `;
 
     // Event listeners
     this.shadowRoot.getElementById('btn-add').onclick = () => this._openAddModal();
+    this.shadowRoot.getElementById('btn-manage-categories').onclick = () => this._openCategoriesModal();
+    this.shadowRoot.getElementById('btn-manage-zones').onclick = () => this._openZonesModal();
     this.shadowRoot.getElementById('btn-scan-cancel').onclick = () => this._closeAddModal();
     this.shadowRoot.getElementById('btn-edit-cancel').onclick = () => this._closeModals();
     this.shadowRoot.getElementById('btn-scan-save').onclick = () => this._addProduct();
     this.shadowRoot.getElementById('btn-edit-save').onclick = () => this._saveEditProduct();
     this.shadowRoot.getElementById('btn-start-camera').onclick = () => this._startCamera();
     this.shadowRoot.getElementById('btn-lookup').onclick = () => this._lookupBarcode();
+    this.shadowRoot.getElementById('btn-categories-close').onclick = () => this._closeCategoriesModal();
+    this.shadowRoot.getElementById('btn-zones-close').onclick = () => this._closeZonesModal();
+    this.shadowRoot.getElementById('btn-add-category').onclick = () => this._addCategory();
+    this.shadowRoot.getElementById('btn-add-zone').onclick = () => this._addZone();
     
     // Tri par colonnes
     this.shadowRoot.getElementById('sort-name').onclick = () => this._toggleSort('name');
@@ -1001,6 +1078,164 @@ class InventoryManagerPanel extends HTMLElement {
     } catch (err) {
       console.error('Erreur suppression:', err);
       alert('Erreur lors de la suppression: ' + err.message);
+    }
+  }
+
+  _openCategoriesModal() {
+    this._renderCategoriesList();
+    this.shadowRoot.getElementById('categories-modal').classList.add('open');
+  }
+
+  _closeCategoriesModal() {
+    this.shadowRoot.getElementById('categories-modal').classList.remove('open');
+    this.shadowRoot.getElementById('new-category').value = '';
+  }
+
+  _openZonesModal() {
+    this._renderZonesList();
+    this.shadowRoot.getElementById('zones-modal').classList.add('open');
+  }
+
+  _closeZonesModal() {
+    this.shadowRoot.getElementById('zones-modal').classList.remove('open');
+    this.shadowRoot.getElementById('new-zone').value = '';
+  }
+
+  _renderCategoriesList() {
+    const list = this.shadowRoot.getElementById('categories-list');
+    list.innerHTML = this._categories.map(cat => `
+      <li>
+        <span class="item-name">${cat}</span>
+        <div class="item-actions">
+          <button class="btn-secondary btn-rename-category" data-name="${cat}">✏️</button>
+          <button class="btn-delete btn-remove-category" data-name="${cat}">🗑️</button>
+        </div>
+      </li>
+    `).join('');
+
+    // Ajouter event listeners
+    list.querySelectorAll('.btn-rename-category').forEach(btn => {
+      btn.onclick = () => this._renameCategory(btn.dataset.name);
+    });
+    list.querySelectorAll('.btn-remove-category').forEach(btn => {
+      btn.onclick = () => this._removeCategory(btn.dataset.name);
+    });
+  }
+
+  _renderZonesList() {
+    const list = this.shadowRoot.getElementById('zones-list');
+    list.innerHTML = this._zones.map(zone => `
+      <li>
+        <span class="item-name">${zone}</span>
+        <div class="item-actions">
+          <button class="btn-secondary btn-rename-zone" data-name="${zone}">✏️</button>
+          <button class="btn-delete btn-remove-zone" data-name="${zone}">🗑️</button>
+        </div>
+      </li>
+    `).join('');
+
+    // Ajouter event listeners
+    list.querySelectorAll('.btn-rename-zone').forEach(btn => {
+      btn.onclick = () => this._renameZone(btn.dataset.name);
+    });
+    list.querySelectorAll('.btn-remove-zone').forEach(btn => {
+      btn.onclick = () => this._removeZone(btn.dataset.name);
+    });
+  }
+
+  async _addCategory() {
+    const input = this.shadowRoot.getElementById('new-category');
+    const name = input.value.trim();
+    if (!name) return;
+
+    try {
+      await this._hass.callService('inventory_manager', 'add_category', { name });
+      this._categories.push(name);
+      this._renderCategoriesList();
+      input.value = '';
+    } catch (err) {
+      console.error('Erreur ajout catégorie:', err);
+      alert('Erreur: ' + err.message);
+    }
+  }
+
+  async _removeCategory(name) {
+    if (!confirm(`Supprimer la catégorie "${name}" ?\nLes produits seront déplacés vers "Autre".`)) return;
+
+    try {
+      await this._hass.callService('inventory_manager', 'remove_category', { name });
+      this._categories = this._categories.filter(c => c !== name);
+      this._renderCategoriesList();
+      // Recharger les produits pour afficher les modifications
+      this._syncFromHass();
+    } catch (err) {
+      console.error('Erreur suppression catégorie:', err);
+      alert('Erreur: ' + err.message);
+    }
+  }
+
+  async _renameCategory(oldName) {
+    const newName = prompt(`Renommer la catégorie "${oldName}" :`, oldName);
+    if (!newName || newName === oldName) return;
+
+    try {
+      await this._hass.callService('inventory_manager', 'rename_category', { old_name: oldName, new_name: newName });
+      const idx = this._categories.indexOf(oldName);
+      if (idx !== -1) this._categories[idx] = newName;
+      this._renderCategoriesList();
+      // Recharger les produits pour afficher les modifications
+      this._syncFromHass();
+    } catch (err) {
+      console.error('Erreur renommage catégorie:', err);
+      alert('Erreur: ' + err.message);
+    }
+  }
+
+  async _addZone() {
+    const input = this.shadowRoot.getElementById('new-zone');
+    const name = input.value.trim();
+    if (!name) return;
+
+    try {
+      await this._hass.callService('inventory_manager', 'add_zone', { name });
+      this._zones.push(name);
+      this._renderZonesList();
+      input.value = '';
+    } catch (err) {
+      console.error('Erreur ajout zone:', err);
+      alert('Erreur: ' + err.message);
+    }
+  }
+
+  async _removeZone(name) {
+    if (!confirm(`Supprimer la zone "${name}" ?\nLes produits seront déplacés vers la première zone.`)) return;
+
+    try {
+      await this._hass.callService('inventory_manager', 'remove_zone', { name });
+      this._zones = this._zones.filter(z => z !== name);
+      this._renderZonesList();
+      // Recharger les produits pour afficher les modifications
+      this._syncFromHass();
+    } catch (err) {
+      console.error('Erreur suppression zone:', err);
+      alert('Erreur: ' + err.message);
+    }
+  }
+
+  async _renameZone(oldName) {
+    const newName = prompt(`Renommer la zone "${oldName}" :`, oldName);
+    if (!newName || newName === oldName) return;
+
+    try {
+      await this._hass.callService('inventory_manager', 'rename_zone', { old_name: oldName, new_name: newName });
+      const idx = this._zones.indexOf(oldName);
+      if (idx !== -1) this._zones[idx] = newName;
+      this._renderZonesList();
+      // Recharger les produits pour afficher les modifications
+      this._syncFromHass();
+    } catch (err) {
+      console.error('Erreur renommage zone:', err);
+      alert('Erreur: ' + err.message);
     }
   }
 }
