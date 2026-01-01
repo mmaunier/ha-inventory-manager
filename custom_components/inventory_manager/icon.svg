@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="freezerGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#4FC3F7;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0288D1;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="doorGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#E1F5FE;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#B3E5FC;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Corps du congélateur -->
+  <rect x="40" y="30" width="176" height="196" rx="12" ry="12" fill="url(#freezerGrad)" stroke="#01579B" stroke-width="4"/>
+  
+  <!-- Porte -->
+  <rect x="52" y="42" width="152" height="172" rx="6" ry="6" fill="url(#doorGrad)" stroke="#0288D1" stroke-width="2"/>
+  
+  <!-- Poignée -->
+  <rect x="180" y="110" width="12" height="40" rx="4" ry="4" fill="#01579B"/>
+  
+  <!-- Étagères (lignes) -->
+  <line x1="60" y1="90" x2="172" y2="90" stroke="#0288D1" stroke-width="2" stroke-dasharray="8,4"/>
+  <line x1="60" y1="140" x2="172" y2="140" stroke="#0288D1" stroke-width="2" stroke-dasharray="8,4"/>
+  <line x1="60" y1="190" x2="172" y2="190" stroke="#0288D1" stroke-width="2" stroke-dasharray="8,4"/>
+  
+  <!-- Flocons de neige (symbole froid) -->
+  <g fill="#01579B" opacity="0.6">
+    <!-- Flocon 1 -->
+    <circle cx="90" cy="65" r="4"/>
+    <line x1="90" y1="55" x2="90" y2="75" stroke="#01579B" stroke-width="2"/>
+    <line x1="80" y1="65" x2="100" y2="65" stroke="#01579B" stroke-width="2"/>
+    
+    <!-- Flocon 2 -->
+    <circle cx="140" cy="115" r="4"/>
+    <line x1="140" y1="105" x2="140" y2="125" stroke="#01579B" stroke-width="2"/>
+    <line x1="130" y1="115" x2="150" y2="115" stroke="#01579B" stroke-width="2"/>
+    
+    <!-- Flocon 3 -->
+    <circle cx="100" cy="165" r="4"/>
+    <line x1="100" y1="155" x2="100" y2="175" stroke="#01579B" stroke-width="2"/>
+    <line x1="90" y1="165" x2="110" y2="165" stroke="#01579B" stroke-width="2"/>
+  </g>
+  
+  <!-- Badge code-barres -->
+  <g transform="translate(145, 150)">
+    <rect x="0" y="0" width="35" height="45" rx="4" fill="#FFF" stroke="#01579B" stroke-width="2"/>
+    <rect x="6" y="8" width="2" height="20" fill="#333"/>
+    <rect x="10" y="8" width="3" height="20" fill="#333"/>
+    <rect x="15" y="8" width="1" height="20" fill="#333"/>
+    <rect x="18" y="8" width="4" height="20" fill="#333"/>
+    <rect x="24" y="8" width="2" height="20" fill="#333"/>
+    <rect x="28" y="8" width="1" height="20" fill="#333"/>
+    <text x="17.5" y="38" font-family="Arial" font-size="6" fill="#333" text-anchor="middle">SCAN</text>
+  </g>
+</svg>
