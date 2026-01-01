@@ -29,6 +29,9 @@ from .const import (
     EVENT_PRODUCT_ADDED,
     EVENT_PRODUCT_REMOVED,
     EVENT_PRODUCT_EXPIRING,
+    CATEGORY_MAPPING,
+    DEFAULT_CATEGORIES,
+    DEFAULT_ZONES,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -230,6 +233,7 @@ class InventoryCoordinator(DataUpdateCoordinator):
                         "name": product.get("product_name", product.get("product_name_fr", "Produit inconnu")),
                         "brand": product.get("brands", ""),
                         "categories": product.get("categories", ""),
+                        "categories_tags": product.get("categories_tags", []),
                         "image_url": product.get("image_url", ""),
                         "quantity_info": product.get("quantity", ""),
                         "nutriscore": product.get("nutriscore_grade", ""),
@@ -242,6 +246,36 @@ class InventoryCoordinator(DataUpdateCoordinator):
             _LOGGER.error("Error fetching product info: %s", err)
             return None
 
+    def _map_category(self, categories_tags: list[str]) -> str:
+        """Map Open Food Facts categories to our simplified categories."""
+        if not categories_tags:
+            return "Autre"
+        
+        # Convert tags to lowercase for matching
+        tags_lower = [tag.lower() for tag in categories_tags]
+        tags_str = " ".join(tags_lower)
+        
+        # Get custom categories from config, or use defaults
+        custom_categories = self.entry.options.get("categories", DEFAULT_CATEGORIES)
+        
+        # Check each category mapping
+        for category, keywords in CATEGORY_MAPPING.items():
+            if category not in custom_categories:
+                continue
+            for keyword in keywords:
+                if keyword in tags_str:
+                    return category
+        
+        return "Autre"
+
+    def get_zones(self) -> list[str]:
+        """Get list of zones from config."""
+        return self.entry.options.get("zones", DEFAULT_ZONES)
+
+    def get_categories(self) -> list[str]:
+        """Get list of categories from config."""
+        return self.entry.options.get("categories", DEFAULT_CATEGORIES)
+
     async def async_add_product(
         self,
         name: str,
@@ -251,15 +285,28 @@ class InventoryCoordinator(DataUpdateCoordinator):
         barcode: str | None = None,
         brand: str | None = None,
         image_url: str | None = None,
+        category: str | None = None,
+        zone: str | None = None,
     ) -> str:
         """Add a product to the inventory."""
         product_id = str(uuid.uuid4())[:8]
+        
+        # Default zone is the first one
+        if zone is None:
+            zones = self.get_zones()
+            zone = zones[0] if zones else "Zone 1"
+        
+        # Default category is "Autre"
+        if category is None:
+            category = "Autre"
         
         product = {
             "name": name,
             "expiry_date": expiry_date,
             "location": location,
             "quantity": quantity,
+            "category": category,
+            "zone": zone,
             "added_date": datetime.now().isoformat(),
         }
         
@@ -304,6 +351,10 @@ class InventoryCoordinator(DataUpdateCoordinator):
             if product_info.get("brand"):
                 name = f"{product_info['brand']} - {name}"
             
+            # Déterminer la catégorie depuis Open Food Facts
+            categories_tags = product_info.get("categories_tags", [])
+            category = self._map_category(categories_tags)
+            
             product_id = await self.async_add_product(
                 name=name,
                 expiry_date=expiry_date,
@@ -312,12 +363,14 @@ class InventoryCoordinator(DataUpdateCoordinator):
                 barcode=barcode,
                 brand=product_info.get("brand"),
                 image_url=product_info.get("image_url"),
+                category=category,
             )
             
             return {
                 "success": True,
                 "product_id": product_id,
                 "name": name,
+                "category": category,
                 "info": product_info,
             }
         else:
@@ -328,12 +381,14 @@ class InventoryCoordinator(DataUpdateCoordinator):
                 location=location,
                 quantity=quantity,
                 barcode=barcode,
+                category="Autre",
             )
             
             return {
                 "success": True,
                 "product_id": product_id,
                 "name": f"Produit {barcode}",
+                "category": "Autre",
                 "info": None,
                 "warning": "Produit non trouvé dans Open Food Facts",
             }
@@ -393,6 +448,8 @@ class InventoryCoordinator(DataUpdateCoordinator):
         name: str | None = None,
         expiry_date: str | None = None,
         quantity: int | None = None,
+        category: str | None = None,
+        zone: str | None = None,
     ) -> bool:
         """Update a product's details."""
         if product_id not in self._products:
@@ -418,6 +475,12 @@ class InventoryCoordinator(DataUpdateCoordinator):
             if quantity <= 0:
                 return await self.async_remove_product(product_id)
             product["quantity"] = quantity
+        
+        if category is not None:
+            product["category"] = category
+        
+        if zone is not None:
+            product["zone"] = zone
         
         await self.async_save_data()
         await self.async_request_refresh()

@@ -23,6 +23,8 @@ from .const import (
     ATTR_EXPIRY_DATE,
     ATTR_LOCATION,
     ATTR_PRODUCT_ID,
+    ATTR_CATEGORY,
+    ATTR_ZONE,
     STORAGE_FREEZER,
     STORAGE_LOCATIONS,
 )
@@ -55,6 +57,8 @@ ADD_PRODUCT_SCHEMA = vol.Schema(
             vol.Coerce(int), vol.Range(min=1)
         ),
         vol.Optional(ATTR_BARCODE): cv.string,
+        vol.Optional(ATTR_CATEGORY): cv.string,
+        vol.Optional(ATTR_ZONE): cv.string,
     }
 )
 
@@ -83,6 +87,8 @@ UPDATE_PRODUCT_SCHEMA = vol.Schema(
         vol.Optional(ATTR_NAME): cv.string,
         vol.Optional(ATTR_EXPIRY_DATE): cv.string,
         vol.Optional(ATTR_QUANTITY): vol.All(vol.Coerce(int), vol.Range(min=1)),
+        vol.Optional(ATTR_CATEGORY): cv.string,
+        vol.Optional(ATTR_ZONE): cv.string,
     }
 )
 
@@ -133,6 +139,8 @@ async def async_setup_services(
         location = call.data.get(ATTR_LOCATION, STORAGE_FREEZER)
         quantity = call.data.get(ATTR_QUANTITY, 1)
         barcode = call.data.get(ATTR_BARCODE)
+        category = call.data.get(ATTR_CATEGORY)
+        zone = call.data.get(ATTR_ZONE)
 
         # Validate expiry date format
         try:
@@ -157,6 +165,8 @@ async def async_setup_services(
             location=location,
             quantity=quantity,
             barcode=barcode,
+            category=category,
+            zone=zone,
         )
 
         return {
@@ -213,6 +223,8 @@ async def async_setup_services(
         name = call.data.get(ATTR_NAME)
         expiry_date = call.data.get(ATTR_EXPIRY_DATE)
         quantity = call.data.get(ATTR_QUANTITY)
+        category = call.data.get(ATTR_CATEGORY)
+        zone = call.data.get(ATTR_ZONE)
 
         # Validate expiry date format if provided
         if expiry_date:
@@ -237,6 +249,8 @@ async def async_setup_services(
             name=name,
             expiry_date=expiry_date,
             quantity=quantity,
+            category=category,
+            zone=zone,
         )
 
         return {

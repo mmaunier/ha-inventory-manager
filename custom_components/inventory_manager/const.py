@@ -47,7 +47,43 @@ ATTR_PRODUCT_ID = "product_id"
 ATTR_BRAND = "brand"
 ATTR_IMAGE_URL = "image_url"
 ATTR_CATEGORIES = "categories"
+ATTR_CATEGORY = "category"
+ATTR_ZONE = "zone"
 ATTR_ADDED_DATE = "added_date"
+
+# Default categories (can be customized by user)
+DEFAULT_CATEGORIES = [
+    "Viande",
+    "Poisson",
+    "Légumes",
+    "Fruits",
+    "Produits laitiers",
+    "Plats préparés",
+    "Pain/Pâtisserie",
+    "Glaces/Desserts",
+    "Condiments/Sauces",
+    "Autre",
+]
+
+# Category mapping from Open Food Facts tags to our categories
+CATEGORY_MAPPING = {
+    "Viande": ["meat", "viande", "beef", "pork", "chicken", "poultry", "lamb"],
+    "Poisson": ["fish", "poisson", "seafood", "salmon", "tuna", "shrimp"],
+    "Légumes": ["vegetable", "legume", "carrot", "tomato", "potato"],
+    "Fruits": ["fruit", "berry", "apple", "orange", "banana"],
+    "Produits laitiers": ["dairy", "lait", "cheese", "yogurt", "milk", "cream"],
+    "Plats préparés": ["prepared", "meal", "pizza", "ready", "frozen-meals"],
+    "Pain/Pâtisserie": ["bread", "pain", "pastry", "cake", "biscuit"],
+    "Glaces/Desserts": ["ice-cream", "glace", "dessert", "sweet"],
+    "Condiments/Sauces": ["sauce", "condiment", "dressing", "ketchup"],
+}
+
+# Default zones (can be customized by user)
+DEFAULT_ZONES = [
+    "Zone 1",
+    "Zone 2",
+    "Zone 3",
+]
 
 # Events
 EVENT_PRODUCT_ADDED = "inventory_manager_product_added"
