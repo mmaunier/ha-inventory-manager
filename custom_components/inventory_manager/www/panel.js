@@ -255,6 +255,61 @@ class InventoryManagerPanel extends HTMLElement {
           margin-top: 24px;
         }
         .btn-cancel { background: #e0e0e0; color: #212121; }
+        .camera-container {
+          position: relative;
+          width: 100%;
+          max-width: 100%;
+          margin: 16px 0;
+          border-radius: 12px;
+          overflow: hidden;
+          background: #000;
+        }
+        .camera-container video {
+          width: 100%;
+          display: block;
+        }
+        .camera-overlay {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 200px;
+          height: 100px;
+          border: 3px solid #03a9f4;
+          border-radius: 8px;
+          box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);
+        }
+        .camera-status {
+          text-align: center;
+          padding: 8px;
+          color: #666;
+          font-size: 0.9em;
+        }
+        .btn-camera {
+          background: #4caf50;
+          color: white;
+          width: 100%;
+          margin-bottom: 12px;
+        }
+        .barcode-input-row {
+          display: flex;
+          gap: 8px;
+        }
+        .barcode-input-row input {
+          flex: 1;
+        }
+        .btn-small {
+          padding: 12px 16px;
+          background: #4caf50;
+          color: white;
+          border: none;
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 1.2em;
+        }
+        .btn-small:hover {
+          background: #388e3c;
+        }
       </style>
       
       <div class="container">
@@ -321,9 +376,20 @@ class InventoryManagerPanel extends HTMLElement {
       <div class="modal" id="scan-modal">
         <div class="modal-content">
           <h2>📷 Scanner un produit</h2>
+          
+          <div class="camera-container" id="camera-container" style="display:none;">
+            <video id="camera-video" autoplay playsinline></video>
+            <div class="camera-overlay"></div>
+          </div>
+          <div class="camera-status" id="camera-status"></div>
+          
+          <button class="btn-camera" id="btn-start-camera">📸 Scanner avec la caméra</button>
+          
           <div class="form-group">
             <label>Code-barres</label>
-            <input type="text" id="scan-barcode" placeholder="Entrez le code-barres">
+            <div class="barcode-input-row">
+              <input type="text" id="scan-barcode" placeholder="Ou entrez manuellement">
+            </div>
           </div>
           <div class="form-group">
             <label>Date de péremption</label>
@@ -345,9 +411,10 @@ class InventoryManagerPanel extends HTMLElement {
     this.shadowRoot.getElementById('btn-add').onclick = () => this._openAddModal();
     this.shadowRoot.getElementById('btn-scan').onclick = () => this._openScanModal();
     this.shadowRoot.getElementById('btn-cancel').onclick = () => this._closeModals();
-    this.shadowRoot.getElementById('btn-scan-cancel').onclick = () => this._closeModals();
+    this.shadowRoot.getElementById('btn-scan-cancel').onclick = () => this._closeScanModal();
     this.shadowRoot.getElementById('btn-save').onclick = () => this._addProduct();
     this.shadowRoot.getElementById('btn-scan-save').onclick = () => this._scanProduct();
+    this.shadowRoot.getElementById('btn-start-camera').onclick = () => this._startCamera();
     
     // Event delegation for delete buttons
     this.shadowRoot.getElementById('products-list').onclick = (e) => {
@@ -375,12 +442,105 @@ class InventoryManagerPanel extends HTMLElement {
 
   _openScanModal() {
     this.shadowRoot.getElementById('scan-modal').classList.add('open');
-    this.shadowRoot.getElementById('scan-barcode').focus();
+    // Reset camera state
+    this.shadowRoot.getElementById('camera-container').style.display = 'none';
+    this.shadowRoot.getElementById('camera-status').textContent = '';
+    this.shadowRoot.getElementById('btn-start-camera').style.display = 'flex';
   }
 
   _closeModals() {
     this.shadowRoot.getElementById('add-modal').classList.remove('open');
     this.shadowRoot.getElementById('scan-modal').classList.remove('open');
+  }
+
+  _closeScanModal() {
+    this._stopCamera();
+    this.shadowRoot.getElementById('scan-modal').classList.remove('open');
+  }
+
+  async _startCamera() {
+    const container = this.shadowRoot.getElementById('camera-container');
+    const video = this.shadowRoot.getElementById('camera-video');
+    const status = this.shadowRoot.getElementById('camera-status');
+    const startBtn = this.shadowRoot.getElementById('btn-start-camera');
+    
+    // Vérifier si BarcodeDetector est supporté
+    if (!('BarcodeDetector' in window)) {
+      status.textContent = '⚠️ Scanner non supporté par ce navigateur. Utilisez Chrome ou Edge.';
+      return;
+    }
+    
+    try {
+      status.textContent = '📷 Accès à la caméra...';
+      startBtn.style.display = 'none';
+      
+      // Demander accès à la caméra (préférer caméra arrière)
+      this._stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+      });
+      
+      video.srcObject = this._stream;
+      container.style.display = 'block';
+      status.textContent = '🎯 Pointez vers un code-barres...';
+      
+      // Démarrer la détection
+      this._barcodeDetector = new BarcodeDetector({
+        formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'qr_code']
+      });
+      
+      this._scanInterval = setInterval(() => this._detectBarcode(), 200);
+      
+    } catch (err) {
+      console.error('Erreur caméra:', err);
+      status.textContent = '❌ Impossible d\'accéder à la caméra: ' + err.message;
+      startBtn.style.display = 'flex';
+    }
+  }
+
+  async _detectBarcode() {
+    const video = this.shadowRoot.getElementById('camera-video');
+    const status = this.shadowRoot.getElementById('camera-status');
+    const barcodeInput = this.shadowRoot.getElementById('scan-barcode');
+    
+    if (!video || video.readyState !== video.HAVE_ENOUGH_DATA) return;
+    
+    try {
+      const barcodes = await this._barcodeDetector.detect(video);
+      
+      if (barcodes.length > 0) {
+        const code = barcodes[0].rawValue;
+        
+        // Arrêter le scan
+        this._stopCamera();
+        
+        // Remplir le champ
+        barcodeInput.value = code;
+        status.textContent = '✅ Code détecté : ' + code;
+        
+        // Vibrer si possible
+        if (navigator.vibrate) navigator.vibrate(200);
+      }
+    } catch (err) {
+      console.error('Erreur détection:', err);
+    }
+  }
+
+  _stopCamera() {
+    if (this._scanInterval) {
+      clearInterval(this._scanInterval);
+      this._scanInterval = null;
+    }
+    
+    if (this._stream) {
+      this._stream.getTracks().forEach(track => track.stop());
+      this._stream = null;
+    }
+    
+    const container = this.shadowRoot.getElementById('camera-container');
+    const startBtn = this.shadowRoot.getElementById('btn-start-camera');
+    
+    if (container) container.style.display = 'none';
+    if (startBtn) startBtn.style.display = 'flex';
   }
 
   // Calcul des jours jusqu'à expiration
