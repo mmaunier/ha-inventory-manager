@@ -4,9 +4,8 @@ class InventoryManagerPanel extends HTMLElement {
     this.attachShadow({ mode: 'open' });
     this._initialized = false;
     this._localProducts = []; // État local des produits
-    this._pendingAdds = new Set(); // IDs temporaires en cours d'ajout
-    this._pendingDeletes = new Set(); // IDs en cours de suppression
-    this._lastProductsHash = ''; // Pour détecter les vrais changements
+    this._deletedIds = new Set(); // IDs supprimés à ignorer lors des syncs
+    this._tempProducts = []; // Produits temporaires (ajouts en attente de confirmation)
   }
 
   set hass(hass) {
@@ -18,31 +17,41 @@ class InventoryManagerPanel extends HTMLElement {
     this._syncFromHass();
   }
 
-  // Synchronise depuis HA seulement si les données ont changé
+  // Synchronise depuis HA avec fusion intelligente
   _syncFromHass() {
     if (!this._hass) return;
     
     const freezerSensor = this._hass.states['sensor.gestionnaire_d_inventaire_congelateur'];
     const serverProducts = freezerSensor?.attributes?.products || [];
     
-    // Créer un hash des produits serveur pour détecter les changements
-    const newHash = JSON.stringify(serverProducts.map(p => p.id).sort());
+    // Filtrer les produits serveur : exclure ceux qu'on a supprimé localement
+    const filteredServerProducts = serverProducts.filter(p => !this._deletedIds.has(p.id));
     
-    // Si on a des opérations en cours, on ignore les updates de HA
-    if (this._pendingAdds.size > 0 || this._pendingDeletes.size > 0) {
-      return;
+    // Chercher les produits temp qui ont maintenant un vrai ID sur le serveur
+    // (on les matche par nom + date d'expiration)
+    const matchedTempIds = new Set();
+    for (const serverProd of filteredServerProducts) {
+      const matchingTemp = this._tempProducts.find(temp => 
+        temp.name === serverProd.name && 
+        temp.expiry_date === serverProd.expiry_date &&
+        !matchedTempIds.has(temp.id)
+      );
+      if (matchingTemp) {
+        matchedTempIds.add(matchingTemp.id);
+      }
     }
     
-    // Si les données n'ont pas changé, on ne fait rien
-    if (newHash === this._lastProductsHash) {
-      return;
-    }
+    // Retirer les produits temp qui ont été confirmés par le serveur
+    this._tempProducts = this._tempProducts.filter(t => !matchedTempIds.has(t.id));
     
-    // Mise à jour des données locales
-    this._lastProductsHash = newHash;
-    this._localProducts = serverProducts.map(p => ({...p}));
+    // Fusionner : produits temp restants + produits serveur filtrés
+    this._localProducts = [...this._tempProducts, ...filteredServerProducts];
     
-    // Mettre à jour les stats
+    // Nettoyer les IDs supprimés qui ne sont plus sur le serveur (évite accumulation)
+    const serverIds = new Set(serverProducts.map(p => p.id));
+    this._deletedIds = new Set([...this._deletedIds].filter(id => serverIds.has(id)));
+    
+    // Mettre à jour les stats (utiliser notre compte local)
     const expiringSensor = this._hass.states['sensor.gestionnaire_d_inventaire_produits_perimant_bientot'];
     const expiredSensor = this._hass.states['sensor.gestionnaire_d_inventaire_produits_perimes'];
     
@@ -50,7 +59,7 @@ class InventoryManagerPanel extends HTMLElement {
     const expiringEl = this.shadowRoot.getElementById('expiring-count');
     const expiredEl = this.shadowRoot.getElementById('expired-count');
     
-    if (totalEl) totalEl.textContent = freezerSensor?.state || '0';
+    if (totalEl) totalEl.textContent = this._localProducts.length;
     if (expiringEl) expiringEl.textContent = expiringSensor?.state || '0';
     if (expiredEl) expiredEl.textContent = expiredSensor?.state || '0';
     
@@ -68,8 +77,7 @@ class InventoryManagerPanel extends HTMLElement {
     } else {
       tbody.innerHTML = this._localProducts.map(p => {
         const days = p.days_until_expiry;
-        const isPendingAdd = this._pendingAdds.has(p.id);
-        const isPendingDelete = this._pendingDeletes.has(p.id);
+        const isTemp = p.id.toString().startsWith('temp_');
         let statusClass = 'status-ok';
         let statusIcon = '🟢';
         
@@ -77,27 +85,15 @@ class InventoryManagerPanel extends HTMLElement {
         else if (days <= 3) { statusClass = 'status-danger'; statusIcon = '🟠'; }
         else if (days <= 7) { statusClass = 'status-warning'; statusIcon = '🟡'; }
         
-        // Suppression = grisé et barré, Ajout = style normal avec indicateur
-        let rowClass = '';
-        let btnContent = 'Supprimer';
-        let btnDisabled = '';
-        
-        if (isPendingDelete) {
-          rowClass = 'pending-delete';
-          btnContent = '⏳';
-          btnDisabled = 'disabled';
-        } else if (isPendingAdd) {
-          rowClass = 'pending-add';
-          btnContent = '⏳';
-          btnDisabled = 'disabled';
-        }
+        // Produits temporaires ont un style légèrement différent
+        const rowClass = isTemp ? 'temp-row' : '';
         
         return `<tr class="${rowClass}" data-product-id="${p.id}">
           <td>${p.name || 'Sans nom'}</td>
           <td>${p.expiry_date || '-'}</td>
           <td class="${statusClass}">${statusIcon} ${days !== undefined ? days + 'j' : '--'}</td>
           <td>${p.quantity || 1}</td>
-          <td><button type="button" class="btn-delete" data-id="${p.id}" ${btnDisabled}>${btnContent}</button></td>
+          <td><button type="button" class="btn-delete" data-id="${p.id}">Supprimer</button></td>
         </tr>`;
       }).join('');
     }
@@ -189,31 +185,13 @@ class InventoryManagerPanel extends HTMLElement {
           border-bottom: 1px solid #e0e0e0;
         }
         tr:hover { background: #f5f5f5; }
-        tr.pending-delete {
-          opacity: 0.4;
-          background: #ffebee;
-          text-decoration: line-through;
-          pointer-events: none;
-        }
-        tr.pending-add {
+        tr.temp-row {
           background: #e3f2fd;
-          animation: pulse 1s infinite;
-        }
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.7; }
-        }
-        tr.new-row {
-          background: #e8f5e9;
-          animation: fadeIn 0.3s ease-in;
+          border-left: 3px solid #2196f3;
         }
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(-10px); }
           to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes fadeOut {
-          from { opacity: 1; }
-          to { opacity: 0; transform: translateX(20px); }
         }
         .status-ok { color: #4caf50; }
         .status-warning { color: #ff9800; }
@@ -432,7 +410,7 @@ class InventoryManagerPanel extends HTMLElement {
     // Générer un ID temporaire
     const tempId = 'temp_' + Date.now();
     
-    // Créer le produit optimiste
+    // Créer le produit temporaire
     const newProduct = {
       id: tempId,
       name: name,
@@ -442,21 +420,20 @@ class InventoryManagerPanel extends HTMLElement {
       location: 'freezer'
     };
     
-    // Ajouter au début de la liste locale
+    // Ajouter aux produits temp ET à la liste locale
+    this._tempProducts.unshift(newProduct);
     this._localProducts.unshift(newProduct);
-    this._pendingAdds.add(tempId);
     
-    // Mettre à jour le compteur
+    // Mettre à jour le compteur et rendre immédiatement
     const totalEl = this.shadowRoot.getElementById('total-count');
-    totalEl.textContent = parseInt(totalEl.textContent || '0') + qty;
-    
-    // Rendre immédiatement
+    totalEl.textContent = this._localProducts.length;
     this._renderProducts();
     
     // Fermer le modal et reset
     nameEl.value = '';
     this._closeModals();
 
+    // Appeler le service en arrière-plan (pas de blocage)
     try {
       await this._hass.callService('inventory_manager', 'add_product', {
         name: name,
@@ -464,25 +441,13 @@ class InventoryManagerPanel extends HTMLElement {
         location: 'freezer',
         quantity: qty
       });
-      
-      // Opération réussie - on garde le blocage actif jusqu'au sync
-      // Le produit temp reste visible pendant ce temps
-      setTimeout(() => {
-        // Retirer l'élément temporaire de la liste locale
-        this._localProducts = this._localProducts.filter(p => p.id !== tempId);
-        // Débloquer la sync
-        this._pendingAdds.delete(tempId);
-        // Forcer une sync pour récupérer le vrai produit depuis HA
-        this._lastProductsHash = '';
-        this._syncFromHass();
-      }, 2000);
-      
+      // Le produit sera remplacé automatiquement par syncFromHass quand HA confirmera
     } catch (err) {
       console.error('Erreur ajout:', err);
-      // Rollback
-      this._pendingAdds.delete(tempId);
+      // Rollback en cas d'erreur
+      this._tempProducts = this._tempProducts.filter(p => p.id !== tempId);
       this._localProducts = this._localProducts.filter(p => p.id !== tempId);
-      totalEl.textContent = Math.max(0, parseInt(totalEl.textContent || '1') - qty);
+      totalEl.textContent = this._localProducts.length;
       this._renderProducts();
       alert('Erreur: ' + err.message);
     }
@@ -505,31 +470,31 @@ class InventoryManagerPanel extends HTMLElement {
     // Générer un ID temporaire
     const tempId = 'temp_' + Date.now();
     
-    // Créer le produit optimiste
+    // Créer le produit temporaire (nom sera mis à jour par HA)
     const newProduct = {
       id: tempId,
-      name: `🔍 Recherche... (${barcode})`,
+      name: `🔍 ${barcode}`,
       expiry_date: date,
       quantity: qty,
       days_until_expiry: this._calculateDaysUntilExpiry(date),
-      location: 'freezer'
+      location: 'freezer',
+      barcode: barcode // Pour matcher avec le produit réel
     };
     
-    // Ajouter au début de la liste locale
+    // Ajouter aux produits temp ET à la liste locale
+    this._tempProducts.unshift(newProduct);
     this._localProducts.unshift(newProduct);
-    this._pendingAdds.add(tempId);
     
-    // Mettre à jour le compteur
+    // Mettre à jour le compteur et rendre immédiatement
     const totalEl = this.shadowRoot.getElementById('total-count');
-    totalEl.textContent = parseInt(totalEl.textContent || '0') + qty;
-    
-    // Rendre immédiatement
+    totalEl.textContent = this._localProducts.length;
     this._renderProducts();
     
     // Fermer le modal et reset
     barcodeEl.value = '';
     this._closeModals();
 
+    // Appeler le service en arrière-plan
     try {
       await this._hass.callService('inventory_manager', 'scan_product', {
         barcode: barcode,
@@ -537,24 +502,13 @@ class InventoryManagerPanel extends HTMLElement {
         location: 'freezer',
         quantity: qty
       });
-      
-      // Opération réussie - on garde le blocage actif jusqu'au sync
-      setTimeout(() => {
-        // Retirer l'élément temporaire de la liste locale
-        this._localProducts = this._localProducts.filter(p => p.id !== tempId);
-        // Débloquer la sync
-        this._pendingAdds.delete(tempId);
-        // Forcer une sync pour récupérer le vrai produit depuis HA
-        this._lastProductsHash = '';
-        this._syncFromHass();
-      }, 2000);
-      
+      // Le produit sera remplacé automatiquement par syncFromHass quand HA confirmera
     } catch (err) {
       console.error('Erreur scan:', err);
-      // Rollback
-      this._pendingAdds.delete(tempId);
+      // Rollback en cas d'erreur
+      this._tempProducts = this._tempProducts.filter(p => p.id !== tempId);
       this._localProducts = this._localProducts.filter(p => p.id !== tempId);
-      totalEl.textContent = Math.max(0, parseInt(totalEl.textContent || '1') - qty);
+      totalEl.textContent = this._localProducts.length;
       this._renderProducts();
       alert('Erreur: ' + err.message);
     }
@@ -569,39 +523,32 @@ class InventoryManagerPanel extends HTMLElement {
     const productIndex = this._localProducts.findIndex(p => p.id === productId);
     if (productIndex === -1) return;
     
-    const product = this._localProducts[productIndex];
-    const qty = product.quantity || 1;
+    // Supprimer immédiatement de la liste locale
+    this._localProducts = this._localProducts.filter(p => p.id !== productId);
     
-    // Marquer comme en cours de suppression (grisé barré)
-    this._pendingDeletes.add(productId);
-    this._renderProducts();
+    // Aussi des produits temp si c'en était un
+    this._tempProducts = this._tempProducts.filter(p => p.id !== productId);
     
-    // Mettre à jour le compteur immédiatement
+    // Ajouter à la liste des IDs supprimés (pour ignorer si HA le renvoie)
+    this._deletedIds.add(productId);
+    
+    // Mettre à jour le compteur et rendre immédiatement
     const totalEl = this.shadowRoot.getElementById('total-count');
-    totalEl.textContent = Math.max(0, parseInt(totalEl.textContent || '1') - qty);
+    totalEl.textContent = this._localProducts.length;
+    this._renderProducts();
 
+    // Appeler le service en arrière-plan (pas de blocage)
     try {
       await this._hass.callService('inventory_manager', 'remove_product', {
         product_id: productId
       });
-      
-      // Supprimer de la liste locale
-      this._localProducts = this._localProducts.filter(p => p.id !== productId);
-      this._pendingDeletes.delete(productId);
-      
-      // Rendre la liste mise à jour
-      this._renderProducts();
-      
-      // Mettre à jour le hash pour éviter que la sync restaure l'élément
-      this._lastProductsHash = JSON.stringify(this._localProducts.map(p => p.id).sort());
-      
+      // Succès - rien à faire, l'élément est déjà supprimé visuellement
     } catch (err) {
       console.error('Erreur suppression:', err);
-      // Rollback
-      this._pendingDeletes.delete(productId);
-      totalEl.textContent = parseInt(totalEl.textContent || '0') + qty;
-      this._renderProducts();
-      alert('Erreur: ' + err.message);
+      // En cas d'erreur, on ne peut pas vraiment rollback car on ne sait plus où était le produit
+      // On laisse l'utilisateur réessayer via la sync
+      this._deletedIds.delete(productId);
+      alert('Erreur: ' + err.message + '. Rafraîchissez la page.');
     }
   }
 }
