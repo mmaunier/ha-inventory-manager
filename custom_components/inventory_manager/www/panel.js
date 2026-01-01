@@ -465,11 +465,14 @@ class InventoryManagerPanel extends HTMLElement {
         quantity: qty
       });
       
-      // Opération réussie - on retire du pending et on force une sync dans 2s
-      this._pendingAdds.delete(tempId);
-      
-      // Forcer la sync après un délai pour récupérer le vrai ID
+      // Opération réussie - on garde le blocage actif jusqu'au sync
+      // Le produit temp reste visible pendant ce temps
       setTimeout(() => {
+        // Retirer l'élément temporaire de la liste locale
+        this._localProducts = this._localProducts.filter(p => p.id !== tempId);
+        // Débloquer la sync
+        this._pendingAdds.delete(tempId);
+        // Forcer une sync pour récupérer le vrai produit depuis HA
         this._lastProductsHash = '';
         this._syncFromHass();
       }, 2000);
@@ -535,11 +538,13 @@ class InventoryManagerPanel extends HTMLElement {
         quantity: qty
       });
       
-      // Opération réussie
-      this._pendingAdds.delete(tempId);
-      
-      // Forcer la sync pour récupérer le vrai nom du produit
+      // Opération réussie - on garde le blocage actif jusqu'au sync
       setTimeout(() => {
+        // Retirer l'élément temporaire de la liste locale
+        this._localProducts = this._localProducts.filter(p => p.id !== tempId);
+        // Débloquer la sync
+        this._pendingAdds.delete(tempId);
+        // Forcer une sync pour récupérer le vrai produit depuis HA
         this._lastProductsHash = '';
         this._syncFromHass();
       }, 2000);
