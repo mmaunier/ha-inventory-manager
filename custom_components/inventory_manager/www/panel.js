@@ -381,6 +381,7 @@ class InventoryManagerPanel extends HTMLElement {
             <video id="camera-video" autoplay playsinline></video>
             <div class="camera-overlay"></div>
           </div>
+          <div id="html5-qrcode-scanner" style="display:none;"></div>
           <div class="camera-status" id="camera-status"></div>
           
           <button class="btn-camera" id="btn-start-camera">📸 Scanner avec la caméra</button>
@@ -464,12 +465,6 @@ class InventoryManagerPanel extends HTMLElement {
     const status = this.shadowRoot.getElementById('camera-status');
     const startBtn = this.shadowRoot.getElementById('btn-start-camera');
     
-    // Vérifier si BarcodeDetector est supporté
-    if (!('BarcodeDetector' in window)) {
-      status.textContent = '⚠️ Scanner non supporté par ce navigateur. Utilisez Chrome ou Edge.';
-      return;
-    }
-    
     try {
       status.textContent = '📷 Accès à la caméra...';
       startBtn.style.display = 'none';
@@ -480,21 +475,70 @@ class InventoryManagerPanel extends HTMLElement {
       });
       
       video.srcObject = this._stream;
+      await video.play();
       container.style.display = 'block';
       status.textContent = '🎯 Pointez vers un code-barres...';
       
-      // Démarrer la détection
-      this._barcodeDetector = new BarcodeDetector({
-        formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'qr_code']
-      });
+      // Créer un canvas pour capturer les frames
+      this._scanCanvas = document.createElement('canvas');
+      this._scanCtx = this._scanCanvas.getContext('2d', { willReadFrequently: true });
       
-      this._scanInterval = setInterval(() => this._detectBarcode(), 200);
+      // Vérifier si BarcodeDetector est disponible (Chrome/Edge natif)
+      this._useNativeDetector = false;
+      if ('BarcodeDetector' in window) {
+        try {
+          this._barcodeDetector = new BarcodeDetector({
+            formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'qr_code']
+          });
+          this._useNativeDetector = true;
+          status.textContent = '🎯 Pointez vers un code-barres...';
+        } catch (e) {
+          console.log('BarcodeDetector non disponible:', e);
+        }
+      }
+      
+      // Si pas de détecteur natif, charger QuaggaJS pour les codes-barres 1D
+      if (!this._useNativeDetector) {
+        status.textContent = '📦 Chargement du scanner...';
+        await this._loadQuaggaLibrary();
+        
+        if (window.Quagga) {
+          status.textContent = '🎯 Pointez vers un code-barres...';
+        } else {
+          status.textContent = '⚠️ Scanner non disponible - saisissez le code manuellement';
+          startBtn.style.display = 'flex';
+          return;
+        }
+      }
+      
+      // Démarrer la détection
+      this._scanInterval = setInterval(() => this._detectBarcode(), 300);
       
     } catch (err) {
       console.error('Erreur caméra:', err);
-      status.textContent = '❌ Impossible d\'accéder à la caméra: ' + err.message;
+      let errorMsg = err.message;
+      if (err.name === 'NotAllowedError') {
+        errorMsg = 'Accès caméra refusé. Vérifiez les permissions.';
+      } else if (err.name === 'NotFoundError') {
+        errorMsg = 'Aucune caméra trouvée.';
+      }
+      status.textContent = '❌ ' + errorMsg;
       startBtn.style.display = 'flex';
     }
+  }
+
+  async _loadQuaggaLibrary() {
+    return new Promise((resolve) => {
+      if (window.Quagga) {
+        resolve();
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.8.4/dist/quagga.min.js';
+      script.onload = () => resolve();
+      script.onerror = () => resolve(); // Continue sans la lib
+      document.head.appendChild(script);
+    });
   }
 
   async _detectBarcode() {
@@ -503,13 +547,54 @@ class InventoryManagerPanel extends HTMLElement {
     const barcodeInput = this.shadowRoot.getElementById('scan-barcode');
     
     if (!video || video.readyState !== video.HAVE_ENOUGH_DATA) return;
+    if (this._isScanning) return; // Éviter les scans simultanés
+    
+    this._isScanning = true;
     
     try {
-      const barcodes = await this._barcodeDetector.detect(video);
+      let code = null;
       
-      if (barcodes.length > 0) {
-        const code = barcodes[0].rawValue;
+      if (this._useNativeDetector && this._barcodeDetector) {
+        // Utiliser BarcodeDetector natif (Chrome/Edge desktop)
+        const barcodes = await this._barcodeDetector.detect(video);
+        if (barcodes.length > 0) {
+          code = barcodes[0].rawValue;
+        }
+      } else if (window.Quagga) {
+        // Fallback: capturer le frame et décoder avec Quagga
+        const canvas = this._scanCanvas;
+        const ctx = this._scanCtx;
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0);
         
+        // Convertir en data URL pour Quagga
+        const imageData = canvas.toDataURL('image/png');
+        
+        // Décoder avec Quagga
+        const result = await new Promise((resolve) => {
+          Quagga.decodeSingle({
+            src: imageData,
+            numOfWorkers: 0,
+            locate: true,
+            decoder: {
+              readers: ['ean_reader', 'ean_8_reader', 'upc_reader', 'upc_e_reader', 'code_128_reader', 'code_39_reader']
+            }
+          }, (res) => {
+            if (res && res.codeResult) {
+              resolve(res.codeResult.code);
+            } else {
+              resolve(null);
+            }
+          });
+        });
+        
+        if (result) {
+          code = result;
+        }
+      }
+      
+      if (code) {
         // Arrêter le scan
         this._stopCamera();
         
@@ -522,6 +607,8 @@ class InventoryManagerPanel extends HTMLElement {
       }
     } catch (err) {
       console.error('Erreur détection:', err);
+    } finally {
+      this._isScanning = false;
     }
   }
 
