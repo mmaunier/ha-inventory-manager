@@ -5,6 +5,14 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.6.1] - 2026-01-01
+
+### Corrigé
+- **Bug critique** : Erreur `'InventoryCoordinator' object has no attribute '_save_data'` lors de la modification des catégories/zones
+  - Corrigé : `_save_data()` remplacé par `async_save_data()` dans toutes les méthodes
+- **Layout des boutons** : Les boutons "Gérer catégories" et "Gérer zones" sont maintenant sur la même ligne
+- Le bouton "Ajouter un produit" occupe maintenant toute la largeur en dessous
+
 ## [1.6.0] - 2026-01-01
 
 ### Ajouté

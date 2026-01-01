@@ -198,6 +198,9 @@ class InventoryManagerPanel extends HTMLElement {
           gap: 16px;
           margin-bottom: 24px;
         }
+        .actions #btn-add {
+          grid-column: 1 / -1;
+        }
         button {
           padding: 16px 24px;
           border: none;
@@ -480,9 +483,9 @@ class InventoryManagerPanel extends HTMLElement {
         </div>
         
         <div class="actions">
-          <button class="btn-primary" id="btn-add">➕ Ajouter un produit</button>
           <button class="btn-secondary" id="btn-manage-categories">🗂️ Gérer catégories</button>
           <button class="btn-secondary" id="btn-manage-zones">📍 Gérer zones</button>
+          <button class="btn-primary" id="btn-add">➕ Ajouter un produit</button>
         </div>
         
         <div class="products-table">

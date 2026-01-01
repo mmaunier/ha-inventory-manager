@@ -542,7 +542,7 @@ class InventoryCoordinator(DataUpdateCoordinator):
             for product in self._products.values():
                 if product.get("category") == name:
                     product["category"] = "Autre"
-            await self._save_data()
+            await self.async_save_data()
             _LOGGER.info("Removed category: %s", name)
 
     async def async_rename_category(self, old_name: str, new_name: str) -> None:
@@ -558,7 +558,7 @@ class InventoryCoordinator(DataUpdateCoordinator):
             for product in self._products.values():
                 if product.get("category") == old_name:
                     product["category"] = new_name
-            await self._save_data()
+            await self.async_save_data()
             _LOGGER.info("Renamed category: %s -> %s", old_name, new_name)
 
     async def async_add_zone(self, name: str) -> None:
@@ -583,7 +583,7 @@ class InventoryCoordinator(DataUpdateCoordinator):
             for product in self._products.values():
                 if product.get("zone") == name:
                     product["zone"] = first_zone
-            await self._save_data()
+            await self.async_save_data()
             _LOGGER.info("Removed zone: %s", name)
 
     async def async_rename_zone(self, old_name: str, new_name: str) -> None:
@@ -599,5 +599,5 @@ class InventoryCoordinator(DataUpdateCoordinator):
             for product in self._products.values():
                 if product.get("zone") == old_name:
                     product["zone"] = new_name
-            await self._save_data()
+            await self.async_save_data()
             _LOGGER.info("Renamed zone: %s -> %s", old_name, new_name)
