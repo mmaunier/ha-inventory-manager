@@ -5,6 +5,14 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.8.2] - 2026-01-02
+
+### Documentation
+- **Automations par emplacement** : Séparation des exemples d'automations par emplacement dans `automations_example.yaml`
+  - 3 automations distinctes avec filtrage par `event_data.location` (freezer, fridge, pantry)
+  - Émojis spécifiques pour chaque emplacement (🧊 🧃 🥫)
+  - Groupes de notifications séparés pour meilleure organisation
+
 ## [1.8.1] - 2026-01-01
 
 ### Corrigé
