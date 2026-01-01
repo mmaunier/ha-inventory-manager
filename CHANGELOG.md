@@ -5,6 +5,14 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.7.2] - 2026-01-01
+
+### Corrigé
+- **Bug modales (v2)** : Amélioration de la gestion des événements de clic
+  - Utilisation de la phase de capture pour intercepter tous les clics
+  - Stop propagation systématique pour empêcher les fermetures intempestives
+  - Les modales ne devraient plus se fermer automatiquement
+
 ## [1.7.1] - 2026-01-01
 
 ### Corrigé

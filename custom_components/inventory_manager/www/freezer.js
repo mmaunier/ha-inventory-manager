@@ -694,18 +694,14 @@ class InventoryManagerFreezer extends HTMLElement {
     const dateStr = defaultDate.toISOString().split('T')[0];
     this.shadowRoot.getElementById('scan-date').value = dateStr;
     
-    // Prevent modal close on content click + allow close on backdrop click
+    // Prevent modal auto-close: stop all click propagation from modals
     ['add-modal', 'edit-modal', 'categories-modal', 'zones-modal'].forEach(modalId => {
       const modal = this.shadowRoot.getElementById(modalId);
       const modalContent = modal.querySelector('.modal-content');
       
-      // Stop propagation when clicking inside modal content
-      modalContent.addEventListener('click', (e) => {
-        e.stopPropagation();
-      });
-      
-      // Close modal when clicking on backdrop
+      // Prevent ANY click from propagating out of the modal
       modal.addEventListener('click', (e) => {
+        // Only close if clicking directly on the backdrop (not on content or its children)
         if (e.target === modal) {
           if (modalId === 'add-modal') {
             this._closeAddModal();
@@ -717,7 +713,9 @@ class InventoryManagerFreezer extends HTMLElement {
             this._closeZonesModal();
           }
         }
-      });
+        // Always stop propagation to prevent any outside listener from catching it
+        e.stopPropagation();
+      }, true); // Use capture phase to ensure we catch it first
     });
   }
 
