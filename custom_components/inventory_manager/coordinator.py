@@ -345,8 +345,14 @@ class InventoryCoordinator(DataUpdateCoordinator):
 
     async def async_remove_product(self, product_id: str) -> bool:
         """Remove a product from the inventory."""
+        # Normaliser l'ID en string
+        product_id = str(product_id)
+        
+        _LOGGER.debug("Attempting to remove product: %s (type: %s)", product_id, type(product_id))
+        _LOGGER.debug("Current product IDs in storage: %s", list(self._products.keys()))
+        
         if product_id not in self._products:
-            _LOGGER.warning("Product not found: %s", product_id)
+            _LOGGER.warning("Product not found: %s. Available IDs: %s", product_id, list(self._products.keys()))
             return False
 
         product = self._products.pop(product_id)

@@ -837,40 +837,44 @@ class InventoryManagerPanel extends HTMLElement {
   }
 
   async _deleteProduct(productId) {
-    if (!productId) return;
+    if (!productId) {
+      console.error('Suppression: ID produit manquant');
+      return;
+    }
+    
+    console.log('Tentative suppression produit:', productId, 'type:', typeof productId);
     
     if (!confirm('Supprimer ce produit ?')) return;
 
     // Trouver le produit dans la liste locale
-    const productIndex = this._localProducts.findIndex(p => p.id === productId);
-    if (productIndex === -1) return;
+    const product = this._localProducts.find(p => p.id === productId);
+    if (!product) {
+      console.error('Produit non trouvé localement:', productId);
+      return;
+    }
     
-    // Supprimer immédiatement de la liste locale
-    this._localProducts = this._localProducts.filter(p => p.id !== productId);
-    
-    // Aussi des produits temp si c'en était un
-    this._tempProducts = this._tempProducts.filter(p => p.id !== productId);
-    
-    // Ajouter à la liste des IDs supprimés (pour ignorer si HA le renvoie)
-    this._deletedIds.add(productId);
-    
-    // Mettre à jour le compteur et rendre immédiatement
-    const totalEl = this.shadowRoot.getElementById('total-count');
-    totalEl.textContent = this._localProducts.length;
-    this._renderProducts();
+    console.log('Produit trouvé:', product);
 
-    // Appeler le service en arrière-plan (pas de blocage)
+    // Appeler le service AVANT de supprimer visuellement
     try {
+      console.log('Appel service remove_product avec ID:', productId);
       await this._hass.callService('inventory_manager', 'remove_product', {
-        product_id: productId
+        product_id: String(productId)  // Forcer en string
       });
-      // Succès - rien à faire, l'élément est déjà supprimé visuellement
+      console.log('Service remove_product appelé avec succès');
+      
+      // Supprimer de la liste locale seulement après succès
+      this._localProducts = this._localProducts.filter(p => p.id !== productId);
+      this._deletedIds.add(productId);
+      
+      // Mettre à jour le compteur et rendre
+      const totalEl = this.shadowRoot.getElementById('total-count');
+      totalEl.textContent = this._localProducts.length;
+      this._renderProducts();
+      
     } catch (err) {
       console.error('Erreur suppression:', err);
-      // En cas d'erreur, on ne peut pas vraiment rollback car on ne sait plus où était le produit
-      // On laisse l'utilisateur réessayer via la sync
-      this._deletedIds.delete(productId);
-      alert('Erreur: ' + err.message + '. Rafraîchissez la page.');
+      alert('Erreur lors de la suppression: ' + err.message);
     }
   }
 }
