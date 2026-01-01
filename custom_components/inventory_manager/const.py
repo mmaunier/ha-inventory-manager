@@ -36,6 +36,12 @@ SERVICE_REMOVE_PRODUCT = "remove_product"
 SERVICE_UPDATE_QUANTITY = "update_quantity"
 SERVICE_UPDATE_PRODUCT = "update_product"
 SERVICE_LIST_PRODUCTS = "list_products"
+SERVICE_ADD_CATEGORY = "add_category"
+SERVICE_REMOVE_CATEGORY = "remove_category"
+SERVICE_RENAME_CATEGORY = "rename_category"
+SERVICE_ADD_ZONE = "add_zone"
+SERVICE_REMOVE_ZONE = "remove_zone"
+SERVICE_RENAME_ZONE = "rename_zone"
 
 # Attributes
 ATTR_BARCODE = "barcode"
@@ -50,6 +56,8 @@ ATTR_CATEGORIES = "categories"
 ATTR_CATEGORY = "category"
 ATTR_ZONE = "zone"
 ATTR_ADDED_DATE = "added_date"
+ATTR_OLD_NAME = "old_name"
+ATTR_NEW_NAME = "new_name"
 
 # Default categories (can be customized by user)
 DEFAULT_CATEGORIES = [

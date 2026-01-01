@@ -17,6 +17,12 @@ from .const import (
     SERVICE_UPDATE_QUANTITY,
     SERVICE_UPDATE_PRODUCT,
     SERVICE_LIST_PRODUCTS,
+    SERVICE_ADD_CATEGORY,
+    SERVICE_REMOVE_CATEGORY,
+    SERVICE_RENAME_CATEGORY,
+    SERVICE_ADD_ZONE,
+    SERVICE_REMOVE_ZONE,
+    SERVICE_RENAME_ZONE,
     ATTR_BARCODE,
     ATTR_NAME,
     ATTR_QUANTITY,
@@ -25,6 +31,8 @@ from .const import (
     ATTR_PRODUCT_ID,
     ATTR_CATEGORY,
     ATTR_ZONE,
+    ATTR_OLD_NAME,
+    ATTR_NEW_NAME,
     STORAGE_FREEZER,
     STORAGE_LOCATIONS,
 )
@@ -89,6 +97,44 @@ UPDATE_PRODUCT_SCHEMA = vol.Schema(
         vol.Optional(ATTR_QUANTITY): vol.All(vol.Coerce(int), vol.Range(min=1)),
         vol.Optional(ATTR_CATEGORY): cv.string,
         vol.Optional(ATTR_ZONE): cv.string,
+    }
+)
+
+ADD_CATEGORY_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_NAME): cv.string,
+    }
+)
+
+REMOVE_CATEGORY_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_NAME): cv.string,
+    }
+)
+
+RENAME_CATEGORY_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_OLD_NAME): cv.string,
+        vol.Required(ATTR_NEW_NAME): cv.string,
+    }
+)
+
+ADD_ZONE_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_NAME): cv.string,
+    }
+)
+
+REMOVE_ZONE_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_NAME): cv.string,
+    }
+)
+
+RENAME_ZONE_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_OLD_NAME): cv.string,
+        vol.Required(ATTR_NEW_NAME): cv.string,
     }
 )
 
@@ -258,6 +304,64 @@ async def async_setup_services(
             "product_id": product_id,
         }
 
+    async def handle_add_category(call: ServiceCall) -> ServiceResponse:
+        """Handle add category service call."""
+        name = call.data[ATTR_NAME]
+        await coordinator.async_add_category(name)
+        return {
+            "success": True,
+            "category": name,
+        }
+
+    async def handle_remove_category(call: ServiceCall) -> ServiceResponse:
+        """Handle remove category service call."""
+        name = call.data[ATTR_NAME]
+        await coordinator.async_remove_category(name)
+        return {
+            "success": True,
+            "category": name,
+        }
+
+    async def handle_rename_category(call: ServiceCall) -> ServiceResponse:
+        """Handle rename category service call."""
+        old_name = call.data[ATTR_OLD_NAME]
+        new_name = call.data[ATTR_NEW_NAME]
+        await coordinator.async_rename_category(old_name, new_name)
+        return {
+            "success": True,
+            "old_name": old_name,
+            "new_name": new_name,
+        }
+
+    async def handle_add_zone(call: ServiceCall) -> ServiceResponse:
+        """Handle add zone service call."""
+        name = call.data[ATTR_NAME]
+        await coordinator.async_add_zone(name)
+        return {
+            "success": True,
+            "zone": name,
+        }
+
+    async def handle_remove_zone(call: ServiceCall) -> ServiceResponse:
+        """Handle remove zone service call."""
+        name = call.data[ATTR_NAME]
+        await coordinator.async_remove_zone(name)
+        return {
+            "success": True,
+            "zone": name,
+        }
+
+    async def handle_rename_zone(call: ServiceCall) -> ServiceResponse:
+        """Handle rename zone service call."""
+        old_name = call.data[ATTR_OLD_NAME]
+        new_name = call.data[ATTR_NEW_NAME]
+        await coordinator.async_rename_zone(old_name, new_name)
+        return {
+            "success": True,
+            "old_name": old_name,
+            "new_name": new_name,
+        }
+
     # Register services
     hass.services.async_register(
         DOMAIN,
@@ -307,6 +411,54 @@ async def async_setup_services(
         supports_response=SupportsResponse.OPTIONAL,
     )
 
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_ADD_CATEGORY,
+        handle_add_category,
+        schema=ADD_CATEGORY_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_REMOVE_CATEGORY,
+        handle_remove_category,
+        schema=REMOVE_CATEGORY_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_RENAME_CATEGORY,
+        handle_rename_category,
+        schema=RENAME_CATEGORY_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_ADD_ZONE,
+        handle_add_zone,
+        schema=ADD_ZONE_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_REMOVE_ZONE,
+        handle_remove_zone,
+        schema=REMOVE_ZONE_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_RENAME_ZONE,
+        handle_rename_zone,
+        schema=RENAME_ZONE_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
     _LOGGER.info("Inventory Manager services registered")
 
 
@@ -318,3 +470,9 @@ async def async_unload_services(hass: HomeAssistant) -> None:
     hass.services.async_remove(DOMAIN, SERVICE_UPDATE_QUANTITY)
     hass.services.async_remove(DOMAIN, SERVICE_UPDATE_PRODUCT)
     hass.services.async_remove(DOMAIN, SERVICE_LIST_PRODUCTS)
+    hass.services.async_remove(DOMAIN, SERVICE_ADD_CATEGORY)
+    hass.services.async_remove(DOMAIN, SERVICE_REMOVE_CATEGORY)
+    hass.services.async_remove(DOMAIN, SERVICE_RENAME_CATEGORY)
+    hass.services.async_remove(DOMAIN, SERVICE_ADD_ZONE)
+    hass.services.async_remove(DOMAIN, SERVICE_REMOVE_ZONE)
+    hass.services.async_remove(DOMAIN, SERVICE_RENAME_ZONE)

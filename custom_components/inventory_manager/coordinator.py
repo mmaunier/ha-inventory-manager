@@ -520,3 +520,84 @@ class InventoryCoordinator(DataUpdateCoordinator):
                 continue
 
         return sorted(expiring, key=lambda x: x["days_until_expiry"])
+
+    async def async_add_category(self, name: str) -> None:
+        """Add a new category."""
+        categories = list(self.get_categories())
+        if name not in categories:
+            categories.append(name)
+            new_data = {**self.entry.options, "categories": categories}
+            self.hass.config_entries.async_update_entry(self.entry, options=new_data)
+            _LOGGER.info("Added category: %s", name)
+
+    async def async_remove_category(self, name: str) -> None:
+        """Remove a category. Products with this category will be set to 'Autre'."""
+        categories = list(self.get_categories())
+        if name in categories:
+            categories.remove(name)
+            new_data = {**self.entry.options, "categories": categories}
+            self.hass.config_entries.async_update_entry(self.entry, options=new_data)
+            
+            # Update products that have this category to 'Autre'
+            for product in self._products.values():
+                if product.get("category") == name:
+                    product["category"] = "Autre"
+            await self._save_data()
+            _LOGGER.info("Removed category: %s", name)
+
+    async def async_rename_category(self, old_name: str, new_name: str) -> None:
+        """Rename a category. All products will be updated."""
+        categories = list(self.get_categories())
+        if old_name in categories:
+            idx = categories.index(old_name)
+            categories[idx] = new_name
+            new_data = {**self.entry.options, "categories": categories}
+            self.hass.config_entries.async_update_entry(self.entry, options=new_data)
+            
+            # Update all products
+            for product in self._products.values():
+                if product.get("category") == old_name:
+                    product["category"] = new_name
+            await self._save_data()
+            _LOGGER.info("Renamed category: %s -> %s", old_name, new_name)
+
+    async def async_add_zone(self, name: str) -> None:
+        """Add a new zone."""
+        zones = list(self.get_zones())
+        if name not in zones:
+            zones.append(name)
+            new_data = {**self.entry.options, "zones": zones}
+            self.hass.config_entries.async_update_entry(self.entry, options=new_data)
+            _LOGGER.info("Added zone: %s", name)
+
+    async def async_remove_zone(self, name: str) -> None:
+        """Remove a zone. Products in this zone will be set to first zone."""
+        zones = list(self.get_zones())
+        if name in zones:
+            zones.remove(name)
+            new_data = {**self.entry.options, "zones": zones}
+            self.hass.config_entries.async_update_entry(self.entry, options=new_data)
+            
+            # Update products that have this zone to first zone
+            first_zone = zones[0] if zones else "Zone 1"
+            for product in self._products.values():
+                if product.get("zone") == name:
+                    product["zone"] = first_zone
+            await self._save_data()
+            _LOGGER.info("Removed zone: %s", name)
+
+    async def async_rename_zone(self, old_name: str, new_name: str) -> None:
+        """Rename a zone. All products will be updated."""
+        zones = list(self.get_zones())
+        if old_name in zones:
+            idx = zones.index(old_name)
+            zones[idx] = new_name
+            new_data = {**self.entry.options, "zones": zones}
+            self.hass.config_entries.async_update_entry(self.entry, options=new_data)
+            
+            # Update all products
+            for product in self._products.values():
+                if product.get("zone") == old_name:
+                    product["zone"] = new_name
+            await self._save_data()
+            _LOGGER.info("Renamed zone: %s -> %s", old_name, new_name)
