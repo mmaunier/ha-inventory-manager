@@ -5,6 +5,18 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.6.3] - 2026-01-01
+
+### Ajouté
+- **Bouton Réinitialiser** : Ajout d'un bouton 🔄 Réinitialiser dans les modaux de gestion
+  - Permet de restaurer les catégories aux 10 valeurs par défaut
+  - Permet de restaurer les zones aux 3 valeurs par défaut
+  - Confirmation avant réinitialisation pour éviter les erreurs
+- 2 nouveaux services : `reset_categories` et `reset_zones`
+
+### Modifié
+- Interface des modaux : bouton Réinitialiser à gauche, Fermer à droite
+
 ## [1.6.2] - 2026-01-01
 
 ### Ajouté

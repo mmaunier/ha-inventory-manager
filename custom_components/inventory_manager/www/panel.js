@@ -605,6 +605,7 @@ class InventoryManagerPanel extends HTMLElement {
             </div>
           </div>
           <div class="modal-actions">
+            <button class="btn-delete" id="btn-reset-categories">🔄 Réinitialiser</button>
             <button class="btn-primary" id="btn-categories-close">Fermer</button>
           </div>
         </div>
@@ -621,6 +622,7 @@ class InventoryManagerPanel extends HTMLElement {
             </div>
           </div>
           <div class="modal-actions">
+            <button class="btn-delete" id="btn-reset-zones">🔄 Réinitialiser</button>
             <button class="btn-primary" id="btn-zones-close">Fermer</button>
           </div>
         </div>
@@ -641,6 +643,8 @@ class InventoryManagerPanel extends HTMLElement {
     this.shadowRoot.getElementById('btn-zones-close').onclick = () => this._closeZonesModal();
     this.shadowRoot.getElementById('btn-add-category').onclick = () => this._addCategory();
     this.shadowRoot.getElementById('btn-add-zone').onclick = () => this._addZone();
+    this.shadowRoot.getElementById('btn-reset-categories').onclick = () => this._resetCategories();
+    this.shadowRoot.getElementById('btn-reset-zones').onclick = () => this._resetZones();
     
     // Tri par colonnes
     this.shadowRoot.getElementById('sort-name').onclick = () => this._toggleSort('name');
@@ -1238,6 +1242,40 @@ class InventoryManagerPanel extends HTMLElement {
       this._syncFromHass();
     } catch (err) {
       console.error('Erreur renommage zone:', err);
+      alert('Erreur: ' + err.message);
+    }
+  }
+
+  async _resetCategories() {
+    if (!confirm('Réinitialiser les catégories aux valeurs par défaut ?\nCette action est irréversible.')) return;
+
+    try {
+      await this._hass.callService('inventory_manager', 'reset_categories', {});
+      // Recharger les catégories par défaut
+      this._categories = [
+        "Viande", "Poisson", "Légumes", "Fruits", 
+        "Produits laitiers", "Plats préparés", "Pain/Pâtisserie",
+        "Glaces/Desserts", "Condiments/Sauces", "Autre"
+      ];
+      this._renderCategoriesList();
+      alert('Catégories réinitialisées !');
+    } catch (err) {
+      console.error('Erreur réinitialisation catégories:', err);
+      alert('Erreur: ' + err.message);
+    }
+  }
+
+  async _resetZones() {
+    if (!confirm('Réinitialiser les zones aux valeurs par défaut ?\nCette action est irréversible.')) return;
+
+    try {
+      await this._hass.callService('inventory_manager', 'reset_zones', {});
+      // Recharger les zones par défaut
+      this._zones = ["Zone 1", "Zone 2", "Zone 3"];
+      this._renderZonesList();
+      alert('Zones réinitialisées !');
+    } catch (err) {
+      console.error('Erreur réinitialisation zones:', err);
       alert('Erreur: ' + err.message);
     }
   }

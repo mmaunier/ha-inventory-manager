@@ -601,3 +601,15 @@ class InventoryCoordinator(DataUpdateCoordinator):
                     product["zone"] = new_name
             await self.async_save_data()
             _LOGGER.info("Renamed zone: %s -> %s", old_name, new_name)
+
+    async def async_reset_categories(self) -> None:
+        """Reset categories to default values."""
+        new_data = {**self.entry.options, "categories": list(DEFAULT_CATEGORIES)}
+        self.hass.config_entries.async_update_entry(self.entry, options=new_data)
+        _LOGGER.info("Reset categories to default")
+
+    async def async_reset_zones(self) -> None:
+        """Reset zones to default values."""
+        new_data = {**self.entry.options, "zones": list(DEFAULT_ZONES)}
+        self.hass.config_entries.async_update_entry(self.entry, options=new_data)
+        _LOGGER.info("Reset zones to default")

@@ -39,9 +39,11 @@ SERVICE_LIST_PRODUCTS = "list_products"
 SERVICE_ADD_CATEGORY = "add_category"
 SERVICE_REMOVE_CATEGORY = "remove_category"
 SERVICE_RENAME_CATEGORY = "rename_category"
+SERVICE_RESET_CATEGORIES = "reset_categories"
 SERVICE_ADD_ZONE = "add_zone"
 SERVICE_REMOVE_ZONE = "remove_zone"
 SERVICE_RENAME_ZONE = "rename_zone"
+SERVICE_RESET_ZONES = "reset_zones"
 
 # Attributes
 ATTR_BARCODE = "barcode"

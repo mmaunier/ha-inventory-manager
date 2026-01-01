@@ -20,9 +20,11 @@ from .const import (
     SERVICE_ADD_CATEGORY,
     SERVICE_REMOVE_CATEGORY,
     SERVICE_RENAME_CATEGORY,
+    SERVICE_RESET_CATEGORIES,
     SERVICE_ADD_ZONE,
     SERVICE_REMOVE_ZONE,
     SERVICE_RENAME_ZONE,
+    SERVICE_RESET_ZONES,
     ATTR_BARCODE,
     ATTR_NAME,
     ATTR_QUANTITY,
@@ -362,6 +364,20 @@ async def async_setup_services(
             "new_name": new_name,
         }
 
+    async def handle_reset_categories(call: ServiceCall) -> ServiceResponse:
+        """Handle reset categories service call."""
+        await coordinator.async_reset_categories()
+        return {
+            "success": True,
+        }
+
+    async def handle_reset_zones(call: ServiceCall) -> ServiceResponse:
+        """Handle reset zones service call."""
+        await coordinator.async_reset_zones()
+        return {
+            "success": True,
+        }
+
     # Register services
     hass.services.async_register(
         DOMAIN,
@@ -459,6 +475,20 @@ async def async_setup_services(
         supports_response=SupportsResponse.OPTIONAL,
     )
 
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_RESET_CATEGORIES,
+        handle_reset_categories,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_RESET_ZONES,
+        handle_reset_zones,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
     _LOGGER.info("Inventory Manager services registered")
 
 
@@ -473,6 +503,8 @@ async def async_unload_services(hass: HomeAssistant) -> None:
     hass.services.async_remove(DOMAIN, SERVICE_ADD_CATEGORY)
     hass.services.async_remove(DOMAIN, SERVICE_REMOVE_CATEGORY)
     hass.services.async_remove(DOMAIN, SERVICE_RENAME_CATEGORY)
+    hass.services.async_remove(DOMAIN, SERVICE_RESET_CATEGORIES)
     hass.services.async_remove(DOMAIN, SERVICE_ADD_ZONE)
     hass.services.async_remove(DOMAIN, SERVICE_REMOVE_ZONE)
     hass.services.async_remove(DOMAIN, SERVICE_RENAME_ZONE)
+    hass.services.async_remove(DOMAIN, SERVICE_RESET_ZONES)
