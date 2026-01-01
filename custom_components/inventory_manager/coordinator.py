@@ -1,0 +1,420 @@
+"""Data coordinator for Inventory Manager."""
+from __future__ import annotations
+
+import asyncio
+import json
+import logging
+import uuid
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Any
+
+import aiohttp
+
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.util import dt as dt_util
+
+from .const import (
+    DOMAIN,
+    OPENFOODFACTS_API_URL,
+    STORAGE_FILE,
+    STORAGE_FREEZER,
+    STORAGE_LOCATIONS,
+    SCAN_INTERVAL,
+    EXPIRY_THRESHOLD_URGENT,
+    EXPIRY_THRESHOLD_SOON,
+    EXPIRY_THRESHOLD_NORMAL,
+    EVENT_PRODUCT_ADDED,
+    EVENT_PRODUCT_REMOVED,
+    EVENT_PRODUCT_EXPIRING,
+)
+
+_LOGGER = logging.getLogger(__name__)
+
+
+class InventoryCoordinator(DataUpdateCoordinator):
+    """Coordinator for managing inventory data."""
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        """Initialize the coordinator."""
+        super().__init__(
+            hass,
+            _LOGGER,
+            name=DOMAIN,
+            update_interval=SCAN_INTERVAL,
+        )
+        self.entry = entry
+        self._storage_path = Path(hass.config.path(STORAGE_FILE))
+        self._products: dict[str, dict[str, Any]] = {}
+        self._last_notification_check: datetime | None = None
+
+    @property
+    def products(self) -> dict[str, dict[str, Any]]:
+        """Return all products."""
+        return self._products
+
+    async def async_load_data(self) -> None:
+        """Load inventory data from storage."""
+        try:
+            if self._storage_path.exists():
+                data = await self.hass.async_add_executor_job(
+                    self._read_storage_file
+                )
+                self._products = data.get("products", {})
+                _LOGGER.info("Loaded %d products from storage", len(self._products))
+            else:
+                _LOGGER.info("No existing inventory file, starting fresh")
+                self._products = {}
+        except Exception as err:
+            _LOGGER.error("Error loading inventory data: %s", err)
+            self._products = {}
+
+    def _read_storage_file(self) -> dict:
+        """Read storage file (blocking)."""
+        with open(self._storage_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+
+    async def async_save_data(self) -> None:
+        """Save inventory data to storage."""
+        try:
+            data = {
+                "products": self._products,
+                "last_updated": datetime.now().isoformat(),
+            }
+            await self.hass.async_add_executor_job(
+                self._write_storage_file, data
+            )
+            _LOGGER.debug("Saved %d products to storage", len(self._products))
+        except Exception as err:
+            _LOGGER.error("Error saving inventory data: %s", err)
+
+    def _write_storage_file(self, data: dict) -> None:
+        """Write storage file (blocking)."""
+        with open(self._storage_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+
+    async def _async_update_data(self) -> dict[str, Any]:
+        """Update data and check for expiring products."""
+        await self._check_expiring_products()
+        return self._get_summary()
+
+    def _get_summary(self) -> dict[str, Any]:
+        """Get inventory summary."""
+        now = dt_util.now().date()
+        summary = {
+            "total_products": len(self._products),
+            "locations": {},
+            "expired": [],
+            "expiring_today": [],
+            "expiring_soon": [],
+        }
+
+        for location in STORAGE_LOCATIONS:
+            location_products = [
+                p for p in self._products.values() 
+                if p.get("location") == location
+            ]
+            summary["locations"][location] = {
+                "count": len(location_products),
+                "products": location_products,
+            }
+
+        # Check expiry dates
+        for product_id, product in self._products.items():
+            expiry_str = product.get("expiry_date")
+            if not expiry_str:
+                continue
+
+            try:
+                expiry_date = datetime.fromisoformat(expiry_str).date()
+                days_until_expiry = (expiry_date - now).days
+
+                product_info = {
+                    "id": product_id,
+                    "name": product.get("name", "Inconnu"),
+                    "expiry_date": expiry_str,
+                    "days_until_expiry": days_until_expiry,
+                    "location": product.get("location"),
+                }
+
+                if days_until_expiry < 0:
+                    summary["expired"].append(product_info)
+                elif days_until_expiry == 0:
+                    summary["expiring_today"].append(product_info)
+                elif days_until_expiry <= EXPIRY_THRESHOLD_SOON:
+                    summary["expiring_soon"].append(product_info)
+            except ValueError:
+                _LOGGER.warning("Invalid expiry date for product %s", product_id)
+
+        return summary
+
+    async def _check_expiring_products(self) -> None:
+        """Check for expiring products and send notifications."""
+        now = dt_util.now()
+        today = now.date()
+
+        # Only check once per hour
+        if (
+            self._last_notification_check
+            and (now - self._last_notification_check).total_seconds() < 3600
+        ):
+            return
+
+        self._last_notification_check = now
+
+        for product_id, product in self._products.items():
+            expiry_str = product.get("expiry_date")
+            if not expiry_str:
+                continue
+
+            try:
+                expiry_date = datetime.fromisoformat(expiry_str).date()
+                days_until_expiry = (expiry_date - today).days
+                
+                should_notify = False
+                notification_type = ""
+
+                # Logique de notification selon les critères demandés
+                if days_until_expiry < 0:
+                    should_notify = True
+                    notification_type = "expired"
+                elif days_until_expiry < EXPIRY_THRESHOLD_URGENT:
+                    # < 3 jours : rappel d'utilisation le jour même
+                    should_notify = True
+                    notification_type = "use_today"
+                elif days_until_expiry <= EXPIRY_THRESHOLD_SOON:
+                    # 3-5 jours : rappel 1 jour avant
+                    if days_until_expiry == 1:
+                        should_notify = True
+                        notification_type = "expiring_soon"
+                elif days_until_expiry >= EXPIRY_THRESHOLD_NORMAL:
+                    # >= 7 jours : rappel 2 jours avant
+                    if days_until_expiry == 2:
+                        should_notify = True
+                        notification_type = "expiring_warning"
+
+                if should_notify:
+                    self.hass.bus.async_fire(
+                        EVENT_PRODUCT_EXPIRING,
+                        {
+                            "product_id": product_id,
+                            "name": product.get("name", "Inconnu"),
+                            "expiry_date": expiry_str,
+                            "days_until_expiry": days_until_expiry,
+                            "location": product.get("location"),
+                            "notification_type": notification_type,
+                        },
+                    )
+
+            except ValueError:
+                continue
+
+    async def async_fetch_product_info(self, barcode: str) -> dict[str, Any] | None:
+        """Fetch product information from Open Food Facts."""
+        url = OPENFOODFACTS_API_URL.format(barcode=barcode)
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, timeout=10) as response:
+                    if response.status != 200:
+                        _LOGGER.warning("Open Food Facts returned status %d", response.status)
+                        return None
+
+                    data = await response.json()
+                    
+                    if data.get("status") != 1:
+                        _LOGGER.info("Product not found in Open Food Facts: %s", barcode)
+                        return None
+
+                    product = data.get("product", {})
+                    
+                    return {
+                        "barcode": barcode,
+                        "name": product.get("product_name", product.get("product_name_fr", "Produit inconnu")),
+                        "brand": product.get("brands", ""),
+                        "categories": product.get("categories", ""),
+                        "image_url": product.get("image_url", ""),
+                        "quantity_info": product.get("quantity", ""),
+                        "nutriscore": product.get("nutriscore_grade", ""),
+                    }
+
+        except asyncio.TimeoutError:
+            _LOGGER.error("Timeout fetching product info from Open Food Facts")
+            return None
+        except Exception as err:
+            _LOGGER.error("Error fetching product info: %s", err)
+            return None
+
+    async def async_add_product(
+        self,
+        name: str,
+        expiry_date: str,
+        location: str = STORAGE_FREEZER,
+        quantity: int = 1,
+        barcode: str | None = None,
+        brand: str | None = None,
+        image_url: str | None = None,
+    ) -> str:
+        """Add a product to the inventory."""
+        product_id = str(uuid.uuid4())[:8]
+        
+        product = {
+            "name": name,
+            "expiry_date": expiry_date,
+            "location": location,
+            "quantity": quantity,
+            "added_date": datetime.now().isoformat(),
+        }
+        
+        if barcode:
+            product["barcode"] = barcode
+        if brand:
+            product["brand"] = brand
+        if image_url:
+            product["image_url"] = image_url
+
+        self._products[product_id] = product
+        await self.async_save_data()
+        
+        # Fire event
+        self.hass.bus.async_fire(
+            EVENT_PRODUCT_ADDED,
+            {
+                "product_id": product_id,
+                **product,
+            },
+        )
+        
+        # Trigger update
+        await self.async_request_refresh()
+        
+        _LOGGER.info("Added product: %s (ID: %s)", name, product_id)
+        return product_id
+
+    async def async_scan_and_add_product(
+        self,
+        barcode: str,
+        expiry_date: str,
+        location: str = STORAGE_FREEZER,
+        quantity: int = 1,
+    ) -> dict[str, Any]:
+        """Scan a barcode and add the product to inventory."""
+        # Fetch product info from Open Food Facts
+        product_info = await self.async_fetch_product_info(barcode)
+        
+        if product_info:
+            name = product_info["name"]
+            if product_info.get("brand"):
+                name = f"{product_info['brand']} - {name}"
+            
+            product_id = await self.async_add_product(
+                name=name,
+                expiry_date=expiry_date,
+                location=location,
+                quantity=quantity,
+                barcode=barcode,
+                brand=product_info.get("brand"),
+                image_url=product_info.get("image_url"),
+            )
+            
+            return {
+                "success": True,
+                "product_id": product_id,
+                "name": name,
+                "info": product_info,
+            }
+        else:
+            # Product not found, create with barcode as name
+            product_id = await self.async_add_product(
+                name=f"Produit {barcode}",
+                expiry_date=expiry_date,
+                location=location,
+                quantity=quantity,
+                barcode=barcode,
+            )
+            
+            return {
+                "success": True,
+                "product_id": product_id,
+                "name": f"Produit {barcode}",
+                "info": None,
+                "warning": "Produit non trouvé dans Open Food Facts",
+            }
+
+    async def async_remove_product(self, product_id: str) -> bool:
+        """Remove a product from the inventory."""
+        if product_id not in self._products:
+            _LOGGER.warning("Product not found: %s", product_id)
+            return False
+
+        product = self._products.pop(product_id)
+        await self.async_save_data()
+        
+        # Fire event
+        self.hass.bus.async_fire(
+            EVENT_PRODUCT_REMOVED,
+            {
+                "product_id": product_id,
+                "name": product.get("name", "Inconnu"),
+            },
+        )
+        
+        # Trigger update
+        await self.async_request_refresh()
+        
+        _LOGGER.info("Removed product: %s", product_id)
+        return True
+
+    async def async_update_quantity(
+        self, product_id: str, quantity: int
+    ) -> bool:
+        """Update the quantity of a product."""
+        if product_id not in self._products:
+            _LOGGER.warning("Product not found: %s", product_id)
+            return False
+
+        if quantity <= 0:
+            # Remove product if quantity is 0 or less
+            return await self.async_remove_product(product_id)
+
+        self._products[product_id]["quantity"] = quantity
+        await self.async_save_data()
+        await self.async_request_refresh()
+        
+        _LOGGER.info("Updated quantity for %s: %d", product_id, quantity)
+        return True
+
+    def get_products_by_location(self, location: str) -> list[dict[str, Any]]:
+        """Get all products in a specific location."""
+        return [
+            {"id": pid, **product}
+            for pid, product in self._products.items()
+            if product.get("location") == location
+        ]
+
+    def get_expiring_products(self, days: int = 7) -> list[dict[str, Any]]:
+        """Get products expiring within the specified days."""
+        now = dt_util.now().date()
+        expiring = []
+
+        for product_id, product in self._products.items():
+            expiry_str = product.get("expiry_date")
+            if not expiry_str:
+                continue
+
+            try:
+                expiry_date = datetime.fromisoformat(expiry_str).date()
+                days_until_expiry = (expiry_date - now).days
+
+                if 0 <= days_until_expiry <= days:
+                    expiring.append({
+                        "id": product_id,
+                        "days_until_expiry": days_until_expiry,
+                        **product,
+                    })
+            except ValueError:
+                continue
+
+        return sorted(expiring, key=lambda x: x["days_until_expiry"])

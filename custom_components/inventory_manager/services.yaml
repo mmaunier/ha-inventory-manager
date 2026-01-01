@@ -1,0 +1,142 @@
+scan_product:
+  name: Scanner un produit
+  description: Scanne un code-barres et ajoute le produit à l'inventaire via Open Food Facts
+  fields:
+    barcode:
+      name: Code-barres
+      description: Le code-barres du produit (EAN-13, UPC, etc.)
+      required: true
+      example: "3017620422003"
+      selector:
+        text:
+    expiry_date:
+      name: Date de péremption
+      description: La date de péremption du produit (format YYYY-MM-DD)
+      required: true
+      example: "2026-06-15"
+      selector:
+        date:
+    location:
+      name: Emplacement
+      description: Où le produit est stocké
+      required: false
+      default: "freezer"
+      selector:
+        select:
+          options:
+            - label: "Congélateur"
+              value: "freezer"
+            - label: "Réfrigérateur"
+              value: "fridge"
+            - label: "Réserves"
+              value: "pantry"
+    quantity:
+      name: Quantité
+      description: Le nombre d'unités
+      required: false
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 100
+          mode: box
+
+add_product:
+  name: Ajouter un produit
+  description: Ajoute manuellement un produit à l'inventaire
+  fields:
+    name:
+      name: Nom du produit
+      description: Le nom du produit
+      required: true
+      example: "Pizza 4 fromages"
+      selector:
+        text:
+    expiry_date:
+      name: Date de péremption
+      description: La date de péremption du produit (format YYYY-MM-DD)
+      required: true
+      example: "2026-06-15"
+      selector:
+        date:
+    location:
+      name: Emplacement
+      description: Où le produit est stocké
+      required: false
+      default: "freezer"
+      selector:
+        select:
+          options:
+            - label: "Congélateur"
+              value: "freezer"
+            - label: "Réfrigérateur"
+              value: "fridge"
+            - label: "Réserves"
+              value: "pantry"
+    quantity:
+      name: Quantité
+      description: Le nombre d'unités
+      required: false
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 100
+          mode: box
+    barcode:
+      name: Code-barres
+      description: Le code-barres du produit (optionnel)
+      required: false
+      selector:
+        text:
+
+remove_product:
+  name: Supprimer un produit
+  description: Supprime un produit de l'inventaire
+  fields:
+    product_id:
+      name: ID du produit
+      description: L'identifiant unique du produit à supprimer
+      required: true
+      example: "a1b2c3d4"
+      selector:
+        text:
+
+update_quantity:
+  name: Modifier la quantité
+  description: Modifie la quantité d'un produit (0 pour supprimer)
+  fields:
+    product_id:
+      name: ID du produit
+      description: L'identifiant unique du produit
+      required: true
+      example: "a1b2c3d4"
+      selector:
+        text:
+    quantity:
+      name: Quantité
+      description: La nouvelle quantité (0 pour supprimer)
+      required: true
+      selector:
+        number:
+          min: 0
+          max: 100
+          mode: box
+
+list_products:
+  name: Lister les produits
+  description: Liste tous les produits ou ceux d'un emplacement spécifique
+  fields:
+    location:
+      name: Emplacement
+      description: Filtrer par emplacement (optionnel)
+      required: false
+      selector:
+        select:
+          options:
+            - label: "Congélateur"
+              value: "freezer"
+            - label: "Réfrigérateur"
+              value: "fridge"
+            - label: "Réserves"
+              value: "pantry"

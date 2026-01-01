@@ -1,0 +1,130 @@
+# Exemples d'automatisations pour Inventory Manager
+# À ajouter dans automations.yaml
+
+# ===== NOTIFICATION DE PÉREMPTION =====
+- id: inventory_expiry_notification
+  alias: "Notification produit périmant"
+  description: "Envoie une notification quand un produit approche de la péremption"
+  trigger:
+    - platform: event
+      event_type: inventory_manager_product_expiring
+  action:
+    - service: notify.mobile_app_votre_telephone  # Remplacez par votre service de notification
+      data:
+        title: >
+          {% if trigger.event.data.notification_type == 'expired' %}
+            🚨 Produit périmé !
+          {% elif trigger.event.data.notification_type == 'use_today' %}
+            ⚡ À consommer rapidement !
+          {% else %}
+            ⏰ Péremption proche
+          {% endif %}
+        message: >
+          {% set name = trigger.event.data.name %}
+          {% set days = trigger.event.data.days_until_expiry %}
+          {% set location = trigger.event.data.location %}
+          {% if trigger.event.data.notification_type == 'expired' %}
+            {{ name }} est PÉRIMÉ depuis {{ days | abs }} jour(s) !
+          {% elif days == 0 %}
+            {{ name }} expire AUJOURD'HUI - À utiliser immédiatement !
+          {% elif days == 1 %}
+            {{ name }} expire DEMAIN
+          {% else %}
+            {{ name }} expire dans {{ days }} jours
+          {% endif %}
+        data:
+          tag: "inventory_expiry_{{ trigger.event.data.product_id }}"
+          group: "inventory_expiry"
+          # Actions pour l'app mobile
+          actions:
+            - action: "REMOVE_PRODUCT"
+              title: "Supprimer"
+              uri: "/api/services/inventory_manager/remove_product"
+            - action: "DISMISS"
+              title: "OK"
+
+# ===== RÉPONSE À L'ACTION DE NOTIFICATION =====
+- id: inventory_notification_action
+  alias: "Action notification inventaire"
+  description: "Gère les actions des notifications d'inventaire"
+  trigger:
+    - platform: event
+      event_type: mobile_app_notification_action
+      event_data:
+        action: "REMOVE_PRODUCT"
+  action:
+    - service: inventory_manager.remove_product
+      data:
+        product_id: "{{ trigger.event.data.tag | replace('inventory_expiry_', '') }}"
+    - service: notify.mobile_app_votre_telephone
+      data:
+        message: "Produit supprimé de l'inventaire"
+
+# ===== NOTIFICATION PRODUIT AJOUTÉ =====
+- id: inventory_product_added
+  alias: "Notification produit ajouté"
+  description: "Confirme l'ajout d'un produit"
+  trigger:
+    - platform: event
+      event_type: inventory_manager_product_added
+  action:
+    - service: notify.mobile_app_votre_telephone
+      data:
+        title: "✅ Produit ajouté"
+        message: "{{ trigger.event.data.name }} ajouté au {{ trigger.event.data.location }}"
+        data:
+          tag: "inventory_added"
+          timeout: 5
+
+# ===== RÉSUMÉ QUOTIDIEN =====
+- id: inventory_daily_summary
+  alias: "Résumé inventaire quotidien"
+  description: "Envoie un résumé quotidien des produits à surveiller"
+  trigger:
+    - platform: time
+      at: "08:00:00"
+  condition:
+    - condition: or
+      conditions:
+        - condition: numeric_state
+          entity_id: sensor.gestionnaire_d_inventaire_produits_perimant_bientot
+          above: 0
+        - condition: numeric_state
+          entity_id: sensor.gestionnaire_d_inventaire_produits_perimes
+          above: 0
+  action:
+    - service: notify.mobile_app_votre_telephone
+      data:
+        title: "📋 Résumé inventaire"
+        message: >
+          {% set expiring = states('sensor.gestionnaire_d_inventaire_produits_perimant_bientot') | int %}
+          {% set expired = states('sensor.gestionnaire_d_inventaire_produits_perimes') | int %}
+          {% if expired > 0 %}🚨 {{ expired }} produit(s) périmé(s){% endif %}
+          {% if expiring > 0 %}⚠️ {{ expiring }} produit(s) à consommer bientôt{% endif %}
+
+# ===== SCAN CODE-BARRES DEPUIS COMPANION APP =====
+- id: inventory_barcode_scan
+  alias: "Scan code-barres inventaire"
+  description: "Gère le scan de code-barres depuis l'app companion"
+  trigger:
+    - platform: event
+      event_type: mobile_app_notification_action
+      event_data:
+        action: "BARCODE_SCANNED"
+  action:
+    - service: inventory_manager.scan_product
+      data:
+        barcode: "{{ trigger.event.data.barcode }}"
+        expiry_date: "{{ (now() + timedelta(days=30)).strftime('%Y-%m-%d') }}"
+        location: "freezer"
+      response_variable: result
+    - service: notify.mobile_app_votre_telephone
+      data:
+        title: "📦 Produit scanné"
+        message: >
+          {% if result.success %}
+            {{ result.name }} ajouté !
+            {% if result.warning %}({{ result.warning }}){% endif %}
+          {% else %}
+            Erreur: {{ result.error }}
+          {% endif %}

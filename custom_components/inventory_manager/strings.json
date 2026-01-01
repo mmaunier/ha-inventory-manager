@@ -1,0 +1,50 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configuration du Gestionnaire d'Inventaire",
+        "description": "Configurez votre gestionnaire d'inventaire alimentaire. Emplacements disponibles : {locations}",
+        "data": {
+          "enabled_locations": "Emplacements activés",
+          "notify_expiry": "Notifications de péremption"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "L'intégration est déjà configurée"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options du Gestionnaire d'Inventaire",
+        "data": {
+          "notify_expiry": "Activer les notifications de péremption",
+          "expiry_warning_days": "Jours d'avertissement avant péremption"
+        }
+      }
+    }
+  },
+  "services": {
+    "scan_product": {
+      "name": "Scanner un produit",
+      "description": "Scanne un code-barres et ajoute le produit à l'inventaire"
+    },
+    "add_product": {
+      "name": "Ajouter un produit",
+      "description": "Ajoute manuellement un produit à l'inventaire"
+    },
+    "remove_product": {
+      "name": "Supprimer un produit",
+      "description": "Supprime un produit de l'inventaire"
+    },
+    "update_quantity": {
+      "name": "Modifier la quantité",
+      "description": "Modifie la quantité d'un produit"
+    },
+    "list_products": {
+      "name": "Lister les produits",
+      "description": "Liste tous les produits de l'inventaire"
+    }
+  }
+}

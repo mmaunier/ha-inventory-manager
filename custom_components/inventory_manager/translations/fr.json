@@ -1,0 +1,50 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configuration du Gestionnaire d'Inventaire",
+        "description": "Configurez votre gestionnaire d'inventaire alimentaire. Emplacements disponibles : {locations}",
+        "data": {
+          "enabled_locations": "Emplacements activés",
+          "notify_expiry": "Notifications de péremption"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "L'intégration est déjà configurée"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options du Gestionnaire d'Inventaire",
+        "data": {
+          "notify_expiry": "Activer les notifications de péremption",
+          "expiry_warning_days": "Jours d'avertissement avant péremption"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "total_products": {
+        "name": "Total Produits"
+      },
+      "expiring_soon": {
+        "name": "Produits Périmant Bientôt"
+      },
+      "expired": {
+        "name": "Produits Périmés"
+      },
+      "location_freezer": {
+        "name": "Congélateur"
+      },
+      "location_fridge": {
+        "name": "Réfrigérateur"
+      },
+      "location_pantry": {
+        "name": "Réserves"
+      }
+    }
+  }
+}

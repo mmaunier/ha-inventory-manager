@@ -1,0 +1,117 @@
+# Exemple de carte Lovelace pour Inventory Manager
+# À ajouter dans votre dashboard Lovelace
+
+# ===== CARTE PRINCIPALE - CONGÉLATEUR =====
+type: vertical-stack
+cards:
+  # En-tête avec statistiques
+  - type: horizontal-stack
+    cards:
+      - type: entity
+        entity: sensor.gestionnaire_d_inventaire_congelateur
+        name: "Congélateur"
+        icon: mdi:fridge-industrial-outline
+      - type: entity
+        entity: sensor.gestionnaire_d_inventaire_produits_perimant_bientot
+        name: "Expire bientôt"
+        icon: mdi:clock-alert
+      - type: entity
+        entity: sensor.gestionnaire_d_inventaire_produits_perimes
+        name: "Périmés"
+        icon: mdi:alert-circle
+
+  # Liste des produits du congélateur
+  - type: markdown
+    title: "📦 Produits dans le congélateur"
+    content: >
+      {% set products = state_attr('sensor.gestionnaire_d_inventaire_congelateur', 'products') %}
+      {% if products and products | length > 0 %}
+      | Produit | Date exp. | Jours | Qté |
+      |---------|-----------|-------|-----|
+      {% for p in products %}
+      | {{ p.name[:25] }} | {{ p.expiry_date }} | {% if p.days_until_expiry < 0 %}🔴 {{ p.days_until_expiry | abs }}j{% elif p.days_until_expiry <= 3 %}🟠 {{ p.days_until_expiry }}j{% elif p.days_until_expiry <= 7 %}🟡 {{ p.days_until_expiry }}j{% else %}🟢 {{ p.days_until_expiry }}j{% endif %} | {{ p.quantity }} |
+      {% endfor %}
+      {% else %}
+      *Aucun produit dans le congélateur*
+      {% endif %}
+
+  # Boutons d'action rapide
+  - type: horizontal-stack
+    cards:
+      - type: button
+        name: "Ajouter produit"
+        icon: mdi:plus-circle
+        tap_action:
+          action: call-service
+          service: browser_mod.popup
+          service_data:
+            title: "Ajouter un produit"
+            content:
+              type: custom:config-template-card
+              entities: []
+              card:
+                type: entities
+                entities:
+                  - type: custom:text-input-row
+                    entity: input_text.product_name
+                    name: Nom
+                  - type: custom:text-input-row
+                    entity: input_datetime.product_expiry
+                    name: Date exp.
+      
+      - type: button
+        name: "Scanner"
+        icon: mdi:barcode-scan
+        tap_action:
+          action: call-service
+          service: notify.mobile_app_votre_telephone
+          service_data:
+            message: "command_barcode_scanner"
+
+# ===== CARTE DES PRODUITS EXPIRANT BIENTÔT =====
+  - type: conditional
+    conditions:
+      - entity: sensor.gestionnaire_d_inventaire_produits_perimant_bientot
+        state_not: "0"
+    card:
+      type: markdown
+      title: "⚠️ Produits à consommer rapidement"
+      content: >
+        {% set products = state_attr('sensor.gestionnaire_d_inventaire_produits_perimant_bientot', 'products') %}
+        {% for p in products %}
+        - **{{ p.name }}** - Expire le {{ p.expiry_date }} ({{ p.days_until_expiry }} jour{% if p.days_until_expiry > 1 %}s{% endif %})
+        {% endfor %}
+
+# ===== SCRIPT POUR SUPPRIMER UN PRODUIT (à ajouter dans scripts.yaml) =====
+# remove_product_quick:
+#   alias: "Supprimer produit rapidement"
+#   fields:
+#     product_id:
+#       description: "ID du produit"
+#   sequence:
+#     - service: inventory_manager.remove_product
+#       data:
+#         product_id: "{{ product_id }}"
+
+# ===== CARTE AVEC SUPPRESSION RAPIDE (nécessite auto-entities) =====
+# type: custom:auto-entities
+# card:
+#   type: entities
+#   title: "🗑️ Supprimer un produit"
+# filter:
+#   template: |
+#     {% set products = state_attr('sensor.gestionnaire_d_inventaire_congelateur', 'products') %}
+#     {% for p in products %}
+#     {{
+#       {
+#         'type': 'button',
+#         'name': p.name,
+#         'icon': 'mdi:delete',
+#         'tap_action': {
+#           'action': 'call-service',
+#           'service': 'inventory_manager.remove_product',
+#           'service_data': {'product_id': p.id}
+#         }
+#       }
+#     }},
+#     {% endfor %}

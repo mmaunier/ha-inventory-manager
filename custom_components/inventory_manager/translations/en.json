@@ -1,0 +1,50 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Inventory Manager Configuration",
+        "description": "Configure your food inventory manager. Available locations: {locations}",
+        "data": {
+          "enabled_locations": "Enabled locations",
+          "notify_expiry": "Expiry notifications"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Integration is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Inventory Manager Options",
+        "data": {
+          "notify_expiry": "Enable expiry notifications",
+          "expiry_warning_days": "Warning days before expiry"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "total_products": {
+        "name": "Total Products"
+      },
+      "expiring_soon": {
+        "name": "Expiring Soon"
+      },
+      "expired": {
+        "name": "Expired Products"
+      },
+      "location_freezer": {
+        "name": "Freezer"
+      },
+      "location_fridge": {
+        "name": "Refrigerator"
+      },
+      "location_pantry": {
+        "name": "Pantry"
+      }
+    }
+  }
+}
