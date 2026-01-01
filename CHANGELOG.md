@@ -5,6 +5,18 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.6.2] - 2026-01-01
+
+### Ajouté
+- **Persistance garantie** : Les catégories et zones sont maintenant automatiquement sauvegardées dans la configuration dès l'installation
+  - Les listes personnalisées seront préservées lors des mises à jour
+  - Les nouvelles installations reçoivent les catégories/zones par défaut sauvegardées
+  - Protection contre la perte de personnalisation lors des mises à jour du code
+
+### Technique
+- Initialisation de `entry.options["categories"]` et `entry.options["zones"]` au premier démarrage
+- Migration automatique pour les installations existantes sans ces options
+
 ## [1.6.1] - 2026-01-01
 
 ### Corrigé

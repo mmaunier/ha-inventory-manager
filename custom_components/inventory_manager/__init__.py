@@ -12,6 +12,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 
 from .const import DOMAIN
+from .const import DEFAULT_CATEGORIES, DEFAULT_ZONES
 from .coordinator import InventoryCoordinator
 from .services import async_setup_services, async_unload_services
 
@@ -32,6 +33,16 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Inventory Manager from a config entry."""
     _LOGGER.info("Setting up Inventory Manager integration")
+
+    # Initialize categories and zones in options if not present (for new installations)
+    if "categories" not in entry.options or "zones" not in entry.options:
+        new_options = {**entry.options}
+        if "categories" not in new_options:
+            new_options["categories"] = DEFAULT_CATEGORIES
+        if "zones" not in new_options:
+            new_options["zones"] = DEFAULT_ZONES
+        hass.config_entries.async_update_entry(entry, options=new_options)
+        _LOGGER.info("Initialized default categories and zones")
 
     # Create coordinator
     coordinator = InventoryCoordinator(hass, entry)
