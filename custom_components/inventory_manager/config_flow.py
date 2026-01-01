@@ -7,10 +7,10 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant import config_entries
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 
-from .const import DOMAIN, STORAGE_LOCATIONS, STORAGE_FREEZER
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -36,16 +36,9 @@ class InventoryManagerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 data=user_input,
             )
 
-        # Show form
+        # Simplified form - just enable notifications
         data_schema = vol.Schema(
             {
-                vol.Optional(
-                    "enabled_locations",
-                    default=[STORAGE_FREEZER],
-                ): vol.All(
-                    vol.Coerce(list),
-                    [vol.In(list(STORAGE_LOCATIONS.keys()))],
-                ),
                 vol.Optional("notify_expiry", default=True): bool,
             }
         )
@@ -54,16 +47,13 @@ class InventoryManagerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=data_schema,
             errors=errors,
-            description_placeholders={
-                "locations": ", ".join(STORAGE_LOCATIONS.values()),
-            },
         )
 
     @staticmethod
     @callback
     def async_get_options_flow(
         config_entry: config_entries.ConfigEntry,
-    ) -> InventoryManagerOptionsFlow:
+    ) -> "InventoryManagerOptionsFlow":
         """Get the options flow for this handler."""
         return InventoryManagerOptionsFlow(config_entry)
 
@@ -90,10 +80,6 @@ class InventoryManagerOptionsFlow(config_entries.OptionsFlow):
                         "notify_expiry",
                         default=self.config_entry.options.get("notify_expiry", True),
                     ): bool,
-                    vol.Optional(
-                        "expiry_warning_days",
-                        default=self.config_entry.options.get("expiry_warning_days", 2),
-                    ): vol.All(vol.Coerce(int), vol.Range(min=1, max=14)),
                 }
             ),
         )
