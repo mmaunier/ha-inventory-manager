@@ -5,7 +5,6 @@ class InventoryManagerPanel extends HTMLElement {
     this._initialized = false;
     this._localProducts = []; // État local des produits
     this._deletedIds = new Set(); // IDs supprimés à ignorer lors des syncs
-    this._tempProducts = []; // Produits temporaires (ajouts en attente de confirmation)
   }
 
   set hass(hass) {
@@ -17,48 +16,21 @@ class InventoryManagerPanel extends HTMLElement {
     this._syncFromHass();
   }
 
-  // Synchronise depuis HA avec fusion intelligente
+  // Synchronise depuis HA - simple et direct
   _syncFromHass() {
     if (!this._hass) return;
     
     const freezerSensor = this._hass.states['sensor.gestionnaire_d_inventaire_congelateur'];
     const serverProducts = freezerSensor?.attributes?.products || [];
     
-    // Filtrer les produits serveur : exclure ceux qu'on a supprimé localement
-    const filteredServerProducts = serverProducts.filter(p => !this._deletedIds.has(p.id));
-    
-    // Chercher les produits temp qui ont maintenant un vrai ID sur le serveur
-    // (on les matche par nom + date OU par barcode + date)
-    const matchedTempIds = new Set();
-    for (const serverProd of filteredServerProducts) {
-      const matchingTemp = this._tempProducts.find(temp => {
-        if (matchedTempIds.has(temp.id)) return false;
-        // Match par barcode (pour les scans)
-        if (temp.barcode && serverProd.barcode && temp.barcode === serverProd.barcode && temp.expiry_date === serverProd.expiry_date) {
-          return true;
-        }
-        // Match par nom exact (pour les ajouts manuels)
-        if (temp.name === serverProd.name && temp.expiry_date === serverProd.expiry_date) {
-          return true;
-        }
-        return false;
-      });
-      if (matchingTemp) {
-        matchedTempIds.add(matchingTemp.id);
-      }
-    }
-    
-    // Retirer les produits temp qui ont été confirmés par le serveur
-    this._tempProducts = this._tempProducts.filter(t => !matchedTempIds.has(t.id));
-    
-    // Fusionner : produits temp restants + produits serveur filtrés
-    this._localProducts = [...this._tempProducts, ...filteredServerProducts];
+    // Filtrer les produits serveur : exclure ceux qu'on a supprimé localement (en attente de confirmation)
+    this._localProducts = serverProducts.filter(p => !this._deletedIds.has(p.id));
     
     // Nettoyer les IDs supprimés qui ne sont plus sur le serveur (évite accumulation)
     const serverIds = new Set(serverProducts.map(p => p.id));
     this._deletedIds = new Set([...this._deletedIds].filter(id => serverIds.has(id)));
     
-    // Mettre à jour les stats (utiliser notre compte local)
+    // Mettre à jour les stats
     const expiringSensor = this._hass.states['sensor.gestionnaire_d_inventaire_produits_perimant_bientot'];
     const expiredSensor = this._hass.states['sensor.gestionnaire_d_inventaire_produits_perimes'];
     
@@ -847,6 +819,7 @@ class InventoryManagerPanel extends HTMLElement {
     const nameEl = this.shadowRoot.getElementById('product-name');
     const dateEl = this.shadowRoot.getElementById('product-date');
     const qtyEl = this.shadowRoot.getElementById('product-qty');
+    const btnSave = this.shadowRoot.getElementById('btn-save');
     
     const name = nameEl.value.trim();
     const date = dateEl.value;
@@ -857,33 +830,10 @@ class InventoryManagerPanel extends HTMLElement {
       return;
     }
 
-    // Générer un ID temporaire
-    const tempId = 'temp_' + Date.now();
-    
-    // Créer le produit temporaire
-    const newProduct = {
-      id: tempId,
-      name: name,
-      expiry_date: date,
-      quantity: qty,
-      days_until_expiry: this._calculateDaysUntilExpiry(date),
-      location: 'freezer'
-    };
-    
-    // Ajouter aux produits temp ET à la liste locale
-    this._tempProducts.unshift(newProduct);
-    this._localProducts.unshift(newProduct);
-    
-    // Mettre à jour le compteur et rendre immédiatement
-    const totalEl = this.shadowRoot.getElementById('total-count');
-    totalEl.textContent = this._localProducts.length;
-    this._renderProducts();
-    
-    // Fermer le modal et reset
-    nameEl.value = '';
-    this._closeModals();
+    // Désactiver le bouton pendant l'ajout
+    btnSave.disabled = true;
+    btnSave.textContent = '⏳ Ajout...';
 
-    // Appeler le service en arrière-plan (pas de blocage)
     try {
       await this._hass.callService('inventory_manager', 'add_product', {
         name: name,
@@ -891,15 +841,19 @@ class InventoryManagerPanel extends HTMLElement {
         location: 'freezer',
         quantity: qty
       });
-      // Le produit sera remplacé automatiquement par syncFromHass quand HA confirmera
+      
+      // Fermer le modal et reset
+      nameEl.value = '';
+      this._closeModals();
+      
+      // Le produit apparaîtra via _syncFromHass quand HA mettra à jour le sensor
+      
     } catch (err) {
       console.error('Erreur ajout:', err);
-      // Rollback en cas d'erreur
-      this._tempProducts = this._tempProducts.filter(p => p.id !== tempId);
-      this._localProducts = this._localProducts.filter(p => p.id !== tempId);
-      totalEl.textContent = this._localProducts.length;
-      this._renderProducts();
       alert('Erreur: ' + err.message);
+    } finally {
+      btnSave.disabled = false;
+      btnSave.textContent = 'Ajouter';
     }
   }
 
@@ -908,6 +862,7 @@ class InventoryManagerPanel extends HTMLElement {
     const nameEl = this.shadowRoot.getElementById('scan-name');
     const dateEl = this.shadowRoot.getElementById('scan-date');
     const qtyEl = this.shadowRoot.getElementById('scan-qty');
+    const btnSave = this.shadowRoot.getElementById('btn-scan-save');
     
     const barcode = barcodeEl.value.trim();
     const name = nameEl.value.trim();
@@ -919,38 +874,12 @@ class InventoryManagerPanel extends HTMLElement {
       return;
     }
 
-    // Générer un ID temporaire
-    const tempId = 'temp_' + Date.now();
-    
-    // Créer le produit temporaire avec le vrai nom
-    const newProduct = {
-      id: tempId,
-      name: name,
-      expiry_date: date,
-      quantity: qty,
-      days_until_expiry: this._calculateDaysUntilExpiry(date),
-      location: 'freezer',
-      barcode: barcode
-    };
-    
-    // Ajouter aux produits temp ET à la liste locale
-    this._tempProducts.unshift(newProduct);
-    this._localProducts.unshift(newProduct);
-    
-    // Mettre à jour le compteur et rendre immédiatement
-    const totalEl = this.shadowRoot.getElementById('total-count');
-    totalEl.textContent = this._localProducts.length;
-    this._renderProducts();
-    
-    // Fermer le modal et reset
-    barcodeEl.value = '';
-    nameEl.value = '';
-    this.shadowRoot.getElementById('product-info-box').style.display = 'none';
-    this._closeModals();
+    // Désactiver le bouton pendant l'ajout
+    btnSave.disabled = true;
+    btnSave.textContent = '⏳ Ajout...';
 
-    // Appeler le service en arrière-plan
-    // Toujours utiliser add_product car on a déjà le nom (évite les doublons)
     try {
+      // Appeler le service et attendre la confirmation
       await this._hass.callService('inventory_manager', 'add_product', {
         name: name,
         expiry_date: date,
@@ -958,14 +887,21 @@ class InventoryManagerPanel extends HTMLElement {
         quantity: qty,
         barcode: barcode || undefined
       });
+      
+      // Fermer le modal et reset
+      barcodeEl.value = '';
+      nameEl.value = '';
+      this.shadowRoot.getElementById('product-info-box').style.display = 'none';
+      this._closeModals();
+      
+      // Le produit apparaîtra via _syncFromHass quand HA mettra à jour le sensor
+      
     } catch (err) {
-      console.error('Erreur scan:', err);
-      // Rollback en cas d'erreur
-      this._tempProducts = this._tempProducts.filter(p => p.id !== tempId);
-      this._localProducts = this._localProducts.filter(p => p.id !== tempId);
-      totalEl.textContent = this._localProducts.length;
-      this._renderProducts();
+      console.error('Erreur ajout:', err);
       alert('Erreur: ' + err.message);
+    } finally {
+      btnSave.disabled = false;
+      btnSave.textContent = 'Ajouter';
     }
   }
 
