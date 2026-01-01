@@ -1,0 +1,89 @@
+# ============================================
+# CARTE LOVELACE - GESTIONNAIRE CONGÉLATEUR
+# ============================================
+# À copier dans votre Dashboard -> Modifier -> + Ajouter une carte -> Manuel
+
+type: vertical-stack
+cards:
+  # --- EN-TÊTE AVEC STATISTIQUES ---
+  - type: horizontal-stack
+    cards:
+      - type: entity
+        entity: sensor.gestionnaire_d_inventaire_congelateur
+        name: "Congélateur"
+        icon: mdi:fridge-industrial-outline
+      - type: entity
+        entity: sensor.gestionnaire_d_inventaire_produits_perimant_bientot
+        name: "Bientôt périmés"
+        icon: mdi:clock-alert
+      - type: entity
+        entity: sensor.gestionnaire_d_inventaire_produits_perimes
+        name: "Périmés"
+        icon: mdi:alert-circle
+
+  # --- LISTE DES PRODUITS ---
+  - type: markdown
+    title: "🧊 Contenu du congélateur"
+    content: |
+      {% set products = state_attr('sensor.gestionnaire_d_inventaire_congelateur', 'products') %}
+      {% if products and products | length > 0 %}
+      | Produit | Péremption | Statut | Qté |
+      |:--------|:-----------|:------:|:---:|
+      {% for p in products %}
+      | {{ p.name[:30] }} | {{ p.expiry_date }} | {% if p.days_until_expiry < 0 %}🔴{% elif p.days_until_expiry <= 3 %}🟠{% elif p.days_until_expiry <= 7 %}🟡{% else %}🟢{% endif %} {{ p.days_until_expiry }}j | {{ p.quantity }} |
+      {% endfor %}
+      {% else %}
+      *Aucun produit dans le congélateur* 🎉
+      {% endif %}
+
+  # --- BOUTONS D'ACTION ---
+  - type: horizontal-stack
+    cards:
+      - type: button
+        name: "Ajouter manuellement"
+        icon: mdi:plus-circle
+        icon_height: 40px
+        tap_action:
+          action: navigate
+          navigation_path: /config/script/edit/new
+        hold_action:
+          action: call-service
+          service: script.ajouter_produit_congelateur
+
+      - type: button
+        name: "Scanner code-barres"
+        icon: mdi:barcode-scan
+        icon_height: 40px
+        tap_action:
+          action: call-service
+          service: script.scanner_produit_congelateur
+
+  # --- ALERTES PÉREMPTION ---
+  - type: conditional
+    conditions:
+      - condition: numeric_state
+        entity: sensor.gestionnaire_d_inventaire_produits_perimant_bientot
+        above: 0
+    card:
+      type: markdown
+      title: "⚠️ À consommer rapidement"
+      content: |
+        {% set products = state_attr('sensor.gestionnaire_d_inventaire_produits_perimant_bientot', 'products') %}
+        {% for p in products %}
+        - **{{ p.name }}** → {{ p.expiry_date }} ({{ p.days_until_expiry }}j)
+        {% endfor %}
+
+  # --- ALERTE PRODUITS PÉRIMÉS ---
+  - type: conditional
+    conditions:
+      - condition: numeric_state
+        entity: sensor.gestionnaire_d_inventaire_produits_perimes
+        above: 0
+    card:
+      type: markdown
+      title: "🚨 PRODUITS PÉRIMÉS"
+      content: |
+        {% set products = state_attr('sensor.gestionnaire_d_inventaire_produits_perimes', 'products') %}
+        {% for p in products %}
+        - ~~{{ p.name }}~~ - Périmé depuis {{ p.days_expired }}j
+        {% endfor %}

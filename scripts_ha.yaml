@@ -1,0 +1,100 @@
+# ============================================
+# SCRIPTS HOME ASSISTANT - GESTIONNAIRE INVENTAIRE
+# ============================================
+# À ajouter dans Paramètres -> Automatisations -> Scripts -> + Créer
+
+# ===== SCRIPT 1 : AJOUTER MANUELLEMENT =====
+# Nom: ajouter_produit_congelateur
+ajouter_produit_congelateur:
+  alias: "Ajouter produit au congélateur"
+  icon: mdi:plus-circle
+  mode: single
+  fields:
+    name:
+      name: Nom du produit
+      description: "Le nom du produit à ajouter"
+      required: true
+      example: "Pizza 4 fromages"
+      selector:
+        text:
+    expiry_date:
+      name: Date de péremption
+      description: "Date d'expiration du produit"
+      required: true
+      selector:
+        date:
+    quantity:
+      name: Quantité
+      description: "Nombre d'unités"
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 20
+          mode: box
+  sequence:
+    - service: inventory_manager.add_product
+      data:
+        name: "{{ name }}"
+        expiry_date: "{{ expiry_date }}"
+        location: freezer
+        quantity: "{{ quantity | default(1) }}"
+    - service: persistent_notification.create
+      data:
+        title: "✅ Produit ajouté"
+        message: "{{ name }} ajouté au congélateur (expire le {{ expiry_date }})"
+
+# ===== SCRIPT 2 : SCANNER CODE-BARRES =====
+# Ce script envoie une commande au téléphone pour ouvrir le scanner
+scanner_produit_congelateur:
+  alias: "Scanner produit pour congélateur"
+  icon: mdi:barcode-scan
+  mode: single
+  fields:
+    expiry_date:
+      name: Date de péremption
+      description: "Date d'expiration du produit"
+      required: true
+      selector:
+        date:
+  sequence:
+    - service: persistent_notification.create
+      data:
+        title: "📸 Scanner prêt"
+        message: "Ouvrez l'app HA sur votre téléphone et utilisez le scan NFC/Barcode"
+
+# ===== SCRIPT 3 : SUPPRIMER UN PRODUIT =====
+supprimer_produit:
+  alias: "Supprimer un produit"
+  icon: mdi:delete
+  mode: single
+  fields:
+    product_id:
+      name: ID du produit
+      description: "L'identifiant du produit (visible dans les attributs du capteur)"
+      required: true
+      selector:
+        text:
+  sequence:
+    - service: inventory_manager.remove_product
+      data:
+        product_id: "{{ product_id }}"
+    - service: persistent_notification.create
+      data:
+        title: "🗑️ Produit supprimé"
+        message: "Le produit a été retiré de l'inventaire"
+
+# ===== SCRIPT 4 : LISTER LES PRODUITS =====
+lister_congelateur:
+  alias: "Afficher contenu congélateur"
+  icon: mdi:format-list-bulleted
+  mode: single
+  sequence:
+    - service: inventory_manager.list_products
+      data:
+        location: freezer
+      response_variable: result
+    - service: persistent_notification.create
+      data:
+        title: "🧊 Contenu du congélateur"
+        message: "{{ result.count }} produit(s) dans le congélateur"
