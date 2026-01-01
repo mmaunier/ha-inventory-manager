@@ -246,8 +246,8 @@ class InventoryCoordinator(DataUpdateCoordinator):
             _LOGGER.error("Error fetching product info: %s", err)
             return None
 
-    def _map_category(self, categories_tags: list[str]) -> str:
-        """Map Open Food Facts categories to our simplified categories."""
+    def _map_category(self, categories_tags: list[str], location: str = STORAGE_FREEZER) -> str:
+        """Map Open Food Facts categories to our simplified categories for a specific location."""
         if not categories_tags:
             return "Autre"
         
@@ -255,12 +255,18 @@ class InventoryCoordinator(DataUpdateCoordinator):
         tags_lower = [tag.lower() for tag in categories_tags]
         tags_str = " ".join(tags_lower)
         
-        # Get custom categories from config, or use defaults
-        custom_categories = self.entry.options.get("categories", DEFAULT_CATEGORIES)
+        # Get custom categories from config for the specific location
+        all_categories = self.entry.options.get("categories", DEFAULT_CATEGORIES)
+        if isinstance(all_categories, dict):
+            location_categories = all_categories.get(location, DEFAULT_CATEGORIES.get(location, []))
+        else:
+            # Backward compatibility
+            location_categories = all_categories if isinstance(all_categories, list) else []
         
         # Check each category mapping
         for category, keywords in CATEGORY_MAPPING.items():
-            if category not in custom_categories:
+            # Only use categories that exist in the current location
+            if category not in location_categories:
                 continue
             for keyword in keywords:
                 if keyword in tags_str:
@@ -359,9 +365,9 @@ class InventoryCoordinator(DataUpdateCoordinator):
             if product_info.get("brand"):
                 name = f"{product_info['brand']} - {name}"
             
-            # Déterminer la catégorie depuis Open Food Facts
+            # Déterminer la catégorie depuis Open Food Facts pour le bon emplacement
             categories_tags = product_info.get("categories_tags", [])
-            category = self._map_category(categories_tags)
+            category = self._map_category(categories_tags, location)
             
             product_id = await self.async_add_product(
                 name=name,

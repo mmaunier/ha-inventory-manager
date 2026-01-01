@@ -40,7 +40,7 @@ class InventoryManagerFreezer extends HTMLElement {
     
     // Mettre à jour les stats
     const expiringSensor = this._hass.states['sensor.gestionnaire_d_inventaire_produits_perimant_bientot'];
-    const expiredSensor = this._hass.states['sensor.gestionnaire_d_inventaire_produits_perimes'];
+    const expiredSensor = this._hass.states['sensor.gestionnaire_d_inventaire_expired_freezer'];
     
     const totalEl = this.shadowRoot.getElementById('total-count');
     const expiringEl = this.shadowRoot.getElementById('expiring-count');

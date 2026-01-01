@@ -5,6 +5,24 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.8.1] - 2026-01-01
+
+### Corrigé
+- **Mapping OpenFoodFacts étendu** : Ajout de toutes les catégories manquantes pour réfrigérateur et réserve
+  - Ajout des mappings pour "Viande/Charcuterie", "Fromages", "Légumes frais", "Fruits frais"
+  - Ajout des mappings pour "Conserves", "Pâtes/Riz/Céréales", "Farines/Sucres", "Huiles/Vinaigres", "Épices/Aromates", "Biscuits/Gâteaux secs", "Produits d'épicerie", "Œufs"
+  - Enrichissement des mots-clés existants pour meilleure détection
+- **Sensors de produits périmés par emplacement** : Séparation des compteurs de produits périmés
+  - Création de `sensor.gestionnaire_d_inventaire_expired_freezer` pour le congélateur
+  - Création de `sensor.gestionnaire_d_inventaire_expired_fridge` pour le réfrigérateur
+  - Création de `sensor.gestionnaire_d_inventaire_expired_pantry` pour la réserve
+  - Chaque emplacement affiche maintenant uniquement ses propres produits périmés
+  - Conservation du sensor global `sensor.gestionnaire_d_inventaire_produits_perimes` pour compatibilité
+
+### Modifié
+- **Méthode `_map_category()`** : Prend maintenant en compte le `location` pour mapper correctement les catégories par emplacement
+- **Composants frontend** : freezer.js, fridge.js et pantry.js utilisent leurs sensors spécifiques
+
 ## [1.8.0] - 2026-01-01
 
 ### Ajouté

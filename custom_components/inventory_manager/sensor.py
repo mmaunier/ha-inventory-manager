@@ -44,6 +44,10 @@ async def async_setup_entry(
         entities.append(
             InventoryLocationSensor(coordinator, entry, location_key, location_name)
         )
+        # Add expired sensor per location
+        entities.append(
+            InventoryLocationExpiredSensor(coordinator, entry, location_key, location_name)
+        )
 
     async_add_entities(entities)
 
@@ -295,3 +299,79 @@ class InventoryExpiredSensor(InventoryBaseSensor):
         expired.sort(key=lambda x: x["days_expired"], reverse=True)
         
         return {"products": expired}
+
+
+class InventoryLocationExpiredSensor(InventoryBaseSensor):
+    """Sensor showing expired products for a specific location."""
+
+    def __init__(
+        self,
+        coordinator: InventoryCoordinator,
+        entry: ConfigEntry,
+        location: str,
+        location_name: str,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(
+            coordinator,
+            entry,
+            f"expired_{location}",
+            f"Produits Périmés - {location_name}",
+        )
+        self._location = location
+        self._location_name = location_name
+        self._attr_icon = "mdi:alert-circle-outline"
+        self._attr_native_unit_of_measurement = "produits"
+
+    @property
+    def native_value(self) -> int:
+        """Return the number of expired products for this location."""
+        now = dt_util.now().date()
+        count = 0
+        
+        for product in self.coordinator.products.values():
+            if product.get("location") != self._location:
+                continue
+            expiry_str = product.get("expiry_date")
+            if not expiry_str:
+                continue
+            try:
+                expiry_date = datetime.fromisoformat(expiry_str).date()
+                if expiry_date < now:
+                    count += 1
+            except ValueError:
+                continue
+        
+        return count
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return additional attributes."""
+        now = dt_util.now().date()
+        expired = []
+        
+        for pid, product in self.coordinator.products.items():
+            if product.get("location") != self._location:
+                continue
+            expiry_str = product.get("expiry_date")
+            if not expiry_str:
+                continue
+            try:
+                expiry_date = datetime.fromisoformat(expiry_str).date()
+                if expiry_date < now:
+                    days_expired = (now - expiry_date).days
+                    expired.append({
+                        "id": pid,
+                        "name": product.get("name", "Inconnu"),
+                        "expiry_date": expiry_str,
+                        "days_expired": days_expired,
+                        "location": self._location_name,
+                        "quantity": product.get("quantity", 1),
+                    })
+            except ValueError:
+                continue
+        
+        expired.sort(key=lambda x: x["days_expired"], reverse=True)
+        
+        return {"products": expired}
+

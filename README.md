@@ -95,8 +95,13 @@ data:
 | Capteur | Description |
 |---------|-------------|
 | `sensor.gestionnaire_d_inventaire_congelateur` | Produits dans le congélateur |
-| `sensor.gestionnaire_d_inventaire_produits_perimant_bientot` | Produits expirant sous 7 jours |
-| `sensor.gestionnaire_d_inventaire_produits_perimes` | Produits déjà périmés |
+| `sensor.gestionnaire_d_inventaire_refrigerateur` | Produits dans le réfrigérateur |
+| `sensor.gestionnaire_d_inventaire_reserve` | Produits dans la réserve |
+| `sensor.gestionnaire_d_inventaire_produits_perimant_bientot` | Produits expirant sous 7 jours (tous emplacements) |
+| `sensor.gestionnaire_d_inventaire_produits_perimes` | Produits déjà périmés (tous emplacements) |
+| `sensor.gestionnaire_d_inventaire_expired_freezer` | Produits périmés dans le congélateur |
+| `sensor.gestionnaire_d_inventaire_expired_fridge` | Produits périmés dans le réfrigérateur |
+| `sensor.gestionnaire_d_inventaire_expired_pantry` | Produits périmés dans la réserve |
 
 ## 🔔 Notifications de péremption
 

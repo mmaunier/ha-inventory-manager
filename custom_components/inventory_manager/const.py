@@ -103,15 +103,35 @@ DEFAULT_CATEGORIES = {
 
 # Category mapping from Open Food Facts tags to our categories
 CATEGORY_MAPPING = {
-    "Viande": ["meat", "viande", "beef", "pork", "chicken", "poultry", "lamb"],
-    "Poisson": ["fish", "poisson", "seafood", "salmon", "tuna", "shrimp"],
-    "Légumes": ["vegetable", "legume", "carrot", "tomato", "potato"],
-    "Fruits": ["fruit", "berry", "apple", "orange", "banana"],
-    "Produits laitiers": ["dairy", "lait", "cheese", "yogurt", "milk", "cream"],
-    "Plats préparés": ["prepared", "meal", "pizza", "ready", "frozen-meals"],
-    "Pain/Pâtisserie": ["bread", "pain", "pastry", "cake", "biscuit"],
-    "Glaces/Desserts": ["ice-cream", "glace", "dessert", "sweet"],
-    "Condiments/Sauces": ["sauce", "condiment", "dressing", "ketchup"],
+    # Congélateur
+    "Viande": ["meat", "viande", "beef", "pork", "chicken", "poultry", "lamb", "veal", "turkey"],
+    "Poisson": ["fish", "poisson", "seafood", "salmon", "tuna", "shrimp", "cod", "haddock", "shellfish"],
+    "Légumes": ["vegetable", "legume", "carrot", "tomato", "potato", "onion", "pepper", "broccoli"],
+    "Fruits": ["fruit", "berry", "apple", "orange", "banana", "strawberry", "mango", "peach"],
+    "Produits laitiers": ["dairy", "lait", "milk", "cream", "butter", "creme"],
+    "Plats préparés": ["prepared", "meal", "pizza", "ready", "frozen-meals", "lasagna", "quiche"],
+    "Pain/Pâtisserie": ["bread", "pain", "pastry", "cake", "biscuit", "croissant", "brioche"],
+    "Glaces/Desserts": ["ice-cream", "glace", "dessert", "sweet", "sorbet", "frozen-dessert"],
+    "Condiments/Sauces": ["sauce", "condiment", "dressing", "ketchup", "mustard", "mayonnaise"],
+    
+    # Réfrigérateur
+    "Viande/Charcuterie": ["meat", "viande", "charcuterie", "sausage", "ham", "bacon", "salami", "deli"],
+    "Poisson/Fruits de mer": ["fish", "poisson", "seafood", "salmon", "tuna", "shrimp", "crab", "oyster"],
+    "Fromages": ["cheese", "fromage", "cheddar", "mozzarella", "parmesan", "brie", "camembert"],
+    "Légumes frais": ["vegetable", "legume", "fresh-vegetable", "salad", "lettuce", "cucumber"],
+    "Fruits frais": ["fruit", "fresh-fruit", "berries", "citrus", "tropical-fruit"],
+    "Boissons": ["beverage", "drink", "boisson", "juice", "soda", "water", "milk"],
+    "Sauces/Condiments": ["sauce", "condiment", "dressing", "marinade", "pesto", "aioli"],
+    
+    # Réserve
+    "Conserves": ["canned", "conserve", "preserved", "tinned", "jarred"],
+    "Pâtes/Riz/Céréales": ["pasta", "rice", "cereal", "pates", "riz", "grain", "noodles", "spaghetti"],
+    "Farines/Sucres": ["flour", "sugar", "farine", "sucre", "sweetener", "baking"],
+    "Huiles/Vinaigres": ["oil", "vinegar", "huile", "vinaigre", "olive-oil", "sunflower"],
+    "Épices/Aromates": ["spice", "herb", "epice", "aromate", "pepper", "cumin", "paprika"],
+    "Biscuits/Gâteaux secs": ["biscuit", "cookie", "cracker", "wafer", "dry-cake"],
+    "Produits d'épicerie": ["grocery", "epicerie", "snack", "dried-food"],
+    "Œufs": ["egg", "oeuf", "eggs"],
 }
 
 # Default zones by location (can be customized by user)
