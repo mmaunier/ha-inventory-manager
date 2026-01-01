@@ -5,6 +5,25 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.5.0] - 2026-01-01
+
+### Ajouté
+- **Catégorisation automatique** des produits (10 catégories françaises)
+  - Viande, Poisson, Légumes, Fruits, Produits laitiers
+  - Plats préparés, Pain/Pâtisserie, Glaces/Desserts
+  - Condiments/Sauces, Autre
+- **Zones de stockage** pour organiser le congélateur (Zone 1, 2, 3)
+- **Détection automatique de catégorie** depuis Open Food Facts lors du scan
+- **Tri par catégorie** et **tri par zone** dans l'interface
+- Affichage des colonnes Catégorie et Zone dans le tableau
+- Sélecteurs de catégorie et zone dans les modaux d'ajout/édition
+
+### Modifié
+- Backend : `coordinator.py` avec méthodes `_map_category()`, `get_categories()`, `get_zones()`
+- Services : `add_product` et `update_product` acceptent maintenant `category` et `zone`
+- Frontend : Colonnes redimensionnées pour afficher catégorie et zone
+- Interface mobile : Catégorie et zone masquées sur petit écran
+
 ## [1.4.0] - 2026-01-01
 
 ### Ajouté

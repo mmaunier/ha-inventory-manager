@@ -9,15 +9,19 @@
 Cette intégration Home Assistant permet de gérer l'inventaire de votre congélateur avec :
 - 📷 **Scan de code-barres** via la caméra du smartphone (Android/iOS)
 - 🔍 **Recherche automatique** des produits via Open Food Facts
-- 📅 **Gestion des dates de péremption** avec tri par date ou nom
+- 📅 **Gestion des dates de péremption** avec tri par date, nom, catégorie ou zone
+- 🗂️ **Catégorisation automatique** des produits (10 catégories)
+- 📍 **Zones de stockage** pour organiser votre congélateur (Zone 1, 2, 3)
 - 🔔 **Notifications intelligentes** pour les produits qui périment
 - 📱 **Interface responsive** optimisée pour mobile
 
 ## ✨ Fonctionnalités
 
 - **Scan code-barres** : Utilisez la caméra de votre téléphone pour scanner les produits
-- **Open Food Facts** : Récupération automatique du nom et de la marque du produit
-- **Tri des produits** : Par date de péremption ou par nom (cliquez sur les en-têtes)
+- **Open Food Facts** : Récupération automatique du nom, marque et catégorie du produit
+- **Catégories automatiques** : 10 catégories (Viande, Poisson, Légumes, Fruits, Produits laitiers, Plats préparés, Pain/Pâtisserie, Glaces/Desserts, Condiments/Sauces, Autre)
+- **Zones de stockage** : Organisez votre congélateur en zones (Zone 1, 2, 3)
+- **Tri des produits** : Par date de péremption, nom, catégorie ou zone (cliquez sur les en-têtes)
 - **Indicateurs visuels** : Couleurs selon l'urgence (🟢 OK, 🟡 Bientôt, 🟠 Urgent, 🔴 Périmé)
 - **Notifications** : Alertes automatiques toutes les 6h pour les produits à consommer
 
@@ -52,7 +56,7 @@ Accédez au panel via le menu latéral : **Inventaire Congélateur**
 ### Services disponibles
 
 ```yaml
-# Scanner un produit (avec code-barres)
+# Scanner un produit (avec code-barres et détection auto de catégorie)
 service: inventory_manager.scan_product
 data:
   barcode: "3017620422003"
@@ -60,24 +64,30 @@ data:
   location: "freezer"
   quantity: 1
 
-# Ajouter manuellement
+# Ajouter manuellement avec catégorie et zone
 service: inventory_manager.add_product
 data:
   name: "Pizza 4 fromages"
   expiry_date: "2026-06-15"
   location: "freezer"
   quantity: 2
+  category: "Plats préparés"
+  zone: "Zone 2"
 
 # Supprimer un produit
 service: inventory_manager.remove_product
 data:
   product_id: "a1b2c3d4"
 
-# Modifier la quantité
-service: inventory_manager.update_quantity
+# Modifier un produit (y compris catégorie et zone)
+service: inventory_manager.update_product
 data:
   product_id: "a1b2c3d4"
+  name: "Pizza 4 fromages"
+  expiry_date: "2026-06-15"
   quantity: 3
+  category: "Plats préparés"
+  zone: "Zone 1"
 ```
 
 ### Capteurs créés
@@ -147,6 +157,8 @@ Les données sont stockées dans `config/inventory_data.json` :
       "expiry_date": "2026-06-15",
       "location": "freezer",
       "quantity": 1,
+      "category": "Condiments/Sauces",
+      "zone": "Zone 1",
       "barcode": "3017620422003",
       "brand": "Ferrero",
       "added_date": "2026-01-01T10:30:00"
@@ -154,6 +166,23 @@ Les données sont stockées dans `config/inventory_data.json` :
   }
 }
 ```
+
+### Catégories disponibles (v1.5.0+)
+
+| Catégorie | Exemples |
+|-----------|----------|
+| Viande | Poulet, bœuf, porc... |
+| Poisson | Saumon, cabillaud, crevettes... |
+| Légumes | Haricots verts, épinards, carottes... |
+| Fruits | Framboises, mangue, bananes... |
+| Produits laitiers | Yaourts, fromage, beurre... |
+| Plats préparés | Pizza, lasagnes, raviolis... |
+| Pain/Pâtisserie | Pain, croissants, brioches... |
+| Glaces/Desserts | Glaces, sorbets, gâteaux... |
+| Condiments/Sauces | Pesto, sauce tomate, herbes... |
+| Autre | Produits non classés |
+
+La catégorie est détectée automatiquement depuis Open Food Facts lors du scan.
 
 ## 🔧 Dépannage
 
