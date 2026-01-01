@@ -1195,7 +1195,7 @@ class InventoryManagerPantry extends HTMLElement {
     if (!name) return;
 
     try {
-      await this._hass.callService('inventory_manager', 'add_category', { name });
+      await this._hass.callService('inventory_manager', 'add_category', { name, location: 'pantry' });
       this._categories.push(name);
       this._renderCategoriesList();
       input.value = '';
@@ -1209,7 +1209,7 @@ class InventoryManagerPantry extends HTMLElement {
     if (!confirm(`Supprimer la catégorie "${name}" ?\nLes produits seront déplacés vers "Autre".`)) return;
 
     try {
-      await this._hass.callService('inventory_manager', 'remove_category', { name });
+      await this._hass.callService('inventory_manager', 'remove_category', { name, location: 'pantry' });
       this._categories = this._categories.filter(c => c !== name);
       this._renderCategoriesList();
       // Recharger les produits pour afficher les modifications
@@ -1225,7 +1225,7 @@ class InventoryManagerPantry extends HTMLElement {
     if (!newName || newName === oldName) return;
 
     try {
-      await this._hass.callService('inventory_manager', 'rename_category', { old_name: oldName, new_name: newName });
+      await this._hass.callService('inventory_manager', 'rename_category', { old_name: oldName, new_name: newName, location: 'pantry' });
       const idx = this._categories.indexOf(oldName);
       if (idx !== -1) this._categories[idx] = newName;
       this._renderCategoriesList();
@@ -1243,7 +1243,7 @@ class InventoryManagerPantry extends HTMLElement {
     if (!name) return;
 
     try {
-      await this._hass.callService('inventory_manager', 'add_zone', { name });
+      await this._hass.callService('inventory_manager', 'add_zone', { name, location: 'pantry' });
       this._zones.push(name);
       this._renderZonesList();
       input.value = '';
@@ -1257,7 +1257,7 @@ class InventoryManagerPantry extends HTMLElement {
     if (!confirm(`Supprimer la zone "${name}" ?\nLes produits seront déplacés vers la première zone.`)) return;
 
     try {
-      await this._hass.callService('inventory_manager', 'remove_zone', { name });
+      await this._hass.callService('inventory_manager', 'remove_zone', { name, location: 'pantry' });
       this._zones = this._zones.filter(z => z !== name);
       this._renderZonesList();
       // Recharger les produits pour afficher les modifications
@@ -1273,7 +1273,7 @@ class InventoryManagerPantry extends HTMLElement {
     if (!newName || newName === oldName) return;
 
     try {
-      await this._hass.callService('inventory_manager', 'rename_zone', { old_name: oldName, new_name: newName });
+      await this._hass.callService('inventory_manager', 'rename_zone', { old_name: oldName, new_name: newName, location: 'pantry' });
       const idx = this._zones.indexOf(oldName);
       if (idx !== -1) this._zones[idx] = newName;
       this._renderZonesList();

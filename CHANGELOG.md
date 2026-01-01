@@ -5,6 +5,20 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.8.3] - 2026-01-02
+
+### Corrigé
+- **Icônes manquantes** : Ajout des icônes 🧃 (réfrigérateur) et 🥫 (réserve) dans les titres des pages
+- **Erreur modification catégories/zones** : Correction de l'erreur "dictionary update sequence element #0 has length 9; 2 is required"
+  - Tous les appels de services `add_category`, `remove_category`, `rename_category` incluent maintenant le paramètre `location`
+  - Tous les appels de services `add_zone`, `remove_zone`, `rename_zone` incluent maintenant le paramètre `location`
+  - Les boutons "Réinitialiser" fonctionnent maintenant correctement sur tous les emplacements
+  - Correction appliquée aux 3 composants : freezer.js, fridge.js, pantry.js
+
+### Technique
+- Les services backend nécessitent le paramètre `location` depuis la v1.8.0, mais le frontend ne le passait pas
+- Ajout systématique de `location: 'freezer'|'fridge'|'pantry'` dans tous les appels de gestion de catégories et zones
+
 ## [1.8.2] - 2026-01-02
 
 ### Documentation
