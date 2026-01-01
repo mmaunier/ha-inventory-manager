@@ -313,19 +313,26 @@ class InventoryManagerPanel extends HTMLElement {
         else if (days <= 7) { statusClass = 'status-warning'; statusIcon = '🟡'; }
         
         return `
-          <tr>
+          <tr data-product-id="${p.id}">
             <td>${p.name}</td>
             <td>${p.expiry_date}</td>
             <td class="${statusClass}">${statusIcon} ${days}j</td>
             <td>${p.quantity}</td>
-            <td><button class="btn-delete" data-id="${p.id}">🗑️</button></td>
+            <td><button class="btn-delete" data-id="${p.id}" type="button">🗑️ Suppr.</button></td>
           </tr>
         `;
       }).join('');
       
-      // Add delete handlers
+      // Add delete handlers - use currentTarget to always get the button
       tbody.querySelectorAll('.btn-delete').forEach(btn => {
-        btn.addEventListener('click', (e) => this._deleteProduct(e.target.dataset.id));
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const productId = e.currentTarget.getAttribute('data-id');
+          if (productId) {
+            this._deleteProduct(productId);
+          }
+        });
       });
     }
   }
