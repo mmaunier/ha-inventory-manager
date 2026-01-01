@@ -21,9 +21,12 @@ Cette intégration Home Assistant permet de gérer l'inventaire de votre congél
 
 5. Suivez les instructions de configuration
 
-### Méthode 2 : HACS (à venir)
+### Méthode 2 : HACS (Recommandé)
 
-*Bientôt disponible*
+1. Ouvrez **HACS** → **Intégrations** → **⋮** → **Dépôts personnalisés**
+2. Ajoutez `https://github.com/mmaunier/ha-inventory-manager` (catégorie: Integration)
+3. Cherchez "Inventory Manager" et cliquez **Télécharger**
+4. Redémarrez Home Assistant
 
 ## 📱 Utilisation
 

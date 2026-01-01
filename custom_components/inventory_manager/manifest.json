@@ -1,12 +1,12 @@
 {
   "domain": "inventory_manager",
   "name": "Inventory Manager",
-  "codeowners": ["@mikael"],
+  "codeowners": ["@mmaunier"],
   "config_flow": true,
   "dependencies": [],
-  "documentation": "https://github.com/mikael/inventory_manager",
+  "documentation": "https://github.com/mmaunier/ha-inventory-manager",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/mikael/inventory_manager/issues",
+  "issue_tracker": "https://github.com/mmaunier/ha-inventory-manager/issues",
   "requirements": ["aiohttp>=3.8.0"],
   "version": "1.0.0"
 }
