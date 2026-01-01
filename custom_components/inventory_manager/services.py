@@ -36,6 +36,8 @@ from .const import (
     ATTR_OLD_NAME,
     ATTR_NEW_NAME,
     STORAGE_FREEZER,
+    STORAGE_FRIDGE,
+    STORAGE_PANTRY,
     STORAGE_LOCATIONS,
 )
 from .coordinator import InventoryCoordinator
@@ -106,7 +108,7 @@ ADD_CATEGORY_SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_NAME): cv.string,
         vol.Optional(ATTR_LOCATION, default=STORAGE_FREEZER): vol.In(
-            list(STORAGE_LOCATIONS.keys())
+            [STORAGE_FREEZER, STORAGE_FRIDGE, STORAGE_PANTRY]
         ),
     }
 )
@@ -115,7 +117,7 @@ REMOVE_CATEGORY_SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_NAME): cv.string,
         vol.Optional(ATTR_LOCATION, default=STORAGE_FREEZER): vol.In(
-            list(STORAGE_LOCATIONS.keys())
+            [STORAGE_FREEZER, STORAGE_FRIDGE, STORAGE_PANTRY]
         ),
     }
 )
@@ -125,7 +127,7 @@ RENAME_CATEGORY_SCHEMA = vol.Schema(
         vol.Required(ATTR_OLD_NAME): cv.string,
         vol.Required(ATTR_NEW_NAME): cv.string,
         vol.Optional(ATTR_LOCATION, default=STORAGE_FREEZER): vol.In(
-            list(STORAGE_LOCATIONS.keys())
+            [STORAGE_FREEZER, STORAGE_FRIDGE, STORAGE_PANTRY]
         ),
     }
 )
@@ -134,7 +136,7 @@ ADD_ZONE_SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_NAME): cv.string,
         vol.Optional(ATTR_LOCATION, default=STORAGE_FREEZER): vol.In(
-            list(STORAGE_LOCATIONS.keys())
+            [STORAGE_FREEZER, STORAGE_FRIDGE, STORAGE_PANTRY]
         ),
     }
 )
@@ -143,7 +145,7 @@ REMOVE_ZONE_SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_NAME): cv.string,
         vol.Optional(ATTR_LOCATION, default=STORAGE_FREEZER): vol.In(
-            list(STORAGE_LOCATIONS.keys())
+            [STORAGE_FREEZER, STORAGE_FRIDGE, STORAGE_PANTRY]
         ),
     }
 )
@@ -153,7 +155,7 @@ RENAME_ZONE_SCHEMA = vol.Schema(
         vol.Required(ATTR_OLD_NAME): cv.string,
         vol.Required(ATTR_NEW_NAME): cv.string,
         vol.Optional(ATTR_LOCATION, default=STORAGE_FREEZER): vol.In(
-            list(STORAGE_LOCATIONS.keys())
+            [STORAGE_FREEZER, STORAGE_FRIDGE, STORAGE_PANTRY]
         ),
     }
 )
@@ -161,7 +163,7 @@ RENAME_ZONE_SCHEMA = vol.Schema(
 RESET_CATEGORIES_SCHEMA = vol.Schema(
     {
         vol.Optional(ATTR_LOCATION, default=STORAGE_FREEZER): vol.In(
-            list(STORAGE_LOCATIONS.keys())
+            [STORAGE_FREEZER, STORAGE_FRIDGE, STORAGE_PANTRY]
         ),
     }
 )
@@ -169,7 +171,7 @@ RESET_CATEGORIES_SCHEMA = vol.Schema(
 RESET_ZONES_SCHEMA = vol.Schema(
     {
         vol.Optional(ATTR_LOCATION, default=STORAGE_FREEZER): vol.In(
-            list(STORAGE_LOCATIONS.keys())
+            [STORAGE_FREEZER, STORAGE_FRIDGE, STORAGE_PANTRY]
         ),
     }
 )

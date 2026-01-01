@@ -5,6 +5,20 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.8.4] - 2026-01-02
+
+### Corrigé (CRITIQUE)
+- **Erreur services categ/zones persistante** : Correction FINALE du problème "dictionary update sequence element #0 has length 6; 2 is required"
+  - Le problème venait de `vol.In(list(STORAGE_LOCATIONS.keys()))` dans les schémas de validation
+  - Remplacement par liste explicite : `vol.In([STORAGE_FREEZER, STORAGE_FRIDGE, STORAGE_PANTRY])`
+  - Ajout des imports manquants : `STORAGE_FRIDGE` et `STORAGE_PANTRY` dans services.py
+  - Correction appliquée à tous les schémas : ADD_CATEGORY, REMOVE_CATEGORY, RENAME_CATEGORY, ADD_ZONE, REMOVE_ZONE, RENAME_ZONE, RESET_CATEGORIES, RESET_ZONES
+- **Version footer** : Mise à jour du numéro de version dans home.js (1.8.0 → 1.8.3)
+
+### Technique
+- La fonction `list(STORAGE_LOCATIONS.keys())` ne fonctionnait pas correctement avec voluptuous
+- Utilisation d'une liste explicite des valeurs valides pour le paramètre `location`
+
 ## [1.8.3] - 2026-01-02
 
 ### Corrigé
