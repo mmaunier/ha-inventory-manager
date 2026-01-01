@@ -28,14 +28,21 @@ class InventoryManagerPanel extends HTMLElement {
     const filteredServerProducts = serverProducts.filter(p => !this._deletedIds.has(p.id));
     
     // Chercher les produits temp qui ont maintenant un vrai ID sur le serveur
-    // (on les matche par nom + date d'expiration)
+    // (on les matche par nom + date OU par barcode + date)
     const matchedTempIds = new Set();
     for (const serverProd of filteredServerProducts) {
-      const matchingTemp = this._tempProducts.find(temp => 
-        temp.name === serverProd.name && 
-        temp.expiry_date === serverProd.expiry_date &&
-        !matchedTempIds.has(temp.id)
-      );
+      const matchingTemp = this._tempProducts.find(temp => {
+        if (matchedTempIds.has(temp.id)) return false;
+        // Match par barcode (pour les scans)
+        if (temp.barcode && serverProd.barcode && temp.barcode === serverProd.barcode && temp.expiry_date === serverProd.expiry_date) {
+          return true;
+        }
+        // Match par nom exact (pour les ajouts manuels)
+        if (temp.name === serverProd.name && temp.expiry_date === serverProd.expiry_date) {
+          return true;
+        }
+        return false;
+      });
       if (matchingTemp) {
         matchedTempIds.add(matchingTemp.id);
       }
@@ -68,12 +75,22 @@ class InventoryManagerPanel extends HTMLElement {
   }
 
   // Rendu du tableau depuis l'état local
+  // Formater une date YYYY-MM-DD en JJ/MM/AAAA
+  _formatDateFR(dateStr) {
+    if (!dateStr) return '-';
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return dateStr;
+  }
+
   _renderProducts() {
     const tbody = this.shadowRoot.getElementById('products-list');
     if (!tbody) return;
     
     if (this._localProducts.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="empty-state">🎉 Aucun produit dans le congélateur</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="4" class="empty-state">🎉 Aucun produit dans le congélateur</td></tr>';
     } else {
       tbody.innerHTML = this._localProducts.map(p => {
         const days = p.days_until_expiry;
@@ -89,11 +106,10 @@ class InventoryManagerPanel extends HTMLElement {
         const rowClass = isTemp ? 'temp-row' : '';
         
         return `<tr class="${rowClass}" data-product-id="${p.id}">
-          <td>${p.name || 'Sans nom'}</td>
-          <td>${p.expiry_date || '-'}</td>
-          <td class="${statusClass}">${statusIcon} ${days !== undefined ? days + 'j' : '--'}</td>
-          <td>${p.quantity || 1}</td>
-          <td><button type="button" class="btn-delete" data-id="${p.id}">Supprimer</button></td>
+          <td class="col-name">${p.name || 'Sans nom'}</td>
+          <td class="col-date">${this._formatDateFR(p.expiry_date)} <span class="${statusClass}">${statusIcon}${days !== undefined ? days + 'j' : ''}</span></td>
+          <td class="col-qty">${p.quantity || 1}</td>
+          <td class="col-action"><button type="button" class="btn-delete" data-id="${p.id}" title="Supprimer">🗑️</button></td>
         </tr>`;
       }).join('');
     }
@@ -172,19 +188,32 @@ class InventoryManagerPanel extends HTMLElement {
           border-radius: 12px;
           overflow: hidden;
           box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          overflow-x: auto;
         }
-        table { width: 100%; border-collapse: collapse; }
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         th {
           background: #03a9f4;
           color: white;
-          padding: 12px;
+          padding: 10px 8px;
           text-align: left;
+          font-size: 0.85em;
         }
         td {
-          padding: 12px;
+          padding: 10px 8px;
           border-bottom: 1px solid #e0e0e0;
+          font-size: 0.9em;
+          word-wrap: break-word;
         }
+        .col-name { width: 45%; }
+        .col-date { width: 30%; white-space: nowrap; }
+        .col-qty { width: 10%; text-align: center; }
+        .col-action { width: 15%; text-align: center; }
         tr:hover { background: #f5f5f5; }
+        @media (max-width: 500px) {
+          th, td { padding: 8px 4px; font-size: 0.8em; }
+          .col-name { width: 40%; }
+          .col-date { width: 35%; }
+        }
         tr.temp-row {
           background: #e3f2fd;
           border-left: 3px solid #2196f3;
@@ -199,11 +228,12 @@ class InventoryManagerPanel extends HTMLElement {
         .btn-delete {
           background: #f44336;
           color: white;
-          padding: 8px 16px;
+          padding: 6px 10px;
           border-radius: 6px;
-          font-size: 0.9em;
+          font-size: 1.1em;
           cursor: pointer;
           border: none;
+          min-width: 36px;
         }
         .btn-delete:hover:not(:disabled) {
           background: #d32f2f;
@@ -339,11 +369,10 @@ class InventoryManagerPanel extends HTMLElement {
           <table>
             <thead>
               <tr>
-                <th>Produit</th>
-                <th>Péremption</th>
-                <th>Statut</th>
-                <th>Qté</th>
-                <th>Action</th>
+                <th class="col-name">Produit</th>
+                <th class="col-date">Péremption</th>
+                <th class="col-qty">Qté</th>
+                <th class="col-action"></th>
               </tr>
             </thead>
             <tbody id="products-list"></tbody>
