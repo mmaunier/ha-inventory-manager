@@ -345,6 +345,12 @@ class InventoryManagerPanel extends HTMLElement {
     this.shadowRoot.getElementById('scan-modal').classList.remove('open');
   }
 
+  async _refreshData() {
+    // Attendre un peu que HA mette à jour les entités
+    await new Promise(resolve => setTimeout(resolve, 500));
+    this._updateData();
+  }
+
   async _addProduct() {
     const name = this.shadowRoot.getElementById('product-name').value;
     const date = this.shadowRoot.getElementById('product-date').value;
@@ -355,15 +361,21 @@ class InventoryManagerPanel extends HTMLElement {
       return;
     }
 
-    await this._hass.callService('inventory_manager', 'add_product', {
-      name: name,
-      expiry_date: date,
-      location: 'freezer',
-      quantity: parseInt(qty)
-    });
+    try {
+      await this._hass.callService('inventory_manager', 'add_product', {
+        name: name,
+        expiry_date: date,
+        location: 'freezer',
+        quantity: parseInt(qty)
+      });
 
-    this._closeModals();
-    this.shadowRoot.getElementById('product-name').value = '';
+      this._closeModals();
+      this.shadowRoot.getElementById('product-name').value = '';
+      await this._refreshData();
+    } catch (e) {
+      console.error('Erreur ajout produit:', e);
+      alert('Erreur lors de l\'ajout');
+    }
   }
 
   async _scanProduct() {
@@ -376,22 +388,34 @@ class InventoryManagerPanel extends HTMLElement {
       return;
     }
 
-    await this._hass.callService('inventory_manager', 'scan_product', {
-      barcode: barcode,
-      expiry_date: date,
-      location: 'freezer',
-      quantity: parseInt(qty)
-    });
+    try {
+      await this._hass.callService('inventory_manager', 'scan_product', {
+        barcode: barcode,
+        expiry_date: date,
+        location: 'freezer',
+        quantity: parseInt(qty)
+      });
 
-    this._closeModals();
-    this.shadowRoot.getElementById('scan-barcode').value = '';
+      this._closeModals();
+      this.shadowRoot.getElementById('scan-barcode').value = '';
+      await this._refreshData();
+    } catch (e) {
+      console.error('Erreur scan produit:', e);
+      alert('Erreur lors du scan');
+    }
   }
 
   async _deleteProduct(productId) {
     if (confirm('Supprimer ce produit ?')) {
-      await this._hass.callService('inventory_manager', 'remove_product', {
-        product_id: productId
-      });
+      try {
+        await this._hass.callService('inventory_manager', 'remove_product', {
+          product_id: productId
+        });
+        await this._refreshData();
+      } catch (e) {
+        console.error('Erreur suppression:', e);
+        alert('Erreur lors de la suppression');
+      }
     }
   }
 }
