@@ -5,6 +5,8 @@ class InventoryManagerPanel extends HTMLElement {
     this._initialized = false;
     this._localProducts = []; // État local des produits
     this._deletedIds = new Set(); // IDs supprimés à ignorer lors des syncs
+    this._sortBy = 'date'; // 'date' ou 'name'
+    this._sortAsc = true; // true = ascendant
   }
 
   set hass(hass) {
@@ -57,6 +59,46 @@ class InventoryManagerPanel extends HTMLElement {
     return dateStr;
   }
 
+  _toggleSort(column) {
+    if (this._sortBy === column) {
+      this._sortAsc = !this._sortAsc;
+    } else {
+      this._sortBy = column;
+      this._sortAsc = true;
+    }
+    this._updateSortIcons();
+    this._renderProducts();
+  }
+
+  _updateSortIcons() {
+    const nameHeader = this.shadowRoot.getElementById('sort-name');
+    const dateHeader = this.shadowRoot.getElementById('sort-date');
+    if (!nameHeader || !dateHeader) return;
+    
+    const nameIcon = nameHeader.querySelector('.sort-icon');
+    const dateIcon = dateHeader.querySelector('.sort-icon');
+    
+    nameIcon.textContent = this._sortBy === 'name' ? (this._sortAsc ? '▲' : '▼') : '';
+    dateIcon.textContent = this._sortBy === 'date' ? (this._sortAsc ? '▲' : '▼') : '';
+  }
+
+  _getSortedProducts() {
+    return [...this._localProducts].sort((a, b) => {
+      let comparison = 0;
+      if (this._sortBy === 'name') {
+        const nameA = (a.name || '').toLowerCase();
+        const nameB = (b.name || '').toLowerCase();
+        comparison = nameA.localeCompare(nameB, 'fr');
+      } else {
+        // Tri par date (days_until_expiry)
+        const daysA = a.days_until_expiry ?? 999;
+        const daysB = b.days_until_expiry ?? 999;
+        comparison = daysA - daysB;
+      }
+      return this._sortAsc ? comparison : -comparison;
+    });
+  }
+
   _renderProducts() {
     const tbody = this.shadowRoot.getElementById('products-list');
     if (!tbody) return;
@@ -64,7 +106,8 @@ class InventoryManagerPanel extends HTMLElement {
     if (this._localProducts.length === 0) {
       tbody.innerHTML = '<tr><td colspan="4" class="empty-state">🎉 Aucun produit dans le congélateur</td></tr>';
     } else {
-      tbody.innerHTML = this._localProducts.map(p => {
+      const sortedProducts = this._getSortedProducts();
+      tbody.innerHTML = sortedProducts.map(p => {
         const days = p.days_until_expiry;
         const isTemp = p.id.toString().startsWith('temp_');
         let statusClass = 'status-ok';
@@ -224,6 +267,17 @@ class InventoryManagerPanel extends HTMLElement {
         .btn-delete:disabled {
           background: #999;
         }
+        .sortable {
+          cursor: pointer;
+          user-select: none;
+        }
+        .sortable:hover {
+          background: #e0e0e0;
+        }
+        .sort-icon {
+          font-size: 0.8em;
+          margin-left: 4px;
+        }
         .product-info {
           background: #e8f5e9;
           border: 1px solid #4caf50;
@@ -370,8 +424,8 @@ class InventoryManagerPanel extends HTMLElement {
           <table>
             <thead>
               <tr>
-                <th class="col-name">Produit</th>
-                <th class="col-date">Péremption</th>
+                <th class="col-name sortable" id="sort-name">Produit <span class="sort-icon"></span></th>
+                <th class="col-date sortable" id="sort-date">Péremption <span class="sort-icon">▲</span></th>
                 <th class="col-qty">Qté</th>
                 <th class="col-action"></th>
               </tr>
@@ -455,6 +509,10 @@ class InventoryManagerPanel extends HTMLElement {
     this.shadowRoot.getElementById('btn-edit-save').onclick = () => this._saveEditProduct();
     this.shadowRoot.getElementById('btn-start-camera').onclick = () => this._startCamera();
     this.shadowRoot.getElementById('btn-lookup').onclick = () => this._lookupBarcode();
+    
+    // Tri par colonnes
+    this.shadowRoot.getElementById('sort-name').onclick = () => this._toggleSort('name');
+    this.shadowRoot.getElementById('sort-date').onclick = () => this._toggleSort('date');
     
     // Auto-lookup when barcode is entered
     this.shadowRoot.getElementById('scan-barcode').addEventListener('change', () => this._lookupBarcode());

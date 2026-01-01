@@ -1,180 +1,143 @@
 # Inventory Manager - Plugin Home Assistant
 
+[![HACS Badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
+[![Version](https://img.shields.io/github/v/release/mmaunier/ha-inventory-manager)](https://github.com/mmaunier/ha-inventory-manager/releases)
+[![License](https://img.shields.io/github/license/mmaunier/ha-inventory-manager)](LICENSE)
+
 ## 📦 Gestionnaire d'Inventaire Alimentaire
 
-Cette intégration Home Assistant permet de gérer l'inventaire de votre congélateur (et plus tard réfrigérateur et réserves) avec :
-- Scan de code-barres via Open Food Facts
-- Gestion des dates de péremption
-- Notifications intelligentes
+Cette intégration Home Assistant permet de gérer l'inventaire de votre congélateur avec :
+- 📷 **Scan de code-barres** via la caméra du smartphone (Android/iOS)
+- 🔍 **Recherche automatique** des produits via Open Food Facts
+- 📅 **Gestion des dates de péremption** avec tri par date ou nom
+- 🔔 **Notifications intelligentes** pour les produits qui périment
+- 📱 **Interface responsive** optimisée pour mobile
+
+## ✨ Fonctionnalités
+
+- **Scan code-barres** : Utilisez la caméra de votre téléphone pour scanner les produits
+- **Open Food Facts** : Récupération automatique du nom et de la marque du produit
+- **Tri des produits** : Par date de péremption ou par nom (cliquez sur les en-têtes)
+- **Indicateurs visuels** : Couleurs selon l'urgence (🟢 OK, 🟡 Bientôt, 🟠 Urgent, 🔴 Périmé)
+- **Notifications** : Alertes automatiques toutes les 6h pour les produits à consommer
 
 ## 🚀 Installation
 
-### Méthode 1 : Installation manuelle
-
-1. Copiez le dossier `custom_components/inventory_manager` dans votre dossier `config/custom_components/` de Home Assistant
-
-2. Redémarrez Home Assistant
-
-3. Allez dans **Paramètres** → **Appareils et services** → **+ Ajouter une intégration**
-
-4. Recherchez "**Inventory Manager**" ou "**Gestionnaire d'Inventaire**"
-
-5. Suivez les instructions de configuration
-
-### Méthode 2 : HACS (Recommandé)
+### Via HACS (Recommandé)
 
 1. Ouvrez **HACS** → **Intégrations** → **⋮** → **Dépôts personnalisés**
 2. Ajoutez `https://github.com/mmaunier/ha-inventory-manager` (catégorie: Integration)
 3. Cherchez "Inventory Manager" et cliquez **Télécharger**
 4. Redémarrez Home Assistant
+5. Allez dans **Paramètres** → **Appareils et services** → **+ Ajouter une intégration**
+6. Recherchez "**Inventory Manager**"
+
+### Installation manuelle
+
+1. Copiez le dossier `custom_components/inventory_manager` dans `config/custom_components/`
+2. Redémarrez Home Assistant
+3. Ajoutez l'intégration via Paramètres → Appareils et services
 
 ## 📱 Utilisation
 
+### Interface Web
+
+Accédez au panel via le menu latéral : **Inventaire Congélateur**
+
+- **➕ Ajouter un produit** : Scannez un code-barres ou saisissez manuellement
+- **Tri** : Cliquez sur "Produit" ou "Péremption" pour trier
+- **Modifier** : Cliquez sur ✏️ pour éditer un produit
+- **Supprimer** : Cliquez sur 🗑️ pour supprimer
+
 ### Services disponibles
 
-#### 1. Scanner un produit (avec code-barres)
 ```yaml
+# Scanner un produit (avec code-barres)
 service: inventory_manager.scan_product
 data:
-  barcode: "3017620422003"  # Code-barres EAN-13
+  barcode: "3017620422003"
   expiry_date: "2026-06-15"
-  location: "freezer"  # freezer, fridge, ou pantry
+  location: "freezer"
   quantity: 1
-```
 
-#### 2. Ajouter un produit manuellement
-```yaml
+# Ajouter manuellement
 service: inventory_manager.add_product
 data:
   name: "Pizza 4 fromages"
   expiry_date: "2026-06-15"
   location: "freezer"
   quantity: 2
-```
 
-#### 3. Supprimer un produit (1 clic)
-```yaml
+# Supprimer un produit
 service: inventory_manager.remove_product
 data:
-  product_id: "a1b2c3d4"  # ID obtenu via les attributs des capteurs
-```
+  product_id: "a1b2c3d4"
 
-#### 4. Modifier la quantité
-```yaml
+# Modifier la quantité
 service: inventory_manager.update_quantity
 data:
   product_id: "a1b2c3d4"
-  quantity: 3  # 0 pour supprimer
-```
-
-#### 5. Lister les produits
-```yaml
-service: inventory_manager.list_products
-data:
-  location: "freezer"  # Optionnel, filtre par emplacement
+  quantity: 3
 ```
 
 ### Capteurs créés
 
 | Capteur | Description |
 |---------|-------------|
-| `sensor.gestionnaire_d_inventaire_total_produits` | Nombre total de produits |
 | `sensor.gestionnaire_d_inventaire_congelateur` | Produits dans le congélateur |
-| `sensor.gestionnaire_d_inventaire_refrigerateur` | Produits dans le réfrigérateur |
-| `sensor.gestionnaire_d_inventaire_reserves` | Produits dans les réserves |
 | `sensor.gestionnaire_d_inventaire_produits_perimant_bientot` | Produits expirant sous 7 jours |
 | `sensor.gestionnaire_d_inventaire_produits_perimes` | Produits déjà périmés |
 
-### Événements
+## 🔔 Notifications de péremption
 
-L'intégration émet les événements suivants :
+### Créer une automatisation
 
-- `inventory_manager_product_added` - Quand un produit est ajouté
-- `inventory_manager_product_removed` - Quand un produit est supprimé  
-- `inventory_manager_product_expiring` - Quand un produit approche de la péremption
+L'intégration vérifie les péremptions **toutes les 6 heures** et envoie l'événement `inventory_manager_product_expiring`.
 
-## 🔔 Automatisations pour les notifications
-
-### Notification de péremption
+Créez cette automatisation pour recevoir des notifications :
 
 ```yaml
-automation:
-  - alias: "Notification produit périmant"
-    trigger:
-      - platform: event
-        event_type: inventory_manager_product_expiring
-    action:
-      - service: notify.mobile_app_votre_telephone
-        data:
-          title: "⚠️ Produit à consommer"
-          message: >
-            {% if trigger.event.data.notification_type == 'expired' %}
-              🚨 {{ trigger.event.data.name }} est PÉRIMÉ !
-            {% elif trigger.event.data.notification_type == 'use_today' %}
-              ⚡ {{ trigger.event.data.name }} expire dans {{ trigger.event.data.days_until_expiry }} jour(s) - À utiliser rapidement !
-            {% elif trigger.event.data.notification_type == 'expiring_soon' %}
-              ⏰ {{ trigger.event.data.name }} expire demain
-            {% else %}
-              📅 {{ trigger.event.data.name }} expire dans 2 jours
-            {% endif %}
-          data:
-            tag: "expiry_{{ trigger.event.data.product_id }}"
+alias: "Alerte péremption congélateur"
+description: "Notification quand un produit va périmer"
+trigger:
+  - platform: event
+    event_type: inventory_manager_product_expiring
+action:
+  - service: persistent_notification.create
+    data:
+      title: >
+        {% if trigger.event.data.notification_type == 'expired' %}
+        ⛔ Produit périmé !
+        {% else %}
+        ⚠️ Péremption proche
+        {% endif %}
+      message: >
+        **{{ trigger.event.data.name }}**
+        
+        {% if trigger.event.data.notification_type == 'expired' %}
+        Ce produit est périmé !
+        {% elif trigger.event.data.days_until_expiry == 0 %}
+        Périme aujourd'hui !
+        {% elif trigger.event.data.days_until_expiry == 1 %}
+        Périme demain !
+        {% else %}
+        Périme dans {{ trigger.event.data.days_until_expiry }} jours
+        {% endif %}
+      notification_id: "inventory_{{ trigger.event.data.product_id }}"
+mode: parallel
 ```
 
-## 📲 Scan de code-barres depuis smartphone
+### Types de notifications
 
-### Option 1 : Via l'app Home Assistant Companion
+| Type | Condition |
+|------|-----------|
+| `expired` | Produit déjà périmé |
+| `expires_today` | Périme aujourd'hui |
+| `expires_soon` | Périme dans 1 à 3 jours |
 
-1. Créez un script dans HA :
+## 📂 Structure des données
 
-```yaml
-script:
-  scan_and_add_product:
-    alias: "Scanner et ajouter un produit"
-    sequence:
-      - service: notify.mobile_app_votre_telephone
-        data:
-          message: "command_barcode_scanner"
-      - wait_for_trigger:
-          - platform: event
-            event_type: mobile_app_notification_action
-        timeout: "00:02:00"
-      - service: inventory_manager.scan_product
-        data:
-          barcode: "{{ wait.trigger.event.data.barcode }}"
-          expiry_date: "{{ now().date() + timedelta(days=30) }}"
-          location: "freezer"
-```
-
-### Option 2 : Interface Web dédiée (à implémenter)
-
-Une page web avec accès caméra utilisant `html5-qrcode` qui appelle l'API HA.
-
-## 🎨 Exemple de carte Lovelace
-
-Voir le fichier `lovelace_example.yaml` pour un exemple de carte complète.
-
-## 📂 Structure des fichiers
-
-```
-custom_components/inventory_manager/
-├── __init__.py          # Point d'entrée
-├── manifest.json        # Métadonnées
-├── const.py             # Constantes
-├── config_flow.py       # Configuration UI
-├── coordinator.py       # Gestion des données
-├── sensor.py            # Capteurs
-├── services.py          # Services
-├── services.yaml        # Définition des services
-├── strings.json         # Textes
-└── translations/
-    ├── fr.json          # Français
-    └── en.json          # Anglais
-```
-
-## 🗄️ Stockage des données
-
-Les données sont stockées dans `config/inventory_data.json` au format :
+Les données sont stockées dans `config/inventory_data.json` :
 
 ```json
 {
@@ -188,39 +151,30 @@ Les données sont stockées dans `config/inventory_data.json` au format :
       "brand": "Ferrero",
       "added_date": "2026-01-01T10:30:00"
     }
-  },
-  "last_updated": "2026-01-01T10:30:00"
+  }
 }
 ```
-
-## ⚙️ Configuration avancée
-
-### Logique des notifications de péremption
-
-| Durée avant péremption | Notification |
-|------------------------|--------------|
-| < 3 jours | Rappel d'utilisation immédiat |
-| 3-5 jours | Notification 1 jour avant |
-| ≥ 7 jours | Notification 2 jours avant |
 
 ## 🔧 Dépannage
 
 ### Le produit n'est pas trouvé dans Open Food Facts
 
-Le produit sera ajouté avec le code-barres comme nom. Vous pouvez :
-1. Modifier le nom manuellement dans les attributs
-2. Contribuer à Open Food Facts en ajoutant le produit
+Le champ nom restera vide. Saisissez le nom manuellement.
+
+### La caméra ne fonctionne pas
+
+- Vérifiez que vous utilisez HTTPS
+- Autorisez l'accès à la caméra dans les paramètres du navigateur
+- Sur Android, utilisez Chrome ou l'app Home Assistant
 
 ### Les notifications ne fonctionnent pas
 
-Vérifiez :
-1. Que l'option "Notifications de péremption" est activée dans les options
-2. Que l'automatisation est bien configurée
-3. Que le service de notification est correct
+1. Créez l'automatisation décrite ci-dessus
+2. Testez en déclenchant manuellement l'événement dans Outils de développement → Événements
 
 ## 📝 Licence
 
-MIT License
+MIT License - Voir [LICENSE](LICENSE)
 
 ## 🤝 Contribution
 
