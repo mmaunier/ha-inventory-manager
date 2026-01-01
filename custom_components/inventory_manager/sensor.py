@@ -175,6 +175,8 @@ class InventoryLocationSensor(InventoryBaseSensor):
                 "days_until_expiry": days_until,
                 "quantity": p.get("quantity", 1),
                 "brand": p.get("brand", ""),
+                "category": p.get("category", "Autre"),
+                "zone": p.get("zone", "Zone 1"),
             })
         
         sorted_products.sort(key=lambda x: x["days_until_expiry"])

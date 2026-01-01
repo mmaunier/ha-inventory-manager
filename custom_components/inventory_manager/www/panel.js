@@ -5,8 +5,14 @@ class InventoryManagerPanel extends HTMLElement {
     this._initialized = false;
     this._localProducts = []; // État local des produits
     this._deletedIds = new Set(); // IDs supprimés à ignorer lors des syncs
-    this._sortBy = 'date'; // 'date' ou 'name'
+    this._sortBy = 'date'; // 'date', 'name', 'category', 'zone'
     this._sortAsc = true; // true = ascendant
+    this._categories = [
+      "Viande", "Poisson", "Légumes", "Fruits", 
+      "Produits laitiers", "Plats préparés", "Pain/Pâtisserie",
+      "Glaces/Desserts", "Condiments/Sauces", "Autre"
+    ];
+    this._zones = ["Zone 1", "Zone 2", "Zone 3"];
   }
 
   set hass(hass) {
@@ -72,13 +78,19 @@ class InventoryManagerPanel extends HTMLElement {
 
   _updateSortIcons() {
     const nameHeader = this.shadowRoot.getElementById('sort-name');
+    const categoryHeader = this.shadowRoot.getElementById('sort-category');
+    const zoneHeader = this.shadowRoot.getElementById('sort-zone');
     const dateHeader = this.shadowRoot.getElementById('sort-date');
-    if (!nameHeader || !dateHeader) return;
+    if (!nameHeader || !categoryHeader || !zoneHeader || !dateHeader) return;
     
     const nameIcon = nameHeader.querySelector('.sort-icon');
+    const categoryIcon = categoryHeader.querySelector('.sort-icon');
+    const zoneIcon = zoneHeader.querySelector('.sort-icon');
     const dateIcon = dateHeader.querySelector('.sort-icon');
     
     nameIcon.textContent = this._sortBy === 'name' ? (this._sortAsc ? '▲' : '▼') : '';
+    categoryIcon.textContent = this._sortBy === 'category' ? (this._sortAsc ? '▲' : '▼') : '';
+    zoneIcon.textContent = this._sortBy === 'zone' ? (this._sortAsc ? '▲' : '▼') : '';
     dateIcon.textContent = this._sortBy === 'date' ? (this._sortAsc ? '▲' : '▼') : '';
   }
 
@@ -89,6 +101,14 @@ class InventoryManagerPanel extends HTMLElement {
         const nameA = (a.name || '').toLowerCase();
         const nameB = (b.name || '').toLowerCase();
         comparison = nameA.localeCompare(nameB, 'fr');
+      } else if (this._sortBy === 'category') {
+        const catA = (a.category || 'Autre').toLowerCase();
+        const catB = (b.category || 'Autre').toLowerCase();
+        comparison = catA.localeCompare(catB, 'fr');
+      } else if (this._sortBy === 'zone') {
+        const zoneA = (a.zone || 'Zone 1').toLowerCase();
+        const zoneB = (b.zone || 'Zone 1').toLowerCase();
+        comparison = zoneA.localeCompare(zoneB, 'fr');
       } else {
         // Tri par date (days_until_expiry)
         const daysA = a.days_until_expiry ?? 999;
@@ -104,7 +124,7 @@ class InventoryManagerPanel extends HTMLElement {
     if (!tbody) return;
     
     if (this._localProducts.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" class="empty-state">🎉 Aucun produit dans le congélateur</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" class="empty-state">🎉 Aucun produit dans le congélateur</td></tr>';
     } else {
       const sortedProducts = this._getSortedProducts();
       tbody.innerHTML = sortedProducts.map(p => {
@@ -122,6 +142,8 @@ class InventoryManagerPanel extends HTMLElement {
         
         return `<tr class="${rowClass}" data-product-id="${p.id}">
           <td class="col-name">${p.name || 'Sans nom'}</td>
+          <td class="col-category">${p.category || 'Autre'}</td>
+          <td class="col-zone">${p.zone || 'Zone 1'}</td>
           <td class="col-date">${this._formatDateFR(p.expiry_date)} <span class="${statusClass}">${statusIcon}${days !== undefined ? days + 'j' : ''}</span></td>
           <td class="col-qty">${p.quantity || 1}</td>
           <td class="col-action">
@@ -222,14 +244,18 @@ class InventoryManagerPanel extends HTMLElement {
           font-size: 0.9em;
           word-wrap: break-word;
         }
-        .col-name { width: 45%; }
-        .col-date { width: 30%; white-space: nowrap; }
+        .col-name { width: 25%; }
+        .col-category { width: 15%; }
+        .col-zone { width: 10%; text-align: center; }
+        .col-date { width: 25%; white-space: nowrap; }
         .col-qty { width: 10%; text-align: center; }
         .col-action { width: 15%; text-align: center; }
         tr:hover { background: #f5f5f5; }
         @media (max-width: 500px) {
           th, td { padding: 8px 4px; font-size: 0.8em; }
-          .col-name { width: 40%; }
+          .col-name { width: 35%; }
+          .col-category { display: none; }
+          .col-zone { display: none; }
           .col-date { width: 35%; }
         }
         tr.temp-row {
@@ -425,6 +451,8 @@ class InventoryManagerPanel extends HTMLElement {
             <thead>
               <tr>
                 <th class="col-name sortable" id="sort-name">Produit <span class="sort-icon"></span></th>
+                <th class="col-category sortable" id="sort-category">Catégorie <span class="sort-icon"></span></th>
+                <th class="col-zone sortable" id="sort-zone">Zone <span class="sort-icon"></span></th>
                 <th class="col-date sortable" id="sort-date">Péremption <span class="sort-icon">▲</span></th>
                 <th class="col-qty">Qté</th>
                 <th class="col-action"></th>
@@ -470,6 +498,18 @@ class InventoryManagerPanel extends HTMLElement {
             <label>Quantité</label>
             <input type="number" id="scan-qty" value="1" min="1" max="99">
           </div>
+          <div class="form-group">
+            <label>Catégorie</label>
+            <select id="scan-category">
+              ${this._categories.map(c => `<option value="${c}">${c}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Zone</label>
+            <select id="scan-zone">
+              ${this._zones.map(z => `<option value="${z}">${z}</option>`).join('')}
+            </select>
+          </div>
           <div class="modal-actions">
             <button class="btn-cancel" id="btn-scan-cancel">Annuler</button>
             <button class="btn-secondary" id="btn-scan-save">Ajouter</button>
@@ -493,6 +533,18 @@ class InventoryManagerPanel extends HTMLElement {
             <label>Quantité</label>
             <input type="number" id="edit-qty" value="1" min="1" max="99">
           </div>
+          <div class="form-group">
+            <label>Catégorie</label>
+            <select id="edit-category">
+              ${this._categories.map(c => `<option value="${c}">${c}</option>`).join('')}
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Zone</label>
+            <select id="edit-zone">
+              ${this._zones.map(z => `<option value="${z}">${z}</option>`).join('')}
+            </select>
+          </div>
           <div class="modal-actions">
             <button class="btn-cancel" id="btn-edit-cancel">Annuler</button>
             <button class="btn-primary" id="btn-edit-save">Enregistrer</button>
@@ -512,6 +564,8 @@ class InventoryManagerPanel extends HTMLElement {
     
     // Tri par colonnes
     this.shadowRoot.getElementById('sort-name').onclick = () => this._toggleSort('name');
+    this.shadowRoot.getElementById('sort-category').onclick = () => this._toggleSort('category');
+    this.shadowRoot.getElementById('sort-zone').onclick = () => this._toggleSort('zone');
     this.shadowRoot.getElementById('sort-date').onclick = () => this._toggleSort('date');
     
     // Auto-lookup when barcode is entered
@@ -563,6 +617,8 @@ class InventoryManagerPanel extends HTMLElement {
     this.shadowRoot.getElementById('edit-name').value = product.name || '';
     this.shadowRoot.getElementById('edit-date').value = product.expiry_date || '';
     this.shadowRoot.getElementById('edit-qty').value = product.quantity || 1;
+    this.shadowRoot.getElementById('edit-category').value = product.category || 'Autre';
+    this.shadowRoot.getElementById('edit-zone').value = product.zone || 'Zone 1';
     this.shadowRoot.getElementById('edit-modal').classList.add('open');
   }
 
@@ -630,6 +686,8 @@ class InventoryManagerPanel extends HTMLElement {
     const name = this.shadowRoot.getElementById('edit-name').value.trim();
     const date = this.shadowRoot.getElementById('edit-date').value;
     const qty = parseInt(this.shadowRoot.getElementById('edit-qty').value) || 1;
+    const category = this.shadowRoot.getElementById('edit-category').value;
+    const zone = this.shadowRoot.getElementById('edit-zone').value;
 
     if (!name || !date) {
       alert('Veuillez remplir le nom et la date');
@@ -642,6 +700,8 @@ class InventoryManagerPanel extends HTMLElement {
       this._localProducts[productIndex].name = name;
       this._localProducts[productIndex].expiry_date = date;
       this._localProducts[productIndex].quantity = qty;
+      this._localProducts[productIndex].category = category;
+      this._localProducts[productIndex].zone = zone;
       this._localProducts[productIndex].days_until_expiry = this._calculateDaysUntilExpiry(date);
       this._renderProducts();
     }
@@ -654,7 +714,9 @@ class InventoryManagerPanel extends HTMLElement {
         product_id: productId,
         name: name,
         expiry_date: date,
-        quantity: qty
+        quantity: qty,
+        category: category,
+        zone: zone
       });
     } catch (err) {
       console.error('Erreur modification:', err);
@@ -851,12 +913,16 @@ class InventoryManagerPanel extends HTMLElement {
     const nameEl = this.shadowRoot.getElementById('scan-name');
     const dateEl = this.shadowRoot.getElementById('scan-date');
     const qtyEl = this.shadowRoot.getElementById('scan-qty');
+    const categoryEl = this.shadowRoot.getElementById('scan-category');
+    const zoneEl = this.shadowRoot.getElementById('scan-zone');
     const btnSave = this.shadowRoot.getElementById('btn-scan-save');
     
     const barcode = barcodeEl.value.trim();
     const name = nameEl.value.trim();
     const date = dateEl.value;
     const qty = parseInt(qtyEl.value) || 1;
+    const category = categoryEl.value;
+    const zone = zoneEl.value;
 
     if (!name || !date) {
       alert('Veuillez remplir le nom du produit et la date de péremption');
@@ -874,6 +940,8 @@ class InventoryManagerPanel extends HTMLElement {
         expiry_date: date,
         location: 'freezer',
         quantity: qty,
+        category: category,
+        zone: zone,
         barcode: barcode || undefined
       });
       
