@@ -1,18 +1,20 @@
 # Exemples d'automatisations pour Inventory Manager
 # À ajouter dans automations.yaml
 
-# ===== NOTIFICATION DE PÉREMPTION =====
-- id: inventory_expiry_notification
-  alias: "Notification produit périmant"
-  description: "Envoie une notification quand un produit approche de la péremption"
+# ===== NOTIFICATION DE PÉREMPTION - CONGÉLATEUR =====
+- id: inventory_expiry_notification_freezer
+  alias: "Notification produit périmant - Congélateur"
+  description: "Envoie une notification quand un produit du congélateur approche de la péremption"
   trigger:
     - platform: event
       event_type: inventory_manager_product_expiring
+      event_data:
+        location: freezer
   action:
     - service: notify.mobile_app_votre_telephone  # Remplacez par votre service de notification
       data:
         title: >
-          {% if trigger.event.data.notification_type == 'expired' %}
+          🧊 {% if trigger.event.data.notification_type == 'expired' %}
             🚨 Produit périmé !
           {% elif trigger.event.data.notification_type == 'use_today' %}
             ⚡ À consommer rapidement !
@@ -22,7 +24,6 @@
         message: >
           {% set name = trigger.event.data.name %}
           {% set days = trigger.event.data.days_until_expiry %}
-          {% set location = trigger.event.data.location %}
           {% if trigger.event.data.notification_type == 'expired' %}
             {{ name }} est PÉRIMÉ depuis {{ days | abs }} jour(s) !
           {% elif days == 0 %}
@@ -34,12 +35,92 @@
           {% endif %}
         data:
           tag: "inventory_expiry_{{ trigger.event.data.product_id }}"
-          group: "inventory_expiry"
-          # Actions pour l'app mobile
+          group: "inventory_expiry_freezer"
           actions:
             - action: "REMOVE_PRODUCT"
               title: "Supprimer"
-              uri: "/api/services/inventory_manager/remove_product"
+            - action: "DISMISS"
+              title: "OK"
+
+# ===== NOTIFICATION DE PÉREMPTION - RÉFRIGÉRATEUR =====
+- id: inventory_expiry_notification_fridge
+  alias: "Notification produit périmant - Réfrigérateur"
+  description: "Envoie une notification quand un produit du réfrigérateur approche de la péremption"
+  trigger:
+    - platform: event
+      event_type: inventory_manager_product_expiring
+      event_data:
+        location: fridge
+  action:
+    - service: notify.mobile_app_votre_telephone
+      data:
+        title: >
+          🧃 {% if trigger.event.data.notification_type == 'expired' %}
+            🚨 Produit périmé !
+          {% elif trigger.event.data.notification_type == 'use_today' %}
+            ⚡ À consommer rapidement !
+          {% else %}
+            ⏰ Péremption proche
+          {% endif %}
+        message: >
+          {% set name = trigger.event.data.name %}
+          {% set days = trigger.event.data.days_until_expiry %}
+          {% if trigger.event.data.notification_type == 'expired' %}
+            {{ name }} est PÉRIMÉ depuis {{ days | abs }} jour(s) !
+          {% elif days == 0 %}
+            {{ name }} expire AUJOURD'HUI - À utiliser immédiatement !
+          {% elif days == 1 %}
+            {{ name }} expire DEMAIN
+          {% else %}
+            {{ name }} expire dans {{ days }} jours
+          {% endif %}
+        data:
+          tag: "inventory_expiry_{{ trigger.event.data.product_id }}"
+          group: "inventory_expiry_fridge"
+          actions:
+            - action: "REMOVE_PRODUCT"
+              title: "Supprimer"
+            - action: "DISMISS"
+              title: "OK"
+
+# ===== NOTIFICATION DE PÉREMPTION - RÉSERVE =====
+- id: inventory_expiry_notification_pantry
+  alias: "Notification produit périmant - Réserve"
+  description: "Envoie une notification quand un produit de la réserve approche de la péremption"
+  trigger:
+    - platform: event
+      event_type: inventory_manager_product_expiring
+      event_data:
+        location: pantry
+  action:
+    - service: notify.mobile_app_votre_telephone
+      data:
+        title: >
+          🥫 {% if trigger.event.data.notification_type == 'expired' %}
+            🚨 Produit périmé !
+          {% elif trigger.event.data.notification_type == 'use_today' %}
+            ⚡ À consommer rapidement !
+          {% else %}
+            ⏰ Péremption proche
+          {% endif %}
+        message: >
+          {% set name = trigger.event.data.name %}
+          {% set days = trigger.event.data.days_until_expiry %}
+          {% if trigger.event.data.notification_type == 'expired' %}
+            {{ name }} est PÉRIMÉ depuis {{ days | abs }} jour(s) !
+          {% elif days == 0 %}
+            {{ name }} expire AUJOURD'HUI - À utiliser immédiatement !
+          {% elif days == 1 %}
+            {{ name }} expire DEMAIN
+          {% else %}
+            {{ name }} expire dans {{ days }} jours
+          {% endif %}
+        data:
+          tag: "inventory_expiry_{{ trigger.event.data.product_id }}"
+          group: "inventory_expiry_pantry"
+          actions:
+            - action: "REMOVE_PRODUCT"
+              title: "Supprimer"
             - action: "DISMISS"
               title: "OK"
 
