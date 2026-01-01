@@ -693,6 +693,32 @@ class InventoryManagerFreezer extends HTMLElement {
     defaultDate.setDate(defaultDate.getDate() + 30);
     const dateStr = defaultDate.toISOString().split('T')[0];
     this.shadowRoot.getElementById('scan-date').value = dateStr;
+    
+    // Prevent modal close on content click + allow close on backdrop click
+    ['add-modal', 'edit-modal', 'categories-modal', 'zones-modal'].forEach(modalId => {
+      const modal = this.shadowRoot.getElementById(modalId);
+      const modalContent = modal.querySelector('.modal-content');
+      
+      // Stop propagation when clicking inside modal content
+      modalContent.addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
+      
+      // Close modal when clicking on backdrop
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          if (modalId === 'add-modal') {
+            this._closeAddModal();
+          } else if (modalId === 'edit-modal') {
+            this._closeModals();
+          } else if (modalId === 'categories-modal') {
+            this._closeCategoriesModal();
+          } else if (modalId === 'zones-modal') {
+            this._closeZonesModal();
+          }
+        }
+      });
+    });
   }
 
   _openAddModal() {

@@ -5,6 +5,15 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.7.1] - 2026-01-01
+
+### Corrigé
+- **Bug modales** : Correction de la fermeture automatique des fenêtres modales après 1-2 secondes
+  - Ajout de la gestion de la propagation des événements de clic
+  - Les modales restent maintenant ouvertes lors de l'interaction avec le contenu
+  - Fermeture possible en cliquant sur le fond ou sur les boutons Annuler/Fermer
+  - Fix appliqué sur smartphone et sur le web
+
 ## [1.7.0] - 2026-01-01
 
 ### Ajouté
