@@ -7,11 +7,23 @@ class InventoryManagerPanel extends HTMLElement {
     super();
     this.attachShadow({ mode: 'open' });
     this._currentView = 'home';
+    this._initialized = false;
+    this._currentComponent = null;
   }
 
   set hass(hass) {
     this._hass = hass;
-    this._render();
+    
+    // Initialize once
+    if (!this._initialized) {
+      this._render();
+      this._initialized = true;
+    }
+    
+    // Update current component with new hass
+    if (this._currentComponent) {
+      this._currentComponent.hass = hass;
+    }
   }
 
   _render() {
@@ -41,6 +53,7 @@ class InventoryManagerPanel extends HTMLElement {
 
     // Clear current view
     container.innerHTML = '';
+    this._currentComponent = null;
 
     // Create and append appropriate component
     let component;
@@ -50,9 +63,12 @@ class InventoryManagerPanel extends HTMLElement {
       component = document.createElement('inventory-manager-freezer');
     }
 
-    if (component && this._hass) {
-      component.hass = this._hass;
+    if (component) {
+      if (this._hass) {
+        component.hass = this._hass;
+      }
       container.appendChild(component);
+      this._currentComponent = component;
     }
   }
 

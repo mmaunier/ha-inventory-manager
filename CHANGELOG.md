@@ -5,6 +5,20 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.7.3] - 2026-01-01
+
+### Corrigé
+- **Bug modales (FIX FINAL)** : Correction du véritable problème de fermeture automatique
+  - Le problème était dans `panel.js` qui recréait tout le composant à chaque mise à jour de `hass`
+  - Ajout d'un flag `_initialized` pour ne faire le rendu qu'une seule fois
+  - Les mises à jour de `hass` sont maintenant transmises au composant existant sans le recréer
+  - Les modales ne se ferment plus automatiquement après 1-2 secondes
+  - Fix confirmé : fonctionne même sans interaction de l'utilisateur
+
+### Technique
+- Amélioration du cycle de vie du composant `InventoryManagerPanel`
+- Référence au composant actif pour mise à jour incrémentale
+
 ## [1.7.2] - 2026-01-01
 
 ### Corrigé
