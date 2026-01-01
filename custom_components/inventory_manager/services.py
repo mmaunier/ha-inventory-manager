@@ -203,7 +203,7 @@ async def async_setup_services(
         SERVICE_SCAN_PRODUCT,
         handle_scan_product,
         schema=SCAN_PRODUCT_SCHEMA,
-        supports_response=SupportsResponse.ONLY,
+        supports_response=SupportsResponse.OPTIONAL,
     )
 
     hass.services.async_register(
@@ -211,7 +211,7 @@ async def async_setup_services(
         SERVICE_ADD_PRODUCT,
         handle_add_product,
         schema=ADD_PRODUCT_SCHEMA,
-        supports_response=SupportsResponse.ONLY,
+        supports_response=SupportsResponse.OPTIONAL,
     )
 
     hass.services.async_register(
@@ -219,7 +219,7 @@ async def async_setup_services(
         SERVICE_REMOVE_PRODUCT,
         handle_remove_product,
         schema=REMOVE_PRODUCT_SCHEMA,
-        supports_response=SupportsResponse.ONLY,
+        supports_response=SupportsResponse.OPTIONAL,
     )
 
     hass.services.async_register(
@@ -227,7 +227,7 @@ async def async_setup_services(
         SERVICE_UPDATE_QUANTITY,
         handle_update_quantity,
         schema=UPDATE_QUANTITY_SCHEMA,
-        supports_response=SupportsResponse.ONLY,
+        supports_response=SupportsResponse.OPTIONAL,
     )
 
     hass.services.async_register(
@@ -235,7 +235,7 @@ async def async_setup_services(
         SERVICE_LIST_PRODUCTS,
         handle_list_products,
         schema=LIST_PRODUCTS_SCHEMA,
-        supports_response=SupportsResponse.ONLY,
+        supports_response=SupportsResponse.OPTIONAL,
     )
 
     _LOGGER.info("Inventory Manager services registered")
