@@ -342,6 +342,32 @@ class InventoryManagerPanel extends HTMLElement {
       return;
     }
 
+    // Optimistic update - add visually immediately
+    const tempId = 'temp_' + Date.now();
+    const tbody = this.shadowRoot.getElementById('products-list');
+    const newRow = document.createElement('tr');
+    newRow.id = 'row_' + tempId;
+    newRow.innerHTML = `
+      <td>${name}</td>
+      <td>${date}</td>
+      <td class="status-ok">🟢 --j</td>
+      <td>${qty}</td>
+      <td><button type="button" class="btn-delete" disabled>⏳</button></td>
+    `;
+    
+    // Remove empty state if present
+    const emptyRow = tbody.querySelector('.empty-state');
+    if (emptyRow) emptyRow.parentElement.remove();
+    
+    tbody.insertBefore(newRow, tbody.firstChild);
+    
+    // Update count optimistically
+    const totalEl = this.shadowRoot.getElementById('total-count');
+    totalEl.textContent = parseInt(totalEl.textContent || '0') + qty;
+    
+    nameEl.value = '';
+    this._closeModals();
+
     try {
       await this._hass.callService('inventory_manager', 'add_product', {
         name: name,
@@ -350,13 +376,13 @@ class InventoryManagerPanel extends HTMLElement {
         quantity: qty
       });
       
-      nameEl.value = '';
-      this._closeModals();
-      
-      // Force refresh after delay
-      setTimeout(() => this._updateData(), 1000);
+      // Refresh to get real data after a short delay
+      setTimeout(() => this._updateData(), 500);
     } catch (err) {
       console.error('Erreur ajout:', err);
+      // Rollback on error
+      newRow.remove();
+      totalEl.textContent = parseInt(totalEl.textContent || '1') - qty;
       alert('Erreur: ' + err.message);
     }
   }
@@ -375,6 +401,32 @@ class InventoryManagerPanel extends HTMLElement {
       return;
     }
 
+    // Optimistic update - add visually immediately
+    const tempId = 'temp_' + Date.now();
+    const tbody = this.shadowRoot.getElementById('products-list');
+    const newRow = document.createElement('tr');
+    newRow.id = 'row_' + tempId;
+    newRow.innerHTML = `
+      <td>🔍 Recherche... (${barcode})</td>
+      <td>${date}</td>
+      <td class="status-ok">🟢 --j</td>
+      <td>${qty}</td>
+      <td><button type="button" class="btn-delete" disabled>⏳</button></td>
+    `;
+    
+    // Remove empty state if present
+    const emptyRow = tbody.querySelector('.empty-state');
+    if (emptyRow) emptyRow.parentElement.remove();
+    
+    tbody.insertBefore(newRow, tbody.firstChild);
+    
+    // Update count optimistically
+    const totalEl = this.shadowRoot.getElementById('total-count');
+    totalEl.textContent = parseInt(totalEl.textContent || '0') + qty;
+    
+    barcodeEl.value = '';
+    this._closeModals();
+
     try {
       await this._hass.callService('inventory_manager', 'scan_product', {
         barcode: barcode,
@@ -383,12 +435,13 @@ class InventoryManagerPanel extends HTMLElement {
         quantity: qty
       });
       
-      barcodeEl.value = '';
-      this._closeModals();
-      
-      setTimeout(() => this._updateData(), 1000);
+      // Refresh to get real product name
+      setTimeout(() => this._updateData(), 500);
     } catch (err) {
       console.error('Erreur scan:', err);
+      // Rollback on error
+      newRow.remove();
+      totalEl.textContent = parseInt(totalEl.textContent || '1') - qty;
       alert('Erreur: ' + err.message);
     }
   }
@@ -403,15 +456,47 @@ class InventoryManagerPanel extends HTMLElement {
       return;
     }
 
+    // Find and hide the row immediately (optimistic update)
+    const btn = this.shadowRoot.querySelector(`.btn-delete[data-id="${productId}"]`);
+    const row = btn?.closest('tr');
+    let rowHTML = '';
+    let rowIndex = -1;
+    
+    if (row) {
+      rowHTML = row.outerHTML;
+      rowIndex = Array.from(row.parentNode.children).indexOf(row);
+      row.style.opacity = '0.3';
+      row.style.pointerEvents = 'none';
+      
+      // Update count optimistically
+      const totalEl = this.shadowRoot.getElementById('total-count');
+      const currentCount = parseInt(totalEl.textContent || '1');
+      totalEl.textContent = Math.max(0, currentCount - 1);
+    }
+
     try {
       await this._hass.callService('inventory_manager', 'remove_product', {
         product_id: productId
       });
       
-      // Force refresh after delay
-      setTimeout(() => this._updateData(), 1000);
+      // Remove row completely after service call succeeds
+      if (row) row.remove();
+      
+      // Check if list is now empty
+      const tbody = this.shadowRoot.getElementById('products-list');
+      if (tbody && tbody.children.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">🎉 Aucun produit</td></tr>';
+      }
+      
+      // Still refresh to sync with real data
+      setTimeout(() => this._updateData(), 500);
     } catch (err) {
       console.error('Erreur suppression:', err);
+      // Rollback on error
+      if (row) {
+        row.style.opacity = '1';
+        row.style.pointerEvents = 'auto';
+      }
       alert('Erreur: ' + err.message);
     }
   }
