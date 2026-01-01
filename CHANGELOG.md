@@ -5,6 +5,16 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.7.4] - 2026-01-01
+
+### Corrigé
+- **Boutons modales non fonctionnels** : Correction du blocage des clics introduit en v1.7.2
+  - Suppression du `stopPropagation()` qui empêchait les boutons de fonctionner
+  - Conservation uniquement de la fermeture sur clic backdrop
+  - Le véritable fix était déjà dans v1.7.3 (panel.js)
+  - Les boutons Annuler, Fermer, Ajouter, etc. fonctionnent maintenant correctement
+  - Les modales restent ouvertes et sont totalement fonctionnelles
+
 ## [1.7.3] - 2026-01-01
 
 ### Corrigé
