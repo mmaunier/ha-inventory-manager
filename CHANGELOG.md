@@ -5,6 +5,20 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.6.0] - 2026-01-01
+
+### Ajouté
+- **Gestion complète des catégories** : Ajouter, supprimer et renommer les catégories
+- **Gestion complète des zones** : Ajouter, supprimer et renommer les zones
+- Interface de gestion avec boutons "🗂️ Gérer catégories" et "📍 Gérer zones"
+- Modaux dédiés pour gérer les catégories et zones
+- 6 nouveaux services : `add_category`, `remove_category`, `rename_category`, `add_zone`, `remove_zone`, `rename_zone`
+
+### Modifié
+- Les produits sont automatiquement mis à jour lors du renommage
+- Suppression d'une catégorie : les produits passent en "Autre"
+- Suppression d'une zone : les produits passent à la première zone disponible
+
 ## [1.5.1] - 2026-01-01
 
 ### Corrigé
