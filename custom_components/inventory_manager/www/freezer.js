@@ -36,11 +36,6 @@ class InventoryManagerFreezer extends HTMLElement {
     const totalSensor = this._hass.states['sensor.gestionnaire_d_inventaire_total_produits'];
     this._productHistory = totalSensor?.attributes?.product_history || [];
     
-    // DEBUG: Afficher les sensors disponibles et l'historique
-    console.log('[Freezer] Tous les sensors:', Object.keys(this._hass.states).filter(k => k.includes('gestionnaire')));
-    console.log('[Freezer] Total sensor:', totalSensor);
-    console.log('[Freezer] Product history:', this._productHistory);
-    
     // Synchroniser catégories et zones depuis le sensor
     if (freezerSensor?.attributes?.categories) {
       this._categories = freezerSensor.attributes.categories;
@@ -752,19 +747,15 @@ class InventoryManagerFreezer extends HTMLElement {
     
     // Autocomplete on product name input
     const nameInput = this.shadowRoot.getElementById('scan-name');
-    console.log('[Freezer] nameInput element:', nameInput);
     let autocompleteTimeout;
     if (nameInput) {
       nameInput.addEventListener('input', (e) => {
-        console.log('[Freezer] Input event fired:', e.target.value);
+        const value = e.target.value; // Capturer immédiatement
         clearTimeout(autocompleteTimeout);
         autocompleteTimeout = setTimeout(() => {
-          this._showAutocomplete(e.target.value);
+          this._showAutocomplete(value);
         }, 150); // Debounce 150ms
       });
-      console.log('[Freezer] Event listener attached!');
-    } else {
-      console.error('[Freezer] ERREUR: scan-name introuvable!');
     }
     
     // Close autocomplete on Escape or click outside
@@ -968,19 +959,14 @@ class InventoryManagerFreezer extends HTMLElement {
    * Show autocomplete suggestions
    */
   _showAutocomplete(query) {
-    console.log('[Freezer] _showAutocomplete appelée avec:', query);
     const suggestionsEl = this.shadowRoot.getElementById('autocomplete-suggestions');
-    console.log('[Freezer] Element suggestions:', suggestionsEl);
     
     if (!query || query.trim().length < 2) {
-      console.log('[Freezer] Query trop courte, on cache');
       this._hideAutocomplete();
       return;
     }
     
-    console.log('[Freezer] _productHistory:', this._productHistory);
     const suggestions = this._getRecentProductsSuggestions(query);
-    console.log('[Freezer] Suggestions trouvées:', suggestions);
     
     if (suggestions.length === 0) {
       this._hideAutocomplete();

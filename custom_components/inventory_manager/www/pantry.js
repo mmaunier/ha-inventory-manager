@@ -37,11 +37,6 @@ class InventoryManagerPantry extends HTMLElement {
     const totalSensor = this._hass.states['sensor.gestionnaire_d_inventaire_total_produits'];
     this._productHistory = totalSensor?.attributes?.product_history || [];
     
-    // DEBUG: Afficher les sensors disponibles et l'historique
-    console.log('[Pantry] Tous les sensors:', Object.keys(this._hass.states).filter(k => k.includes('gestionnaire')));
-    console.log('[Pantry] Total sensor:', totalSensor);
-    console.log('[Pantry] Product history:', this._productHistory);
-    
     // Synchroniser catégories et zones depuis le sensor
     if (pantrySensor?.attributes?.categories) {
       this._categories = pantrySensor.attributes.categories;
@@ -753,19 +748,15 @@ class InventoryManagerPantry extends HTMLElement {
     
     // Autocomplete on product name input
     const nameInput = this.shadowRoot.getElementById('scan-name');
-    console.log('[Pantry] nameInput element:', nameInput);
     let autocompleteTimeout;
     if (nameInput) {
       nameInput.addEventListener('input', (e) => {
-        console.log('[Pantry] Input event fired:', e.target.value);
+        const value = e.target.value; // Capturer immédiatement
         clearTimeout(autocompleteTimeout);
         autocompleteTimeout = setTimeout(() => {
-          this._showAutocomplete(e.target.value);
+          this._showAutocomplete(value);
         }, 150); // Debounce 150ms
       });
-      console.log('[Pantry] Event listener attached!');
-    } else {
-      console.error('[Pantry] ERREUR: scan-name introuvable!');
     }
     
     // Close autocomplete on Escape or click outside
@@ -969,19 +960,14 @@ class InventoryManagerPantry extends HTMLElement {
    * Show autocomplete suggestions
    */
   _showAutocomplete(query) {
-    console.log('[Pantry] _showAutocomplete appelée avec:', query);
     const suggestionsEl = this.shadowRoot.getElementById('autocomplete-suggestions');
-    console.log('[Pantry] Element suggestions:', suggestionsEl);
     
     if (!query || query.trim().length < 2) {
-      console.log('[Pantry] Query trop courte, on cache');
       this._hideAutocomplete();
       return;
     }
     
-    console.log('[Pantry] _productHistory:', this._productHistory);
     const suggestions = this._getRecentProductsSuggestions(query);
-    console.log('[Pantry] Suggestions trouvées:', suggestions);
     
     if (suggestions.length === 0) {
       this._hideAutocomplete();
