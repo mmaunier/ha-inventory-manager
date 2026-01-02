@@ -54,8 +54,6 @@ lookup_product:
               value: "fridge"
             - label: "Réserves"
               value: "pantry"
-            - label: "Réserves"
-              value: "pantry"
     quantity:
       name: Quantité
       description: Le nombre d'unités
