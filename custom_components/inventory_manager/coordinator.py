@@ -19,6 +19,8 @@ from homeassistant.util import dt as dt_util
 from .const import (
     DOMAIN,
     OPENFOODFACTS_API_URL,
+    UPCITEMDB_API_URL,
+    EAN_SEARCH_API_URL,
     STORAGE_FILE,
     STORAGE_FREEZER,
     STORAGE_FRIDGE,
@@ -212,27 +214,57 @@ class InventoryCoordinator(DataUpdateCoordinator):
                 continue
 
     async def async_fetch_product_info(self, barcode: str) -> dict[str, Any] | None:
-        """Fetch product information from Open Food Facts."""
+        """Fetch product information from multiple barcode APIs in cascade.
+        
+        Search order:
+        1. Open Food Facts (food products)
+        2. UPCitemdb (general products)
+        3. EAN-Search (European database)
+        """
+        # Try Open Food Facts first (food products)
+        result = await self._fetch_from_openfoodfacts(barcode)
+        if result:
+            result["source"] = "Open Food Facts"
+            _LOGGER.info("Product found in Open Food Facts: %s", barcode)
+            return result
+        
+        # Try UPCitemdb (general products - cosmetics, household, electronics, etc.)
+        result = await self._fetch_from_upcitemdb(barcode)
+        if result:
+            result["source"] = "UPCitemdb"
+            _LOGGER.info("Product found in UPCitemdb: %s", barcode)
+            return result
+        
+        # Try EAN-Search (European database)
+        result = await self._fetch_from_ean_search(barcode)
+        if result:
+            result["source"] = "EAN-Search"
+            _LOGGER.info("Product found in EAN-Search: %s", barcode)
+            return result
+        
+        _LOGGER.info("Product not found in any database: %s", barcode)
+        return None
+
+    async def _fetch_from_openfoodfacts(self, barcode: str) -> dict[str, Any] | None:
+        """Fetch product information from Open Food Facts (food products)."""
         url = OPENFOODFACTS_API_URL.format(barcode=barcode)
         
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, timeout=10) as response:
                     if response.status != 200:
-                        _LOGGER.warning("Open Food Facts returned status %d", response.status)
                         return None
 
                     data = await response.json()
                     
                     if data.get("status") != 1:
-                        _LOGGER.info("Product not found in Open Food Facts: %s", barcode)
                         return None
 
                     product = data.get("product", {})
                     
                     return {
                         "barcode": barcode,
-                        "name": product.get("product_name", product.get("product_name_fr", "Produit inconnu")),
+                        "name": product.get("product_name", product.get("product_name_fr", "")),
                         "brand": product.get("brands", ""),
                         "categories": product.get("categories", ""),
                         "categories_tags": product.get("categories_tags", []),
@@ -241,11 +273,82 @@ class InventoryCoordinator(DataUpdateCoordinator):
                         "nutriscore": product.get("nutriscore_grade", ""),
                     }
 
-        except asyncio.TimeoutError:
-            _LOGGER.error("Timeout fetching product info from Open Food Facts")
+        except (asyncio.TimeoutError, Exception) as err:
+            _LOGGER.debug("Error fetching from Open Food Facts: %s", err)
             return None
-        except Exception as err:
-            _LOGGER.error("Error fetching product info: %s", err)
+
+    async def _fetch_from_upcitemdb(self, barcode: str) -> dict[str, Any] | None:
+        """Fetch product information from UPCitemdb (general products)."""
+        url = UPCITEMDB_API_URL.format(barcode=barcode)
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, timeout=10) as response:
+                    if response.status != 200:
+                        return None
+
+                    data = await response.json()
+                    
+                    # Check if product found
+                    if not data.get("items") or len(data["items"]) == 0:
+                        return None
+                    
+                    product = data["items"][0]
+                    
+                    # Extract name and brand
+                    title = product.get("title", "")
+                    brand = product.get("brand", "")
+                    
+                    return {
+                        "barcode": barcode,
+                        "name": title,
+                        "brand": brand,
+                        "categories": product.get("category", ""),
+                        "categories_tags": [],
+                        "image_url": product.get("images", [""])[0] if product.get("images") else "",
+                        "quantity_info": "",
+                        "nutriscore": "",
+                    }
+
+        except (asyncio.TimeoutError, Exception) as err:
+            _LOGGER.debug("Error fetching from UPCitemdb: %s", err)
+            return None
+
+    async def _fetch_from_ean_search(self, barcode: str) -> dict[str, Any] | None:
+        """Fetch product information from EAN-Search (European database)."""
+        url = EAN_SEARCH_API_URL.format(barcode=barcode)
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, timeout=10) as response:
+                    if response.status != 200:
+                        return None
+
+                    data = await response.json()
+                    
+                    # Check if product found (status 1 = found, 0 = not found)
+                    if not isinstance(data, list) or len(data) == 0:
+                        return None
+                    
+                    product = data[0]
+                    
+                    # EAN-Search returns status 0 if not found
+                    if product.get("error"):
+                        return None
+                    
+                    return {
+                        "barcode": barcode,
+                        "name": product.get("name", ""),
+                        "brand": "",  # EAN-Search doesn't provide brand separately
+                        "categories": product.get("categoryName", ""),
+                        "categories_tags": [],
+                        "image_url": "",
+                        "quantity_info": "",
+                        "nutriscore": "",
+                    }
+
+        except (asyncio.TimeoutError, Exception) as err:
+            _LOGGER.debug("Error fetching from EAN-Search: %s", err)
             return None
 
     def _map_category(self, categories_tags: list[str], location: str = STORAGE_FREEZER) -> str:
@@ -359,7 +462,7 @@ class InventoryCoordinator(DataUpdateCoordinator):
         quantity: int = 1,
     ) -> dict[str, Any]:
         """Scan a barcode and add the product to inventory."""
-        # Fetch product info from Open Food Facts
+        # Fetch product info from multiple APIs (cascade search)
         product_info = await self.async_fetch_product_info(barcode)
         
         if product_info:
@@ -387,10 +490,11 @@ class InventoryCoordinator(DataUpdateCoordinator):
                 "product_id": product_id,
                 "name": name,
                 "category": category,
+                "source": product_info.get("source", "Unknown"),
                 "info": product_info,
             }
         else:
-            # Product not found, create with barcode as name
+            # Product not found in any database, create with barcode as name
             product_id = await self.async_add_product(
                 name=f"Produit {barcode}",
                 expiry_date=expiry_date,
@@ -405,8 +509,9 @@ class InventoryCoordinator(DataUpdateCoordinator):
                 "product_id": product_id,
                 "name": f"Produit {barcode}",
                 "category": "Autre",
+                "source": "Manual",
                 "info": None,
-                "warning": "Produit non trouvé dans Open Food Facts",
+                "warning": "Produit non trouvé dans les bases de données",
             }
 
     async def async_remove_product(self, product_id: str) -> bool:

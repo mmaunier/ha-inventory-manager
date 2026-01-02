@@ -5,6 +5,35 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.10.0] - 2026-01-02
+
+### Ajouté
+- **Recherche en cascade sur plusieurs bases de données** : Élargissement de la recherche de codes-barres
+  - **Open Food Facts** : Produits alimentaires (déjà en place)
+  - **UPCitemdb** : Produits généraux (cosmétiques, ménagers, électronique, etc.)
+  - **EAN-Search** : Base européenne généraliste
+  - Recherche automatiqueautomatique dans cet ordre jusqu'à trouver le produit
+  - Couverture bien plus large pour les produits non-alimentaires de la Réserve
+
+### Modifié
+- Backend : `coordinator.async_fetch_product_info()` utilise maintenant 3 APIs
+- Chaque résultat indique la source de données utilisée
+- Logs améliorés pour le débogage (quelle API a trouvé le produit)
+
+### Technique
+- Nouvelles fonctions : `_fetch_from_openfoodfacts()`, `_fetch_from_upcitemdb()`, `_fetch_from_ean_search()`
+- Timeouts et gestion d'erreurs robustes pour chaque API
+- Format de données unifié entre les différentes sources
+
+### Use Cases
+Cette version permet maintenant de scanner :
+- Produits alimentaires (Open Food Facts)
+- Médicaments avec code-barres (UPCitemdb/EAN-Search)
+- Produits ménagers (lessive, nettoyants, etc.)
+- Cosmétiques et produits d'hygiène
+- Fournitures et papeterie
+- Tout produit avec code-barres EAN/UPC
+
 ## [1.9.2] - 2026-01-02
 
 ### Corrigé
