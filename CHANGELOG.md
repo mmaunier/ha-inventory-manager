@@ -5,6 +5,18 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.8.8] - 2026-01-02
+
+### Ajouté
+- **Soumission à Home Assistant Brands** : Pull Request créée pour ajouter l'icône officielle
+  - Une fois mergée, l'icône personnalisée s'affichera automatiquement dans HACS
+  - Icônes soumises : icon.png (256×256) et icon@2x.png (512×512)
+  - Lien vers la PR : https://github.com/home-assistant/brands/pull/[numéro]
+
+### Documentation
+- Ajout du guide complet de soumission à Brands (`BRANDS_SUBMISSION_GUIDE.md`)
+- Clarification sur l'affichage des icônes dans HACS pour les repositories personnalisés
+
 ## [1.8.7] - 2026-01-02
 
 ### Corrigé
