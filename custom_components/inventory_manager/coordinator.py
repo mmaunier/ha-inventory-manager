@@ -232,36 +232,30 @@ class InventoryCoordinator(DataUpdateCoordinator):
         2. UPCitemdb (general products)
         3. OpenGTINDB (European/global database)
         """
-        _LOGGER.info("[CASCADE SEARCH] Starting search for barcode: %s", barcode)
+        _LOGGER.info("Searching product for barcode: %s", barcode)
         
         # Try Open Food Facts first (food products)
-        _LOGGER.debug("[CASCADE SEARCH] Trying Open Food Facts...")
         result = await self._fetch_from_openfoodfacts(barcode)
         if result:
             result["source"] = "Open Food Facts"
-            _LOGGER.info("[CASCADE SEARCH] ✓ Product found in Open Food Facts: %s (name: %s)", barcode, result.get("name", "N/A"))
+            _LOGGER.info("✓ Found in Open Food Facts: %s", result.get("name", "N/A"))
             return result
-        _LOGGER.debug("[CASCADE SEARCH] ✗ Not found in Open Food Facts")
         
         # Try UPCitemdb (general products - cosmetics, household, electronics, etc.)
-        _LOGGER.debug("[CASCADE SEARCH] Trying UPCitemdb...")
         result = await self._fetch_from_upcitemdb(barcode)
         if result:
             result["source"] = "UPCitemdb"
-            _LOGGER.info("[CASCADE SEARCH] ✓ Product found in UPCitemdb: %s (name: %s)", barcode, result.get("name", "N/A"))
+            _LOGGER.info("✓ Found in UPCitemdb: %s", result.get("name", "N/A"))
             return result
-        _LOGGER.debug("[CASCADE SEARCH] ✗ Not found in UPCitemdb")
         
         # Try OpenGTINDB (European/global database - free, no registration)
-        _LOGGER.debug("[CASCADE SEARCH] Trying OpenGTINDB...")
         result = await self._fetch_from_opengtindb(barcode)
         if result:
             result["source"] = "OpenGTINDB"
-            _LOGGER.info("[CASCADE SEARCH] ✓ Product found in OpenGTINDB: %s (name: %s)", barcode, result.get("name", "N/A"))
+            _LOGGER.info("✓ Found in OpenGTINDB: %s", result.get("name", "N/A"))
             return result
-        _LOGGER.debug("[CASCADE SEARCH] ✗ Not found in OpenGTINDB")
         
-        _LOGGER.warning("[CASCADE SEARCH] Product not found in any of the 3 databases: %s", barcode)
+        _LOGGER.warning("Product not found in any database: %s", barcode)
         return None
 
     async def _fetch_from_openfoodfacts(self, barcode: str) -> dict[str, Any] | None:
@@ -277,7 +271,6 @@ class InventoryCoordinator(DataUpdateCoordinator):
                     data = await response.json()
                     
                     if data.get("status") != 1:
-                        _LOGGER.debug("Open Food Facts: Product not found (status=%s)", data.get("status"))
                         return None
 
                     product = data.get("product", {})
@@ -314,7 +307,6 @@ class InventoryCoordinator(DataUpdateCoordinator):
                     
                     # Check if product found
                     if not data.get("items") or len(data["items"]) == 0:
-                        _LOGGER.debug("UPCitemdb: Product not found (items empty)")
                         return None
                     
                     product = data["items"][0]
@@ -364,13 +356,11 @@ class InventoryCoordinator(DataUpdateCoordinator):
                     
                     # Check if error=0 (found) or error=1 (not found)
                     if data.get("error") != "0":
-                        _LOGGER.debug("OpenGTINDB: Product not found (error=%s)", data.get("error"))
                         return None
                     
                     # Extract product name (prioritize detailname over name)
                     product_name = data.get("detailname", "").strip() or data.get("name", "").strip()
                     if not product_name:
-                        _LOGGER.debug("OpenGTINDB: Product found but no name available")
                         return None
                     
                     vendor = data.get("vendor", "").strip()

@@ -5,6 +5,21 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.10.9] - 2026-01-02
+
+### 🧹 Nettoyage du code
+
+- **Suppression fichiers inutiles** : Suppression de `test_cascade.py`, `DEBUG_INSTRUCTIONS.md` et `__pycache__/`
+- **Optimisation logs backend** : Simplification des logs de recherche cascade (réduction verbosité)
+- **Nettoyage logs frontend** : Suppression des `console.log()` de debug dans les 3 fichiers JS (pantry, fridge, freezer)
+- **Amélioration qualité** : Code plus propre, maintenable et prêt pour production
+
+### 📦 Résultat
+
+- Console navigateur propre (pas de logs de debug)
+- Logs backend plus concis (uniquement infos importantes)
+- Réduction taille du projet
+
 ## [1.10.8] - 2026-01-02
 
 ### Amélioré

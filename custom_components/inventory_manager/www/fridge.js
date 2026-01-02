@@ -889,7 +889,7 @@ class InventoryManagerFridge extends HTMLElement {
           this._useNativeDetector = true;
           status.textContent = '🎯 Pointez vers un code-barres...';
         } catch (e) {
-          console.log('BarcodeDetector non disponible:', e);
+          // BarcodeDetector non disponible, fallback vers QuaggaJS
         }
       }
       
@@ -1099,8 +1099,6 @@ class InventoryManagerFridge extends HTMLElement {
       return;
     }
     
-    console.log('Tentative suppression produit:', productId, 'type:', typeof productId);
-    
     if (!confirm('Supprimer ce produit ?')) return;
 
     // Trouver le produit dans la liste locale
@@ -1109,16 +1107,12 @@ class InventoryManagerFridge extends HTMLElement {
       console.error('Produit non trouvé localement:', productId);
       return;
     }
-    
-    console.log('Produit trouvé:', product);
 
     // Appeler le service AVANT de supprimer visuellement
     try {
-      console.log('Appel service remove_product avec ID:', productId);
       await this._hass.callService('inventory_manager', 'remove_product', {
         product_id: String(productId)  // Forcer en string
       });
-      console.log('Service remove_product appelé avec succès');
       
       // Supprimer de la liste locale seulement après succès
       this._localProducts = this._localProducts.filter(p => p.id !== productId);
