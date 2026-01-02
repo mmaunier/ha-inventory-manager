@@ -28,7 +28,7 @@ class InventoryManagerPantry extends HTMLElement {
   _syncFromHass() {
     if (!this._hass) return;
     
-    const pantrySensor = this._hass.states['sensor.gestionnaire_d_inventaire_reserve'];
+    const pantrySensor = this._hass.states['sensor.gestionnaire_d_inventaire_reserves'];
     const serverProducts = pantrySensor?.attributes?.products || [];
     
     // Filtrer les produits serveur : exclure ceux qu'on a supprimé localement (en attente de confirmation)

@@ -5,6 +5,24 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.8.10] - 2026-01-02
+
+### Corrigé (CRITIQUE)
+- **Bug affichage Réserve** : Correction du nom du sensor dans `pantry.js`
+  - Le sensor s'appelle `sensor.gestionnaire_d_inventaire_reserves` (avec un S)
+  - Le frontend cherchait `sensor.gestionnaire_d_inventaire_reserve` (sans S)
+  - Résultat : Les produits étaient bien ajoutés mais n'apparaissaient jamais dans la liste
+  - **Aucun redémarrage nécessaire** : Simple rechargement de page (Ctrl+F5)
+
+- **Liens LICENSE dans README** : Correction des liens brisés
+  - Badge licence maintenant pointe vers l'URL GitHub complète
+  - Lien footer également mis à jour
+  - GitHub détecte maintenant correctement la licence MIT
+
+### Note
+- Le fix de la v1.8.9 (schemas de validation) était correct mais incomplet
+- Le vrai problème était une faute de frappe dans le nom du sensor frontend
+
 ## [1.8.9] - 2026-01-02
 
 ### Corrigé (CRITIQUE)
