@@ -783,7 +783,7 @@ class InventoryManagerPantry extends HTMLElement {
     
     try {
       // Utiliser le service Home Assistant pour éviter les erreurs CORS
-      const result = await this.hass.callService('inventory_manager', 'lookup_product', {
+      const result = await this._hass.callService('inventory_manager', 'lookup_product', {
         barcode: barcode
       }, {
         return_response: true
