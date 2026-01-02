@@ -5,6 +5,41 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.12.0] - 2026-01-02
+
+### ✨ Autocomplétion intelligente des produits
+- **Suggestions contextuelles** lors de la saisie du nom de produit
+  - Basé sur les 50 derniers produits ajoutés dans l'emplacement actif
+  - Matching multi-mots intelligent (recherche partielle, fuzzy)
+  - Top 5 suggestions triées par pertinence
+- **Tooltip enrichi** avec informations complètes
+  - Nom du produit
+  - Catégorie et zone
+  - Jours restants avant péremption (avec code couleur)
+- **Pré-remplissage automatique** au clic
+  - Nom, catégorie et zone remplis automatiquement
+  - Focus immédiat sur la date de péremption
+- **Performance optimisée**
+  - Debounce 150ms pour éviter les calculs inutiles
+  - Fermeture automatique (Escape, clic extérieur)
+  - Responsive mobile avec scroll tactile
+- **Algorithme de scoring** multi-critères
+  - Match exact : 100 points
+  - Début de mot (startsWith) : 80 points
+  - Tous les mots présents : 70 points
+  - Au moins un mot : 40 points
+  - Contient substring : 30 points
+
+### 🎯 Exemples d'utilisation
+- Tapez "nut cho" → suggère "Nutella", "Pâte chocolat noisette"
+- Tapez "lai" → suggère "Lait", "Lait de coco", "Produits laitiers"
+- Produits récurrents (pain, lait) toujours accessibles rapidement
+
+### 📱 Interface
+- Design responsive adapté mobile
+- Icônes visuelles (📂 catégorie, 📍 zone, 🟢/🟡/🟠/🔴 péremption)
+- Tooltip élégant sous le champ de saisie
+
 ## [1.11.0] - 2026-01-02
 
 ### ♻️ Simplification majeure

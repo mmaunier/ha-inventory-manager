@@ -485,6 +485,63 @@ class InventoryManagerFreezer extends HTMLElement {
         .list-manager input {
           flex: 1;
         }
+        .autocomplete-container {
+          position: relative;
+        }
+        .autocomplete-suggestions {
+          position: absolute;
+          top: 100%;
+          left: 0;
+          right: 0;
+          background: white;
+          border: 2px solid #03a9f4;
+          border-top: none;
+          border-radius: 0 0 8px 8px;
+          max-height: 250px;
+          overflow-y: auto;
+          z-index: 1000;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          display: none;
+        }
+        .autocomplete-suggestions.visible {
+          display: block;
+        }
+        .autocomplete-item {
+          padding: 12px;
+          cursor: pointer;
+          border-bottom: 1px solid #f0f0f0;
+          transition: background 0.2s;
+        }
+        .autocomplete-item:hover {
+          background: #e3f2fd;
+        }
+        .autocomplete-item:last-child {
+          border-bottom: none;
+        }
+        .autocomplete-name {
+          font-weight: 600;
+          color: #333;
+          font-size: 0.95em;
+        }
+        .autocomplete-details {
+          font-size: 0.8em;
+          color: #666;
+          margin-top: 4px;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        .autocomplete-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+        }
+        .autocomplete-empty {
+          padding: 12px;
+          text-align: center;
+          color: #999;
+          font-size: 0.9em;
+        }
       </style>
       
       <div class="container">
@@ -554,9 +611,10 @@ class InventoryManagerFreezer extends HTMLElement {
           
           <div id="product-info-box" class="product-info" style="display:none;"></div>
           
-          <div class="form-group">
+          <div class="form-group autocomplete-container">
             <label>Nom du produit</label>
-            <input type="text" id="scan-name" placeholder="Nom du produit (modifiable)">
+            <input type="text" id="scan-name" placeholder="Nom du produit (modifiable)" autocomplete="off">
+            <div class="autocomplete-suggestions" id="autocomplete-suggestions"></div>
           </div>
           <div class="form-group">
             <label>Date de péremption</label>
@@ -682,6 +740,30 @@ class InventoryManagerFreezer extends HTMLElement {
     // Auto-lookup when barcode is entered
     this.shadowRoot.getElementById('scan-barcode').addEventListener('change', () => this._lookupBarcode());
     
+    // Autocomplete on product name input
+    const nameInput = this.shadowRoot.getElementById('scan-name');
+    let autocompleteTimeout;
+    nameInput.addEventListener('input', (e) => {
+      clearTimeout(autocompleteTimeout);
+      autocompleteTimeout = setTimeout(() => {
+        this._showAutocomplete(e.target.value);
+      }, 150); // Debounce 150ms
+    });
+    
+    // Close autocomplete on Escape or click outside
+    nameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        this._hideAutocomplete();
+      }
+    });
+    
+    document.addEventListener('click', (e) => {
+      const container = this.shadowRoot.querySelector('.autocomplete-container');
+      if (container && !container.contains(e.target)) {
+        this._hideAutocomplete();
+      }
+    });
+    
     // Event delegation for edit and delete buttons
     this.shadowRoot.getElementById('products-list').onclick = (e) => {
       const editBtn = e.target.closest('.btn-edit');
@@ -761,8 +843,216 @@ class InventoryManagerFreezer extends HTMLElement {
 
   _closeAddModal() {
     this._stopCamera();
+    this._hideAutocomplete();
     this.shadowRoot.getElementById('add-modal').classList.remove('open');
   }
+
+  // ===== AUTOCOMPLETE FUNCTIONS =====
+  
+  /**
+   * Calculate similarity score between query and product name
+   * Multi-criteria scoring for intelligent matching
+   */
+  _calculateMatchScore(query, productName) {
+    if (!query || !productName) return 0;
+    
+    const queryLower = query.toLowerCase().trim();
+    const nameLower = productName.toLowerCase();
+    
+    // Exact match
+    if (nameLower === queryLower) return 100;
+    
+    // Extract words from query and name
+    const queryWords = queryLower.split(/\s+/).filter(w => w.length > 0);
+    const nameWords = nameLower.split(/\s+/).filter(w => w.length > 0);
+    
+    if (queryWords.length === 0) return 0;
+    
+    let score = 0;
+    
+    // StartsWith (high priority)
+    if (nameLower.startsWith(queryLower)) {
+      score = Math.max(score, 80);
+    }
+    
+    // Count matching words
+    let matchingWords = 0;
+    let partialMatches = 0;
+    
+    for (const queryWord of queryWords) {
+      // Check exact word match
+      const exactMatch = nameWords.some(nw => nw === queryWord);
+      if (exactMatch) {
+        matchingWords++;
+        continue;
+      }
+      
+      // Check if any name word starts with query word
+      const startsWithMatch = nameWords.some(nw => nw.startsWith(queryWord));
+      if (startsWithMatch) {
+        matchingWords += 0.8;
+        continue;
+      }
+      
+      // Check if query word is contained in any name word
+      const containsMatch = nameWords.some(nw => nw.includes(queryWord));
+      if (containsMatch) {
+        partialMatches++;
+      }
+    }
+    
+    // All words match (exact or startsWith)
+    if (matchingWords >= queryWords.length) {
+      score = Math.max(score, 70 + (matchingWords / queryWords.length * 10));
+    }
+    // At least one word matches
+    else if (matchingWords > 0) {
+      score = Math.max(score, 40 + (matchingWords / queryWords.length * 20));
+    }
+    // Partial matches only
+    else if (partialMatches > 0) {
+      score = Math.max(score, 20 + (partialMatches / queryWords.length * 15));
+    }
+    // Contains query as substring
+    else if (nameLower.includes(queryLower)) {
+      score = Math.max(score, 30);
+    }
+    
+    return score;
+  }
+
+  /**
+   * Get recent products suggestions based on query
+   * Returns top 5 matches from last 50 products
+   */
+  _getRecentProductsSuggestions(query) {
+    if (!query || query.trim().length < 2) return [];
+    
+    // Get last 50 products sorted by added_date
+    const recentProducts = [...this._localProducts]
+      .filter(p => p.added_date) // Only products with added_date
+      .sort((a, b) => {
+        const dateA = new Date(a.added_date || 0);
+        const dateB = new Date(b.added_date || 0);
+        return dateB - dateA; // DESC
+      })
+      .slice(0, 50);
+    
+    // Calculate score for each product
+    const scoredProducts = recentProducts.map(p => ({
+      product: p,
+      score: this._calculateMatchScore(query, p.name || '')
+    }));
+    
+    // Filter products with score > 0 and sort by score DESC
+    const matches = scoredProducts
+      .filter(item => item.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5) // Top 5 results
+      .map(item => item.product);
+    
+    return matches;
+  }
+
+  /**
+   * Show autocomplete suggestions
+   */
+  _showAutocomplete(query) {
+    const suggestionsEl = this.shadowRoot.getElementById('autocomplete-suggestions');
+    
+    if (!query || query.trim().length < 2) {
+      this._hideAutocomplete();
+      return;
+    }
+    
+    const suggestions = this._getRecentProductsSuggestions(query);
+    
+    if (suggestions.length === 0) {
+      suggestionsEl.innerHTML = '<div class="autocomplete-empty">Aucune suggestion trouvée</div>';
+      suggestionsEl.classList.add('visible');
+      return;
+    }
+    
+    // Render suggestions
+    const html = suggestions.map(p => {
+      // Calculate days until expiry
+      let daysText = '';
+      if (p.expiry_date) {
+        try {
+          const expiryDate = new Date(p.expiry_date);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const days = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
+          
+          if (days < 0) daysText = `🔴 Périmé`;
+          else if (days <= 3) daysText = `🟠 ${days}j`;
+          else if (days <= 7) daysText = `🟡 ${days}j`;
+          else daysText = `🟢 ${days}j`;
+        } catch (e) {
+          daysText = '';
+        }
+      }
+      
+      return `
+        <div class="autocomplete-item" data-product-id="${p.id}">
+          <div class="autocomplete-name">${p.name || 'Sans nom'}</div>
+          <div class="autocomplete-details">
+            <span class="autocomplete-badge">📂 ${p.category || 'Autre'}</span>
+            <span class="autocomplete-badge">📍 ${p.zone || 'Zone 1'}</span>
+            ${daysText ? `<span class="autocomplete-badge">${daysText}</span>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+    suggestionsEl.innerHTML = html;
+    suggestionsEl.classList.add('visible');
+    
+    // Add click handlers
+    suggestionsEl.querySelectorAll('.autocomplete-item').forEach(item => {
+      item.onclick = () => {
+        const productId = item.dataset.productId;
+        this._selectAutocompleteSuggestion(productId);
+      };
+    });
+  }
+
+  /**
+   * Hide autocomplete suggestions
+   */
+  _hideAutocomplete() {
+    const suggestionsEl = this.shadowRoot.getElementById('autocomplete-suggestions');
+    if (suggestionsEl) {
+      suggestionsEl.classList.remove('visible');
+      suggestionsEl.innerHTML = '';
+    }
+  }
+
+  /**
+   * Select a suggestion and prefill form
+   */
+  _selectAutocompleteSuggestion(productId) {
+    const product = this._localProducts.find(p => p.id === productId);
+    if (!product) return;
+    
+    // Prefill form fields
+    const nameEl = this.shadowRoot.getElementById('scan-name');
+    const categoryEl = this.shadowRoot.getElementById('scan-category');
+    const zoneEl = this.shadowRoot.getElementById('scan-zone');
+    const dateEl = this.shadowRoot.getElementById('scan-date');
+    
+    if (nameEl) nameEl.value = product.name || '';
+    if (categoryEl && product.category) categoryEl.value = product.category;
+    if (zoneEl && product.zone) zoneEl.value = product.zone;
+    
+    // Hide autocomplete
+    this._hideAutocomplete();
+    
+    // Focus on date field for quick workflow
+    if (dateEl) dateEl.focus();
+  }
+
+  // ===== END AUTOCOMPLETE FUNCTIONS =====
 
   // Recherche du produit via l'API Open Food Facts
   async _lookupBarcode() {
