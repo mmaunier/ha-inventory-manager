@@ -20,6 +20,7 @@ STORAGE_FILE = "inventory_data.json"
 
 # Barcode APIs (cascade search)
 OPENFOODFACTS_API_URL = "https://world.openfoodfacts.org/api/v2/product/{barcode}.json"
+OPENPRODUCTSFACTS_API_URL = "https://world.openproductsfacts.org/api/v2/product/{barcode}.json"
 UPCITEMDB_API_URL = "https://api.upcitemdb.com/prod/trial/lookup?upc={barcode}"
 OPENGTINDB_API_URL = "https://opengtindb.org/?ean={barcode}&cmd=query&queryid=400000000"
 
