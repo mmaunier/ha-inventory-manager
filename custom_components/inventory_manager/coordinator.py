@@ -38,16 +38,13 @@ from .const import (
     EXPIRY_THRESHOLD_NORMAL,
     EXPIRY_THRESHOLD_SOON,
     EXPIRY_THRESHOLD_URGENT,
-    OPENGTINDB_API_URL,
     OPENFOODFACTS_API_URL,
-    OPENPRODUCTSFACTS_API_URL,
     SCAN_INTERVAL,
     STORAGE_FILE,
     STORAGE_FREEZER,
     STORAGE_FRIDGE,
     STORAGE_LOCATIONS,
     STORAGE_PANTRY,
-    UPCITEMDB_API_URL,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -226,27 +223,20 @@ class InventoryCoordinator(DataUpdateCoordinator):
                 continue
 
     async def async_fetch_product_info(self, barcode: str) -> dict[str, Any] | None:
-        """Fetch product information from barcode APIs.
+        """Fetch product information from Open Food Facts.
         
-        Search Open Food Facts and Open Products Facts (fast & free).
+        Fast and reliable API for food products (millions of products).
         """
         _LOGGER.info("Searching product for barcode: %s", barcode)
         
-        # Try Open Food Facts first (food products)
+        # Open Food Facts (food products)
         result = await self._fetch_from_openfoodfacts(barcode)
         if result:
             result["source"] = "Open Food Facts"
             _LOGGER.info("✓ Found in Open Food Facts: %s", result.get("name", "N/A"))
             return result
         
-        # Try Open Products Facts (non-food products: cosmetics, household, etc.)
-        result = await self._fetch_from_openproductsfacts(barcode)
-        if result:
-            result["source"] = "Open Products Facts"
-            _LOGGER.info("✓ Found in Open Products Facts: %s", result.get("name", "N/A"))
-            return result
-        
-        _LOGGER.warning("Product not found in Open*Facts databases: %s", barcode)
+        _LOGGER.warning("Product not found in Open Food Facts: %s", barcode)
         return None
 
     async def _fetch_from_openfoodfacts(self, barcode: str) -> dict[str, Any] | None:
@@ -282,41 +272,6 @@ class InventoryCoordinator(DataUpdateCoordinator):
             return None
         except Exception as err:
             _LOGGER.debug("Open Food Facts: Error - %s", err)
-            return None
-
-    async def _fetch_from_openproductsfacts(self, barcode: str) -> dict[str, Any] | None:
-        """Fetch product information from Open Products Facts (non-food products)."""
-        url = OPENPRODUCTSFACTS_API_URL.format(barcode=barcode)
-        
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, timeout=aiohttp.ClientTimeout(total=5)) as response:
-                    if response.status != 200:
-                        return None
-
-                    data = await response.json()
-                    
-                    if data.get("status") != 1:
-                        return None
-
-                    product = data.get("product", {})
-                    
-                    return {
-                        "barcode": barcode,
-                        "name": product.get("product_name", product.get("product_name_fr", "")),
-                        "brand": product.get("brands", ""),
-                        "categories": product.get("categories", ""),
-                        "categories_tags": product.get("categories_tags", []),
-                        "image_url": product.get("image_url", ""),
-                        "quantity_info": product.get("quantity", ""),
-                        "nutriscore": "",
-                    }
-
-        except asyncio.TimeoutError:
-            _LOGGER.warning("Open Products Facts: Request timeout (>5s)")
-            return None
-        except Exception as err:
-            _LOGGER.debug("Open Products Facts: Error - %s", err)
             return None
 
     async def _fetch_from_upcitemdb(self, barcode: str) -> dict[str, Any] | None:

@@ -18,11 +18,11 @@ STORAGE_LOCATIONS = {
 # Default storage file
 STORAGE_FILE = "inventory_data.json"
 
-# Barcode APIs (cascade search)
+# Barcode APIs
 OPENFOODFACTS_API_URL = "https://world.openfoodfacts.org/api/v2/product/{barcode}.json"
-OPENPRODUCTSFACTS_API_URL = "https://world.openproductsfacts.org/api/v2/product/{barcode}.json"
-UPCITEMDB_API_URL = "https://api.upcitemdb.com/prod/trial/lookup?upc={barcode}"
-OPENGTINDB_API_URL = "https://opengtindb.org/?ean={barcode}&cmd=query&queryid=400000000"
+# OPENPRODUCTSFACTS_API_URL = "https://world.openproductsfacts.org/api/v2/product/{barcode}.json"  # Disabled: small database (~31k products)
+# UPCITEMDB_API_URL = "https://api.upcitemdb.com/prod/trial/lookup?upc={barcode}"  # Disabled: rate limited
+# OPENGTINDB_API_URL = "https://opengtindb.org/?ean={barcode}&cmd=query&queryid=400000000"  # Disabled
 
 # Notification thresholds (in days)
 EXPIRY_THRESHOLD_URGENT = 3  # Rappel d'utilisation le jour même si < 3 jours

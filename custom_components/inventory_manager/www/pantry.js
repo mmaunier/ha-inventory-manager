@@ -779,7 +779,7 @@ class InventoryManagerPantry extends HTMLElement {
     
     infoBox.className = 'product-info loading';
     infoBox.style.display = 'block';
-    infoBox.innerHTML = '🔍 Recherche en cours (Open Food Facts / Open Products Facts)...';
+    infoBox.innerHTML = '🔍 Recherche en cours...';
     
     try {
       // Utiliser le service Home Assistant pour éviter les erreurs CORS
