@@ -5,6 +5,16 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.10.8] - 2026-01-02
+
+### Amélioré
+- **Détection automatique de catégorie dans lookup_product**
+  - Le service `lookup_product` fait maintenant le mapping de catégorie
+  - Paramètre `location` ajouté pour mapper selon l'emplacement (congélateur, réfrigérateur, réserve)
+  - Le frontend pré-remplit automatiquement la catégorie détectée
+  - Exemple : Nutella → "Produits d'épicerie" au lieu de "Conserves"
+  - Affichage de la catégorie dans le message de confirmation
+
 ## [1.10.7] - 2026-01-02
 
 ### Corrigé

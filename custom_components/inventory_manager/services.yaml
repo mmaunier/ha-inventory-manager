@@ -40,6 +40,20 @@ lookup_product:
       example: "3017620422003"
       selector:
         text:
+    location:
+      name: Emplacement
+      description: Emplacement pour le mapping de catégorie
+      required: false
+      default: "pantry"
+      selector:
+        select:
+          options:
+            - label: "Congélateur"
+              value: "freezer"
+            - label: "Réfrigérateur"
+              value: "fridge"
+            - label: "Réserves"
+              value: "pantry"
             - label: "Réserves"
               value: "pantry"
     quantity:

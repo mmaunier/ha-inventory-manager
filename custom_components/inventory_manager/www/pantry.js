@@ -788,7 +788,8 @@ class InventoryManagerPantry extends HTMLElement {
         domain: 'inventory_manager',
         service: 'lookup_product',
         service_data: {
-          barcode: barcode
+          barcode: barcode,
+          location: this._currentView
         },
         return_response: true
       });
@@ -798,12 +799,20 @@ class InventoryManagerPantry extends HTMLElement {
         const name = data.name || '';
         const brand = data.brand || '';
         const source = data.source || 'Unknown';
+        const category = data.category || '';
         const fullName = brand ? `${brand} - ${name}` : name;
         
         if (fullName) {
           nameEl.value = fullName;
+          
+          // Pré-remplir la catégorie si détectée
+          const categoryEl = this.shadowRoot.getElementById('scan-category');
+          if (category && categoryEl) {
+            categoryEl.value = category;
+          }
+          
           infoBox.className = 'product-info';
-          infoBox.innerHTML = `✅ <strong>${fullName}</strong><br><small>Source: ${source}</small>`;
+          infoBox.innerHTML = `✅ <strong>${fullName}</strong><br><small>Source: ${source}${category ? ` • Catégorie: ${category}` : ''}</small>`;
         } else {
           infoBox.className = 'product-info not-found';
           infoBox.innerHTML = '⚠️ Produit trouvé mais sans nom. Saisissez le nom manuellement.';

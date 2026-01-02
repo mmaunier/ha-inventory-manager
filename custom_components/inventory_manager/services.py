@@ -62,6 +62,9 @@ SCAN_PRODUCT_SCHEMA = vol.Schema(
 LOOKUP_PRODUCT_SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_BARCODE): cv.string,
+        vol.Optional(ATTR_LOCATION, default=STORAGE_PANTRY): vol.In(
+            [STORAGE_FREEZER, STORAGE_FRIDGE, STORAGE_PANTRY]
+        ),
     }
 )
 
@@ -226,11 +229,20 @@ async def async_setup_services(
     async def handle_lookup_product(call: ServiceCall) -> ServiceResponse:
         """Handle lookup product service call (search only, no add to inventory)."""
         barcode = call.data[ATTR_BARCODE]
+        location = call.data.get(ATTR_LOCATION, STORAGE_PANTRY)
         
         # Fetch product info from multiple APIs (cascade search)
         product_info = await coordinator.async_fetch_product_info(barcode)
         
         if product_info:
+            # Map category based on product tags and name
+            categories_tags = product_info.get("categories_tags", [])
+            mapped_category = coordinator._map_category(
+                categories_tags, 
+                location, 
+                product_name=product_info.get("name", "")
+            )
+            
             return {
                 "success": True,
                 "found": True,
@@ -239,6 +251,7 @@ async def async_setup_services(
                 "brand": product_info.get("brand", ""),
                 "source": product_info.get("source", "Unknown"),
                 "categories": product_info.get("categories", ""),
+                "category": mapped_category,
                 "image_url": product_info.get("image_url", ""),
             }
         else:
