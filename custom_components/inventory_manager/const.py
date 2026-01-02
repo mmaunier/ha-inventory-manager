@@ -109,34 +109,33 @@ DEFAULT_CATEGORIES = {
 # Category mapping from Open Food Facts tags to our categories
 CATEGORY_MAPPING = {
     # Congélateur
-    "Viande": ["meat", "viande", "beef", "pork", "chicken", "poultry", "lamb", "veal", "turkey"],
-    "Poisson": ["fish", "poisson", "seafood", "salmon", "tuna", "shrimp", "cod", "haddock", "shellfish"],
-    "Légumes": ["vegetable", "legume", "carrot", "tomato", "potato", "onion", "pepper", "broccoli"],
-    "Fruits": ["fruit", "berry", "apple", "orange", "banana", "strawberry", "mango", "peach"],
-    "Produits laitiers": ["dairy", "lait", "milk", "cream", "butter", "creme"],
-    "Plats préparés": ["prepared", "meal", "pizza", "ready", "frozen-meals", "lasagna", "quiche"],
-    "Pain/Pâtisserie": ["bread", "pain", "pastry", "cake", "biscuit", "croissant", "brioche"],
-    "Glaces/Desserts": ["ice-cream", "glace", "dessert", "sweet", "sorbet", "frozen-dessert"],
-    "Condiments/Sauces": ["sauce", "condiment", "dressing", "ketchup", "mustard", "mayonnaise"],
+    "Viande": ["meat", "viande", "viandes", "beef", "boeuf", "bœuf", "pork", "porc", "chicken", "poulet", "poultry", "volaille", "lamb", "agneau", "veal", "veau", "turkey", "dinde", "canard", "duck"],
+    "Poisson": ["fish", "poisson", "poissons", "seafood", "salmon", "saumon", "tuna", "thon", "shrimp", "crevette", "cod", "cabillaud", "morue", "haddock", "shellfish", "truite", "trout"],
+    "Légumes": ["vegetable", "legume", "légume", "légumes", "carrot", "carotte", "tomato", "tomate", "potato", "pomme de terre", "onion", "oignon", "pepper", "poivron", "broccoli", "brocoli", "haricot", "bean"],
+    "Fruits": ["fruit", "fruits", "berry", "berries", "baie", "apple", "pomme", "orange", "banana", "banane", "strawberry", "fraise", "mango", "mangue", "peach", "pêche", "poire", "pear"],
+    "Produits laitiers": ["dairy", "lait", "laitier", "milk", "cream", "crème", "butter", "beurre", "creme", "yaourt", "yogurt"],
+    "Plats préparés": ["prepared", "préparé", "meal", "plat", "pizza", "pizzas", "ready", "frozen-meals", "lasagna", "lasagne", "quiche", "gratin"],
+    "Pain/Pâtisserie": ["bread", "pain", "pains", "pastry", "pâtisserie", "patisserie", "cake", "gâteau", "gateau", "biscuit", "croissant", "croissants", "brioche"],
+    "Glaces/Desserts": ["ice-cream", "ice cream", "glace", "glaces", "dessert", "desserts", "sweet", "sorbet", "sorbets", "frozen-dessert"],
+    "Condiments/Sauces": ["sauce", "sauces", "condiment", "condiments", "dressing", "ketchup", "mustard", "moutarde", "mayonnaise", "mayo"],
     
     # Réfrigérateur
-    "Viande/Charcuterie": ["meat", "viande", "charcuterie", "sausage", "ham", "bacon", "salami", "deli"],
-    "Poisson/Fruits de mer": ["fish", "poisson", "seafood", "salmon", "tuna", "shrimp", "crab", "oyster"],
-    "Fromages": ["cheese", "fromage", "cheddar", "mozzarella", "parmesan", "brie", "camembert"],
-    "Légumes frais": ["vegetable", "legume", "fresh-vegetable", "salad", "lettuce", "cucumber"],
-    "Fruits frais": ["fruit", "fresh-fruit", "berries", "citrus", "tropical-fruit"],
-    "Boissons": ["beverage", "drink", "boisson", "juice", "soda", "water", "milk"],
-    "Sauces/Condiments": ["sauce", "condiment", "dressing", "marinade", "pesto", "aioli"],
+    "Viande/Charcuterie": ["meat", "viande", "viandes", "charcuterie", "sausage", "saucisse", "saucisson", "ham", "jambon", "bacon", "salami", "deli", "pâté", "pate", "rillette"],
+    "Poisson/Fruits de mer": ["fish", "poisson", "poissons", "seafood", "salmon", "saumon", "tuna", "thon", "shrimp", "crevette", "crab", "crabe", "oyster", "huître", "moule", "mussel"],
+    "Fromages": ["cheese", "fromage", "fromages", "cheddar", "mozzarella", "parmesan", "brie", "camembert", "comté", "comte", "emmental", "roquefort", "chèvre", "chevre"],
+    "Légumes frais": ["vegetable", "legume", "légume", "légumes", "fresh-vegetable", "salad", "salade", "lettuce", "laitue", "cucumber", "concombre", "tomate", "tomato", "radis"],
+    "Fruits frais": ["fruit", "fruits", "fresh-fruit", "berries", "baies", "citrus", "agrume", "tropical-fruit", "frais", "fresh"],
+    "Boissons": ["beverage", "drink", "boisson", "boissons", "juice", "jus", "soda", "water", "eau", "milk", "lait", "bière", "beer"],
+    "Sauces/Condiments": ["sauce", "sauces", "condiment", "condiments", "dressing", "marinade", "pesto", "aioli", "aïoli", "ketchup", "moutarde", "mustard"],
     
     # Réserve - Alimentaire
-    "Conserves": ["canned", "conserve", "preserved", "tinned", "jarred"],
-    "Pâtes/Riz/Céréales": ["pasta", "rice", "cereal", "pates", "riz", "grain", "noodles", "spaghetti"],
-    "Farines/Sucres": ["flour", "sugar", "farine", "sucre", "sweetener", "baking"],
-    "Huiles/Vinaigres": ["oil", "vinegar", "huile", "vinaigre", "olive-oil", "sunflower"],
-    "Épices/Aromates": ["spice", "herb", "epice", "aromate", "pepper", "cumin", "paprika"],
-    "Biscuits/Gâteaux secs": ["biscuit", "cookie", "cracker", "wafer", "dry-cake"],
-    "Produits d'épicerie": ["grocery", "epicerie", "snack", "dried-food"],
-    "Œufs": ["egg", "oeuf", "eggs"],
+    "Conserves": ["canned", "conserve", "preserved", "tinned", "jarred", "boite", "boîte"],
+    "Pâtes/Riz/Céréales": ["pasta", "rice", "cereal", "pates", "pâtes", "riz", "grain", "noodles", "spaghetti", "macaroni", "vermicelle"],
+    "Farines/Sucres": ["flour", "sugar", "farine", "farines", "sucre", "sucres", "sweetener", "baking", "levure", "yeast"],
+    "Huiles/Vinaigres": ["oil", "vinegar", "huile", "huiles", "vinaigre", "vinaigres", "olive-oil", "sunflower", "colza"],
+    "Épices/Aromates": ["spice", "herb", "epice", "épice", "aromate", "pepper", "cumin", "paprika", "thym", "basilic", "sel", "salt", "poivre"],
+    "Biscuits/Gâteaux secs": ["biscuit", "biscuits", "cookie", "cookies", "cracker", "crackers", "wafer", "dry-cake", "gâteau", "gateau"],
+    "Produits d'épicerie": ["grocery", "epicerie", "épicerie", "snack", "dried-food", "sec", "dry"],"Œufs": ["egg", "oeuf", "œuf", "eggs", "oeufs", "œufs"],
     
     # Réserve - Produits ménagers
     "Produits ménagers": [

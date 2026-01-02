@@ -5,6 +5,43 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.10.2] - 2026-01-02
+
+### Corrigé (CRITIQUE)
+- **Détection de catégories Open Food Facts** : Correction d'un bug majeur
+  - Problème : Les produits scannés avec Open Food Facts n'étaient pas catégorisés correctement
+  - Symptôme : "Farine" dans le nom → Catégorie "Autre" au lieu de "Farines/Sucres"
+  - Cause : Le code ne cherchait dans le nom du produit QUE si `categories_tags` était vide
+  - Open Food Facts retourne toujours des tags (même génériques) → Le nom n'était jamais analysé
+  - Fix : Recherche TOUJOURS dans le nom du produit si les tags n'ont pas donné de résultat
+  - Appliqué aux 3 emplacements : Congélateur, Réfrigérateur, Réserve
+
+### Amélioré
+- **Mots-clés enrichis** : +100 nouveaux mots-clés pour toutes les catégories
+  - **Congélateur** : Ajout variantes FR (poulet/volaille, saumon, brocoli, pomme, etc.)
+  - **Réfrigérateur** : Ajout produits FR (jambon, saucisson, comté, salade, etc.)
+  - **Réserve** : Ajout pluriels et variantes (farines, pâtes, huiles, etc.)
+  - Support accents : œuf/oeuf, pâtes/pates, crème/creme, etc.
+  - Meilleure détection produits français
+
+### Exemple de Corrections
+**Avant v1.10.2** :
+- "Farine de blé" (Open Food Facts) → Catégorie "Autre" ❌
+- "Pâtes Barilla" → "Autre" ❌
+- "Poulet fermier" → "Autre" ❌
+
+**Après v1.10.2** :
+- "Farine de blé" → "Farines/Sucres" ✅
+- "Pâtes Barilla" → "Pâtes/Riz/Céréales" ✅
+- "Poulet fermier" → "Viande" ✅
+
+### Technique
+- `_map_category()` : Logique corrigée en 2 étapes séquentielles
+  1. Recherche dans `categories_tags` (Open Food Facts)
+  2. **Si aucun match** → Recherche dans le nom du produit (TOUTES les APIs)
+  3. Sinon → "Autre"
+- CATEGORY_MAPPING : +100 mots-clés ajoutés avec variantes FR
+
 ## [1.10.1] - 2026-01-02
 
 ### Amélioré

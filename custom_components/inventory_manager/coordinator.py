@@ -379,7 +379,7 @@ class InventoryCoordinator(DataUpdateCoordinator):
                     if keyword in tags_str:
                         return category
         
-        # If no match from tags, try to detect from product name (for UPCitemdb/EAN-Search)
+        # If no match from tags, ALWAYS try to detect from product name (fallback for all APIs)
         if product_name:
             product_name_lower = product_name.lower()
             
