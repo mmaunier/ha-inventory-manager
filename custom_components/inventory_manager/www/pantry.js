@@ -34,7 +34,7 @@ class InventoryManagerPantry extends HTMLElement {
     const serverProducts = pantrySensor?.attributes?.products || [];
     
     // Récupérer l'historique global depuis le sensor total
-    const totalSensor = this._hass.states['sensor.gestionnaire_d_inventaire_total'];
+    const totalSensor = this._hass.states['sensor.gestionnaire_d_inventaire_total_produits'];
     this._productHistory = totalSensor?.attributes?.product_history || [];
     
     // Synchroniser catégories et zones depuis le sensor
