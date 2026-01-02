@@ -5,6 +5,13 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.8.7] - 2026-01-02
+
+### Corrigé
+- **Configuration HACS** : Déplacement du fichier `hacs.json` de la racine vers `.github/hacs.json`
+  - HACS requiert que `hacs.json` soit dans le dossier `.github/` pour fonctionner correctement
+  - L'icône personnalisée `icon.png` à la racine sera maintenant affichée dans l'interface HACS
+
 ## [1.8.6] - 2026-01-02
 
 ### Corrigé
