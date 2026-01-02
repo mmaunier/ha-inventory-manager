@@ -5,6 +5,16 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.10.11] - 2026-01-02
+
+### ⚡ Optimisations majeures
+- **Recherche ultra-rapide** : Open Food Facts uniquement (plus de cascade)
+  - Réponse instantanée au lieu de 15-45 secondes
+  - Timeout réduit de 15s à 5s
+- **Matching catégories amélioré** : Priorité aux mots entiers
+  - Évite les faux positifs (ex: farine → boisson)
+  - Matching en deux passes : mots entiers puis substring
+
 ## [1.10.10] - 2026-01-02
 
 ### Corrigé
