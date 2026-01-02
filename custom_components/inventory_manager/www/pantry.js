@@ -924,23 +924,23 @@ class InventoryManagerPantry extends HTMLElement {
 
   /**
    * Get recent products suggestions based on query
-   * Returns top 5 matches from last 50 products
+   * Returns top 3 matches from all products (prioritizing recent ones)
    */
   _getRecentProductsSuggestions(query) {
     if (!query || query.trim().length < 2) return [];
     
-    // Get last 50 products sorted by added_date
-    const recentProducts = [...this._localProducts]
-      .filter(p => p.added_date) // Only products with added_date
+    // Get all products, sorted by added_date if available (most recent first)
+    const allProducts = [...this._localProducts]
       .sort((a, b) => {
-        const dateA = new Date(a.added_date || 0);
-        const dateB = new Date(b.added_date || 0);
-        return dateB - dateA; // DESC
+        // Products with added_date come first, sorted DESC
+        const dateA = a.added_date ? new Date(a.added_date) : new Date(0);
+        const dateB = b.added_date ? new Date(b.added_date) : new Date(0);
+        return dateB - dateA;
       })
-      .slice(0, 50);
+      .slice(0, 50); // Consider last 50 for performance
     
     // Calculate score for each product
-    const scoredProducts = recentProducts.map(p => ({
+    const scoredProducts = allProducts.map(p => ({
       product: p,
       score: this._calculateMatchScore(query, p.name || '')
     }));
@@ -949,7 +949,7 @@ class InventoryManagerPantry extends HTMLElement {
     const matches = scoredProducts
       .filter(item => item.score > 0)
       .sort((a, b) => b.score - a.score)
-      .slice(0, 5) // Top 5 results
+      .slice(0, 3) // Top 3 results
       .map(item => item.product);
     
     return matches;
@@ -969,8 +969,7 @@ class InventoryManagerPantry extends HTMLElement {
     const suggestions = this._getRecentProductsSuggestions(query);
     
     if (suggestions.length === 0) {
-      suggestionsEl.innerHTML = '<div class="autocomplete-empty">Aucune suggestion trouvée</div>';
-      suggestionsEl.classList.add('visible');
+      this._hideAutocomplete();
       return;
     }
     
