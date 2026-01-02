@@ -5,6 +5,16 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.11.0] - 2026-01-02
+
+### ♻️ Simplification majeure
+- **Open Food Facts uniquement** : API unique, rapide et fiable
+  - Suppression Open Products Facts (base trop petite: 31k produits)
+  - Suppression UPCitemdb et OpenGTINDB (non nécessaires)
+- **Performance** : 5s max (au lieu de 10s)
+- **Simplicité** : Code plus simple, moins de dépendances
+- **Focus alimentaire** : Millions de produits disponibles
+
 ## [1.10.12] - 2026-01-02
 
 ### ✨ Nouvelles fonctionnalités
