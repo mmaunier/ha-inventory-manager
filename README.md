@@ -2,7 +2,7 @@
 
 [![HACS Badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
 [![Version](https://img.shields.io/github/v/release/mmaunier/ha-inventory-manager)](https://github.com/mmaunier/ha-inventory-manager/releases)
-[![License](https://img.shields.io/github/license/mmaunier/ha-inventory-manager)](LICENSE)
+[![License](https://img.shields.io/github/license/mmaunier/ha-inventory-manager)](https://github.com/mmaunier/ha-inventory-manager/blob/main/LICENSE)
 
 ## 📦 Gestionnaire d'Inventaire Alimentaire
 
@@ -208,7 +208,7 @@ Le champ nom restera vide. Saisissez le nom manuellement.
 
 ## 📝 Licence
 
-MIT License - Voir [LICENSE](LICENSE)
+MIT License - Voir [LICENSE](https://github.com/mmaunier/ha-inventory-manager/blob/main/LICENSE)
 
 ## 🤝 Contribution
 
