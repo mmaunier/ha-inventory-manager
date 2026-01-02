@@ -33,6 +33,7 @@ SCAN_INTERVAL = timedelta(hours=1)
 
 # Services
 SERVICE_SCAN_PRODUCT = "scan_product"
+SERVICE_LOOKUP_PRODUCT = "lookup_product"
 SERVICE_ADD_PRODUCT = "add_product"
 SERVICE_REMOVE_PRODUCT = "remove_product"
 SERVICE_UPDATE_QUANTITY = "update_quantity"

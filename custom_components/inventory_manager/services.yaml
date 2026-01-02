@@ -28,6 +28,18 @@ scan_product:
               value: "freezer"
             - label: "Réfrigérateur"
               value: "fridge"
+
+lookup_product:
+  name: Rechercher un produit
+  description: Recherche un produit par code-barres (cascade Open Food Facts → UPCitemdb → OpenGTINDB) sans l'ajouter à l'inventaire
+  fields:
+    barcode:
+      name: Code-barres
+      description: Le code-barres du produit (EAN-13, UPC, etc.)
+      required: true
+      example: "3017620422003"
+      selector:
+        text:
             - label: "Réserves"
               value: "pantry"
     quantity:

@@ -5,6 +5,22 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.10.5] - 2026-01-02
+
+### Corrigé
+- **Erreurs CORS dans le frontend** : Les APIs publiques bloquent les requêtes cross-origin
+  - Problème : Open Food Facts 404, UPCitemdb et OpenGTINDB bloqués par CORS
+  - Solution : Nouveau service `lookup_product` côté backend pour contourner CORS
+  - Le frontend appelle maintenant le service Home Assistant au lieu des APIs directement
+  - Plus aucune erreur réseau visible dans la console (404, CORS, etc.)
+
+### Ajouté
+- **Service `lookup_product`** : Recherche un produit sans l'ajouter à l'inventaire
+  - Cascade complète gérée côté Python (pas de restrictions CORS)
+  - Retourne les informations du produit (nom, marque, source, catégories)
+  - Peut être utilisé depuis l'interface Services de Home Assistant
+  - Support de `return_response` pour récupérer les données
+
 ## [1.10.4] - 2026-01-02
 
 ### Corrigé

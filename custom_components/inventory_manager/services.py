@@ -12,6 +12,7 @@ from homeassistant.helpers import config_validation as cv
 from .const import (
     DOMAIN,
     SERVICE_SCAN_PRODUCT,
+    SERVICE_LOOKUP_PRODUCT,
     SERVICE_ADD_PRODUCT,
     SERVICE_REMOVE_PRODUCT,
     SERVICE_UPDATE_QUANTITY,
@@ -55,6 +56,12 @@ SCAN_PRODUCT_SCHEMA = vol.Schema(
         vol.Optional(ATTR_QUANTITY, default=1): vol.All(
             vol.Coerce(int), vol.Range(min=1)
         ),
+    }
+)
+
+LOOKUP_PRODUCT_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_BARCODE): cv.string,
     }
 )
 
@@ -215,6 +222,32 @@ async def async_setup_services(
         )
 
         return result
+
+    async def handle_lookup_product(call: ServiceCall) -> ServiceResponse:
+        """Handle lookup product service call (search only, no add to inventory)."""
+        barcode = call.data[ATTR_BARCODE]
+        
+        # Fetch product info from multiple APIs (cascade search)
+        product_info = await coordinator.async_fetch_product_info(barcode)
+        
+        if product_info:
+            return {
+                "success": True,
+                "found": True,
+                "barcode": barcode,
+                "name": product_info.get("name", ""),
+                "brand": product_info.get("brand", ""),
+                "source": product_info.get("source", "Unknown"),
+                "categories": product_info.get("categories", ""),
+                "image_url": product_info.get("image_url", ""),
+            }
+        else:
+            return {
+                "success": True,
+                "found": False,
+                "barcode": barcode,
+                "message": "Produit non trouvé dans les bases de données",
+            }
 
     async def handle_add_product(call: ServiceCall) -> ServiceResponse:
         """Handle add product service call."""
@@ -440,6 +473,14 @@ async def async_setup_services(
 
     hass.services.async_register(
         DOMAIN,
+        SERVICE_LOOKUP_PRODUCT,
+        handle_lookup_product,
+        schema=LOOKUP_PRODUCT_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
         SERVICE_ADD_PRODUCT,
         handle_add_product,
         schema=ADD_PRODUCT_SCHEMA,
@@ -548,6 +589,7 @@ async def async_setup_services(
 async def async_unload_services(hass: HomeAssistant) -> None:
     """Unload services."""
     hass.services.async_remove(DOMAIN, SERVICE_SCAN_PRODUCT)
+    hass.services.async_remove(DOMAIN, SERVICE_LOOKUP_PRODUCT)
     hass.services.async_remove(DOMAIN, SERVICE_ADD_PRODUCT)
     hass.services.async_remove(DOMAIN, SERVICE_REMOVE_PRODUCT)
     hass.services.async_remove(DOMAIN, SERVICE_UPDATE_QUANTITY)
