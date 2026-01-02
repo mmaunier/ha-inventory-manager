@@ -227,35 +227,18 @@ class InventoryCoordinator(DataUpdateCoordinator):
     async def async_fetch_product_info(self, barcode: str) -> dict[str, Any] | None:
         """Fetch product information from multiple barcode APIs in cascade.
         
-        Search order:
-        1. Open Food Facts (food products)
-        2. UPCitemdb (general products)
-        3. OpenGTINDB (European/global database)
+        Search Open Food Facts database (optimized for speed).
         """
         _LOGGER.info("Searching product for barcode: %s", barcode)
         
-        # Try Open Food Facts first (food products)
+        # Open Food Facts only (fast response, best for food products)
         result = await self._fetch_from_openfoodfacts(barcode)
         if result:
             result["source"] = "Open Food Facts"
             _LOGGER.info("✓ Found in Open Food Facts: %s", result.get("name", "N/A"))
             return result
         
-        # Try UPCitemdb (general products - cosmetics, household, electronics, etc.)
-        result = await self._fetch_from_upcitemdb(barcode)
-        if result:
-            result["source"] = "UPCitemdb"
-            _LOGGER.info("✓ Found in UPCitemdb: %s", result.get("name", "N/A"))
-            return result
-        
-        # Try OpenGTINDB (European/global database - free, no registration)
-        result = await self._fetch_from_opengtindb(barcode)
-        if result:
-            result["source"] = "OpenGTINDB"
-            _LOGGER.info("✓ Found in OpenGTINDB: %s", result.get("name", "N/A"))
-            return result
-        
-        _LOGGER.warning("Product not found in any database: %s", barcode)
+        _LOGGER.warning("Product not found in Open Food Facts: %s", barcode)
         return None
 
     async def _fetch_from_openfoodfacts(self, barcode: str) -> dict[str, Any] | None:
@@ -264,7 +247,7 @@ class InventoryCoordinator(DataUpdateCoordinator):
         
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(url, timeout=aiohttp.ClientTimeout(total=15)) as response:
+                async with session.get(url, timeout=aiohttp.ClientTimeout(total=5)) as response:
                     if response.status != 200:
                         return None
 
@@ -287,7 +270,7 @@ class InventoryCoordinator(DataUpdateCoordinator):
                     }
 
         except asyncio.TimeoutError:
-            _LOGGER.warning("Open Food Facts: Request timeout (>15s)")
+            _LOGGER.warning("Open Food Facts: Request timeout (>5s)")
             return None
         except Exception as err:
             _LOGGER.debug("Open Food Facts: Error - %s", err)
@@ -408,24 +391,28 @@ class InventoryCoordinator(DataUpdateCoordinator):
             tags_lower = [tag.lower() for tag in categories_tags]
             tags_str = " ".join(tags_lower)
             
-            # Check each category mapping
-            for category, keywords in CATEGORY_MAPPING.items():
-                # Only use categories that exist in the current location
-                if category not in location_categories:
-                    continue
+            # First pass: exact word matching for better precision
+            for category in location_categories:
+                keywords = CATEGORY_MAPPING.get(category, [])
+                for keyword in keywords:
+                    # Match whole words or within tag structure (en:keyword)
+                    if f":{keyword}" in tags_str or f" {keyword} " in f" {tags_str} " or f"-{keyword}" in tags_str:
+                        return category
+            
+            # Second pass: substring matching (original behavior)
+            for category in location_categories:
+                keywords = CATEGORY_MAPPING.get(category, [])
                 for keyword in keywords:
                     if keyword in tags_str:
                         return category
         
-        # If no match from tags, ALWAYS try to detect from product name (fallback for all APIs)
+        # If no match from tags, try to detect from product name
         if product_name:
             product_name_lower = product_name.lower()
             
-            # Check each category mapping against product name
-            for category, keywords in CATEGORY_MAPPING.items():
-                # Only use categories that exist in the current location
-                if category not in location_categories:
-                    continue
+            # Check each category against product name
+            for category in location_categories:
+                keywords = CATEGORY_MAPPING.get(category, [])
                 for keyword in keywords:
                     if keyword in product_name_lower:
                         return category
