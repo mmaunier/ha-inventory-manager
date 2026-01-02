@@ -5,6 +5,16 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.10.12] - 2026-01-02
+
+### ✨ Nouvelles fonctionnalités
+- **Ajout Open Products Facts** : Deuxième API pour produits non-alimentaires
+  - Cosmétiques, produits ménagers, hygiène, etc.
+  - Cascade rapide : Open Food Facts → Open Products Facts
+  - Timeout 5s par API = 10s max total
+  - 100% gratuit et sans limite (comme Open Food Facts)
+- **Couverture élargie** : Alimentaire + Non-alimentaire
+
 ## [1.10.11] - 2026-01-02
 
 ### ⚡ Optimisations majeures
