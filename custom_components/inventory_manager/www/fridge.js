@@ -31,6 +31,14 @@ class InventoryManagerFridge extends HTMLElement {
     const fridgeSensor = this._hass.states['sensor.gestionnaire_d_inventaire_refrigerateur'];
     const serverProducts = fridgeSensor?.attributes?.products || [];
     
+    // Synchroniser catégories et zones depuis le sensor
+    if (fridgeSensor?.attributes?.categories) {
+      this._categories = fridgeSensor.attributes.categories;
+    }
+    if (fridgeSensor?.attributes?.zones) {
+      this._zones = fridgeSensor.attributes.zones;
+    }
+    
     // Filtrer les produits serveur : exclure ceux qu'on a supprimé localement (en attente de confirmation)
     this._localProducts = serverProducts.filter(p => !this._deletedIds.has(p.id));
     

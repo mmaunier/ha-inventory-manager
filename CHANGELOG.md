@@ -5,6 +5,22 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.9.2] - 2026-01-02
+
+### Corrigé
+- **Modals d'ajout de produits** : Synchronisation avec les catégories personnalisées
+  - Les listes déroulantes de catégories utilisent maintenant les catégories personnalisées de l'utilisateur
+  - Avant : catégories hardcodées dans le JavaScript, jamais mises à jour
+  - Après : catégories synchronisées automatiquement depuis Home Assistant
+  - Les sensors de localisation exposent maintenant `categories` et `zones` dans leurs attributs
+  - Fonctionne pour les 3 emplacements : Congélateur, Réfrigérateur, Réserve
+  - Lorsque l'utilisateur ajoute/renomme/supprime/réinitialise une catégorie, les modals se mettent à jour automatiquement
+  - **Aucun redémarrage nécessaire** : Simple rechargement de page (Ctrl+F5)
+
+### Technique
+- Backend : `sensor.py` expose maintenant `coordinator.get_categories()` et `coordinator.get_zones()` dans les attributs
+- Frontend : `_syncFromHass()` dans les 3 fichiers JS charge maintenant les catégories/zones depuis le sensor
+
 ## [1.9.1] - 2026-01-02
 
 ### Corrigé

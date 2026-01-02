@@ -10,7 +10,8 @@ class InventoryManagerPantry extends HTMLElement {
     this._categories = [
       "Conserves", "Pâtes/Riz/Céréales", "Farines/Sucres", "Huiles/Vinaigres",
       "Épices/Aromates", "Biscuits/Gâteaux secs", "Boissons", "Condiments/Sauces",
-      "Produits d'épicerie", "Œufs", "Autre"
+      "Produits d'épicerie", "Produits ménagers", "Hygiène & Cosmétiques",
+      "Papeterie & Fournitures", "Médicaments & Santé", "Autre"
     ];
     this._zones = ["Zone 1", "Zone 2", "Zone 3"];
   }
@@ -30,6 +31,14 @@ class InventoryManagerPantry extends HTMLElement {
     
     const pantrySensor = this._hass.states['sensor.gestionnaire_d_inventaire_reserves'];
     const serverProducts = pantrySensor?.attributes?.products || [];
+    
+    // Synchroniser catégories et zones depuis le sensor
+    if (pantrySensor?.attributes?.categories) {
+      this._categories = pantrySensor.attributes.categories;
+    }
+    if (pantrySensor?.attributes?.zones) {
+      this._zones = pantrySensor.attributes.zones;
+    }
     
     // Filtrer les produits serveur : exclure ceux qu'on a supprimé localement (en attente de confirmation)
     this._localProducts = serverProducts.filter(p => !this._deletedIds.has(p.id));

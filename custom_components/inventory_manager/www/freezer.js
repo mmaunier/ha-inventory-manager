@@ -31,6 +31,14 @@ class InventoryManagerFreezer extends HTMLElement {
     const freezerSensor = this._hass.states['sensor.gestionnaire_d_inventaire_congelateur'];
     const serverProducts = freezerSensor?.attributes?.products || [];
     
+    // Synchroniser catégories et zones depuis le sensor
+    if (freezerSensor?.attributes?.categories) {
+      this._categories = freezerSensor.attributes.categories;
+    }
+    if (freezerSensor?.attributes?.zones) {
+      this._zones = freezerSensor.attributes.zones;
+    }
+    
     // Filtrer les produits serveur : exclure ceux qu'on a supprimé localement (en attente de confirmation)
     this._localProducts = serverProducts.filter(p => !this._deletedIds.has(p.id));
     

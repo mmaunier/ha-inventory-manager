@@ -189,6 +189,8 @@ class InventoryLocationSensor(InventoryBaseSensor):
             "products": sorted_products,
             "location": self._location_key,
             "location_name": STORAGE_LOCATIONS.get(self._location_key, ""),
+            "categories": self.coordinator.get_categories(self._location_key),
+            "zones": self.coordinator.get_zones(self._location_key),
         }
 
 
