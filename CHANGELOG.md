@@ -11,6 +11,15 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 - **Configuration HACS** : Déplacement du fichier `hacs.json` de la racine vers `.github/hacs.json`
   - HACS requiert que `hacs.json` soit dans le dossier `.github/` pour fonctionner correctement
   - L'icône personnalisée `icon.png` à la racine sera maintenant affichée dans l'interface HACS
+- **Licence** : Ajout du champ `license: MIT` dans le fichier `manifest.json`
+  - GitHub détectera maintenant automatiquement la licence MIT
+  - Permet une meilleure conformité avec les standards Home Assistant
+
+### Note sur l'icône HACS
+Pour les repositories personnalisés HACS, l'icône provient de :
+1. Home Assistant Brands (si l'intégration y est enregistrée)
+2. L'icône MDI définie dans le manifest (`mdi:fridge-outline`)
+3. Les icônes dans `custom_components/inventory_manager/` (icon.png et icon@2x.png)
 
 ## [1.8.6] - 2026-01-02
 
