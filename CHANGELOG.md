@@ -5,6 +5,30 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.9.0] - 2026-01-02
+
+### Ajouté
+- **Catégories élargies pour la Réserve** : Support des produits non-alimentaires
+  - Nouvelles catégories :
+    - Produits ménagers (lessive, liquide vaisselle, nettoyants...)
+    - Hygiène & Cosmétiques (savon, shampoing, crèmes...)
+    - Papeterie & Fournitures (stylos, cahiers, étiquettes...)
+    - Médicaments & Santé (avec dates de péremption)
+  - Suppression des catégories périssables non pertinentes pour la réserve (Œufs)
+  - Utilisation des zones pour une organisation flexible selon vos besoins
+
+### Modifié
+- Catégories par défaut de la Réserve adaptées aux usages mixtes
+- Permet maintenant de gérer tout type de produit stocké à long terme
+
+### Use Cases
+Cette version permet de gérer :
+- Stock de produits d'entretien
+- Médicaments avec dates d'expiration
+- Fournitures de bureau et papeterie
+- Produits d'hygiène et cosmétiques
+- Tout produit non-périssable avec traçabilité
+
 ## [1.8.10] - 2026-01-02
 
 ### Corrigé (CRITIQUE)

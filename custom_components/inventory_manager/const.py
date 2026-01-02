@@ -96,7 +96,10 @@ DEFAULT_CATEGORIES = {
         "Boissons",
         "Condiments/Sauces",
         "Produits d'épicerie",
-        "Œufs",
+        "Produits ménagers",
+        "Hygiène & Cosmétiques",
+        "Papeterie & Fournitures",
+        "Médicaments & Santé",
         "Autre",
     ],
 }
