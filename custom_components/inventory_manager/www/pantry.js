@@ -779,22 +779,90 @@ class InventoryManagerPantry extends HTMLElement {
     
     infoBox.className = 'product-info loading';
     infoBox.style.display = 'block';
-    infoBox.innerHTML = '🔍 Recherche en cours...';
+    infoBox.innerHTML = '🔍 Recherche en cours (cascade Open Food Facts → UPCitemdb → OpenGTINDB)...';
     
     try {
-      const response = await fetch(`https://world.openfoodfacts.org/api/v2/product/${barcode}.json`);
-      const data = await response.json();
+      // Cascade : Open Food Facts → UPCitemdb → OpenGTINDB
+      let productInfo = null;
+      let source = null;
       
-      if (data.status === 1 && data.product) {
-        const product = data.product;
-        const name = product.product_name_fr || product.product_name || product.generic_name || '';
-        const brand = product.brands || '';
+      // 1. Try Open Food Facts
+      try {
+        const response1 = await fetch(`https://world.openfoodfacts.org/api/v2/product/${barcode}.json`);
+        if (response1.ok) {
+          const data1 = await response1.json();
+          if (data1.status === 1 && data1.product) {
+            productInfo = data1.product;
+            source = 'Open Food Facts';
+          }
+        }
+      } catch (err) {
+        console.debug('Open Food Facts: not found or error');
+      }
+      
+      // 2. Try UPCitemdb if not found
+      if (!productInfo) {
+        try {
+          const response2 = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${barcode}`);
+          if (response2.ok) {
+            const data2 = await response2.json();
+            if (data2.items && data2.items.length > 0) {
+              productInfo = data2.items[0];
+              source = 'UPCitemdb';
+            }
+          }
+        } catch (err) {
+          console.debug('UPCitemdb: not found or error');
+        }
+      }
+      
+      // 3. Try OpenGTINDB if not found
+      if (!productInfo) {
+        try {
+          const response3 = await fetch(`https://opengtindb.org/?ean=${barcode}&cmd=query&queryid=400000000`);
+          if (response3.ok) {
+            const text = await response3.text();
+            const lines = text.split('\n');
+            const data3 = {};
+            lines.forEach(line => {
+              const [key, value] = line.split('=');
+              if (key && value !== undefined) {
+                data3[key] = value;
+              }
+            });
+            
+            if (data3.error === '0') {
+              productInfo = data3;
+              source = 'OpenGTINDB';
+            }
+          }
+        } catch (err) {
+          console.debug('OpenGTINDB: not found or error');
+        }
+      }
+      
+      // Parse product info based on source
+      if (productInfo && source) {
+        let name = '';
+        let brand = '';
+        
+        if (source === 'Open Food Facts') {
+          name = productInfo.product_name_fr || productInfo.product_name || productInfo.generic_name || '';
+          brand = productInfo.brands || '';
+        } else if (source === 'UPCitemdb') {
+          name = productInfo.title || '';
+          brand = productInfo.brand || '';
+        } else if (source === 'OpenGTINDB') {
+          name = productInfo.detailname || productInfo.name || '';
+          brand = productInfo.vendor || '';
+        }
+        
         const fullName = brand ? `${name} (${brand})` : name;
         
         if (fullName) {
           nameEl.value = fullName;
           infoBox.className = 'product-info';
-          infoBox.innerHTML = `✅ <strong>${fullName}</strong>`;
+          infoBox.innerHTML = `✅ <strong>${fullName}</strong><br><small>Source: ${source}</small>`;
         } else {
           infoBox.className = 'product-info not-found';
           infoBox.innerHTML = '⚠️ Produit trouvé mais sans nom. Saisissez le nom manuellement.';
@@ -802,7 +870,7 @@ class InventoryManagerPantry extends HTMLElement {
         }
       } else {
         infoBox.className = 'product-info not-found';
-        infoBox.innerHTML = '⚠️ Produit non trouvé dans la base. Saisissez le nom manuellement.';
+        infoBox.innerHTML = '⚠️ Produit non trouvé dans les 3 bases de données. Saisissez le nom manuellement.';
         nameEl.focus();
       }
     } catch (err) {
