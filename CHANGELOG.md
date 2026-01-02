@@ -5,6 +5,19 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.8.9] - 2026-01-02
+
+### Corrigé (CRITIQUE)
+- **Bug ajout produits dans Réserve** : Correction des schémas de validation dans `services.py`
+  - Les schémas utilisaient `list(STORAGE_LOCATIONS.keys())` au lieu d'une liste explicite
+  - Empêchait l'ajout de produits avec `location: 'pantry'`
+  - Fix appliqué aux schémas : `SCAN_PRODUCT_SCHEMA`, `ADD_PRODUCT_SCHEMA`, `LIST_PRODUCTS_SCHEMA`
+  - Utilisation de `[STORAGE_FREEZER, STORAGE_FRIDGE, STORAGE_PANTRY]` dans tous les schémas
+
+### Technique
+- Ce bug était une régression : le fix de v1.8.4 n'avait pas été appliqué à tous les schémas
+- Les produits du congélateur et réfrigérateur fonctionnaient, seule la réserve était affectée
+
 ## [1.8.8] - 2026-01-02
 
 ### Ajouté

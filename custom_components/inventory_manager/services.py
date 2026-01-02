@@ -50,7 +50,7 @@ SCAN_PRODUCT_SCHEMA = vol.Schema(
         vol.Required(ATTR_BARCODE): cv.string,
         vol.Required(ATTR_EXPIRY_DATE): cv.string,
         vol.Optional(ATTR_LOCATION, default=STORAGE_FREEZER): vol.In(
-            list(STORAGE_LOCATIONS.keys())
+            [STORAGE_FREEZER, STORAGE_FRIDGE, STORAGE_PANTRY]
         ),
         vol.Optional(ATTR_QUANTITY, default=1): vol.All(
             vol.Coerce(int), vol.Range(min=1)
@@ -63,7 +63,7 @@ ADD_PRODUCT_SCHEMA = vol.Schema(
         vol.Required(ATTR_NAME): cv.string,
         vol.Required(ATTR_EXPIRY_DATE): cv.string,
         vol.Optional(ATTR_LOCATION, default=STORAGE_FREEZER): vol.In(
-            list(STORAGE_LOCATIONS.keys())
+            [STORAGE_FREEZER, STORAGE_FRIDGE, STORAGE_PANTRY]
         ),
         vol.Optional(ATTR_QUANTITY, default=1): vol.All(
             vol.Coerce(int), vol.Range(min=1)
@@ -89,7 +89,7 @@ UPDATE_QUANTITY_SCHEMA = vol.Schema(
 
 LIST_PRODUCTS_SCHEMA = vol.Schema(
     {
-        vol.Optional(ATTR_LOCATION): vol.In(list(STORAGE_LOCATIONS.keys())),
+        vol.Optional(ATTR_LOCATION): vol.In([STORAGE_FREEZER, STORAGE_FRIDGE, STORAGE_PANTRY]),
     }
 )
 
