@@ -752,13 +752,20 @@ class InventoryManagerFreezer extends HTMLElement {
     
     // Autocomplete on product name input
     const nameInput = this.shadowRoot.getElementById('scan-name');
+    console.log('[Freezer] nameInput element:', nameInput);
     let autocompleteTimeout;
-    nameInput.addEventListener('input', (e) => {
-      clearTimeout(autocompleteTimeout);
-      autocompleteTimeout = setTimeout(() => {
-        this._showAutocomplete(e.target.value);
-      }, 150); // Debounce 150ms
-    });
+    if (nameInput) {
+      nameInput.addEventListener('input', (e) => {
+        console.log('[Freezer] Input event fired:', e.target.value);
+        clearTimeout(autocompleteTimeout);
+        autocompleteTimeout = setTimeout(() => {
+          this._showAutocomplete(e.target.value);
+        }, 150); // Debounce 150ms
+      });
+      console.log('[Freezer] Event listener attached!');
+    } else {
+      console.error('[Freezer] ERREUR: scan-name introuvable!');
+    }
     
     // Close autocomplete on Escape or click outside
     nameInput.addEventListener('keydown', (e) => {
@@ -961,14 +968,19 @@ class InventoryManagerFreezer extends HTMLElement {
    * Show autocomplete suggestions
    */
   _showAutocomplete(query) {
+    console.log('[Freezer] _showAutocomplete appelée avec:', query);
     const suggestionsEl = this.shadowRoot.getElementById('autocomplete-suggestions');
+    console.log('[Freezer] Element suggestions:', suggestionsEl);
     
     if (!query || query.trim().length < 2) {
+      console.log('[Freezer] Query trop courte, on cache');
       this._hideAutocomplete();
       return;
     }
     
+    console.log('[Freezer] _productHistory:', this._productHistory);
     const suggestions = this._getRecentProductsSuggestions(query);
+    console.log('[Freezer] Suggestions trouvées:', suggestions);
     
     if (suggestions.length === 0) {
       this._hideAutocomplete();

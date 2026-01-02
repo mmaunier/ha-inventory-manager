@@ -753,13 +753,20 @@ class InventoryManagerPantry extends HTMLElement {
     
     // Autocomplete on product name input
     const nameInput = this.shadowRoot.getElementById('scan-name');
+    console.log('[Pantry] nameInput element:', nameInput);
     let autocompleteTimeout;
-    nameInput.addEventListener('input', (e) => {
-      clearTimeout(autocompleteTimeout);
-      autocompleteTimeout = setTimeout(() => {
-        this._showAutocomplete(e.target.value);
-      }, 150); // Debounce 150ms
-    });
+    if (nameInput) {
+      nameInput.addEventListener('input', (e) => {
+        console.log('[Pantry] Input event fired:', e.target.value);
+        clearTimeout(autocompleteTimeout);
+        autocompleteTimeout = setTimeout(() => {
+          this._showAutocomplete(e.target.value);
+        }, 150); // Debounce 150ms
+      });
+      console.log('[Pantry] Event listener attached!');
+    } else {
+      console.error('[Pantry] ERREUR: scan-name introuvable!');
+    }
     
     // Close autocomplete on Escape or click outside
     nameInput.addEventListener('keydown', (e) => {
@@ -962,14 +969,19 @@ class InventoryManagerPantry extends HTMLElement {
    * Show autocomplete suggestions
    */
   _showAutocomplete(query) {
+    console.log('[Pantry] _showAutocomplete appelée avec:', query);
     const suggestionsEl = this.shadowRoot.getElementById('autocomplete-suggestions');
+    console.log('[Pantry] Element suggestions:', suggestionsEl);
     
     if (!query || query.trim().length < 2) {
+      console.log('[Pantry] Query trop courte, on cache');
       this._hideAutocomplete();
       return;
     }
     
+    console.log('[Pantry] _productHistory:', this._productHistory);
     const suggestions = this._getRecentProductsSuggestions(query);
+    console.log('[Pantry] Suggestions trouvées:', suggestions);
     
     if (suggestions.length === 0) {
       this._hideAutocomplete();
