@@ -5,6 +5,22 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.10.3] - 2026-01-02
+
+### Corrigé
+- **Remplacement de l'API EAN-Search** : Token invalide → Service non fonctionnel
+  - Problème : EAN-Search nécessite une inscription payante (token "free" refusé)
+  - Solution : Remplacement par **OpenGTINDB** (vraiment gratuit, sans inscription)
+  - OpenGTINDB : Base de données européenne/mondiale avec support multilingue
+  - Cascade conservée : Open Food Facts → UPCitemdb → OpenGTINDB
+
+### Amélioré
+- **Logs détaillés pour cascade search** : Traçabilité complète des requêtes API
+  - Préfixe `[CASCADE SEARCH]` pour tous les logs de recherche
+  - Indication claire de chaque tentative d'API avec résultats
+  - Distinction entre timeout, erreur réseau et produit non trouvé
+  - Affichage du nom du produit trouvé dans les logs INFO
+
 ## [1.10.2] - 2026-01-02
 
 ### Corrigé (CRITIQUE)

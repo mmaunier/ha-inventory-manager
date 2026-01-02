@@ -17,25 +17,36 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    DOMAIN,
-    OPENFOODFACTS_API_URL,
-    UPCITEMDB_API_URL,
-    EAN_SEARCH_API_URL,
-    STORAGE_FILE,
-    STORAGE_FREEZER,
-    STORAGE_FRIDGE,
-    STORAGE_PANTRY,
-    STORAGE_LOCATIONS,
-    SCAN_INTERVAL,
-    EXPIRY_THRESHOLD_URGENT,
-    EXPIRY_THRESHOLD_SOON,
-    EXPIRY_THRESHOLD_NORMAL,
-    EVENT_PRODUCT_ADDED,
-    EVENT_PRODUCT_REMOVED,
-    EVENT_PRODUCT_EXPIRING,
+    ATTR_BARCODE,
+    ATTR_BRAND,
+    ATTR_CATEGORIES,
+    ATTR_CATEGORY,
+    ATTR_EXPIRY_DATE,
+    ATTR_IMAGE_URL,
+    ATTR_LOCATION,
+    ATTR_NAME,
+    ATTR_PRODUCT_ID,
+    ATTR_QUANTITY,
+    ATTR_ZONE,
     CATEGORY_MAPPING,
     DEFAULT_CATEGORIES,
     DEFAULT_ZONES,
+    DOMAIN,
+    EVENT_PRODUCT_ADDED,
+    EVENT_PRODUCT_EXPIRING,
+    EVENT_PRODUCT_REMOVED,
+    EXPIRY_THRESHOLD_NORMAL,
+    EXPIRY_THRESHOLD_SOON,
+    EXPIRY_THRESHOLD_URGENT,
+    OPENGTINDB_API_URL,
+    OPENFOODFACTS_API_URL,
+    SCAN_INTERVAL,
+    STORAGE_FILE,
+    STORAGE_FREEZER,
+    STORAGE_FRIDGE,
+    STORAGE_LOCATIONS,
+    STORAGE_PANTRY,
+    UPCITEMDB_API_URL,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -219,30 +230,38 @@ class InventoryCoordinator(DataUpdateCoordinator):
         Search order:
         1. Open Food Facts (food products)
         2. UPCitemdb (general products)
-        3. EAN-Search (European database)
+        3. OpenGTINDB (European/global database)
         """
+        _LOGGER.info("[CASCADE SEARCH] Starting search for barcode: %s", barcode)
+        
         # Try Open Food Facts first (food products)
+        _LOGGER.debug("[CASCADE SEARCH] Trying Open Food Facts...")
         result = await self._fetch_from_openfoodfacts(barcode)
         if result:
             result["source"] = "Open Food Facts"
-            _LOGGER.info("Product found in Open Food Facts: %s", barcode)
+            _LOGGER.info("[CASCADE SEARCH] ✓ Product found in Open Food Facts: %s (name: %s)", barcode, result.get("name", "N/A"))
             return result
+        _LOGGER.debug("[CASCADE SEARCH] ✗ Not found in Open Food Facts")
         
         # Try UPCitemdb (general products - cosmetics, household, electronics, etc.)
+        _LOGGER.debug("[CASCADE SEARCH] Trying UPCitemdb...")
         result = await self._fetch_from_upcitemdb(barcode)
         if result:
             result["source"] = "UPCitemdb"
-            _LOGGER.info("Product found in UPCitemdb: %s", barcode)
+            _LOGGER.info("[CASCADE SEARCH] ✓ Product found in UPCitemdb: %s (name: %s)", barcode, result.get("name", "N/A"))
             return result
+        _LOGGER.debug("[CASCADE SEARCH] ✗ Not found in UPCitemdb")
         
-        # Try EAN-Search (European database)
-        result = await self._fetch_from_ean_search(barcode)
+        # Try OpenGTINDB (European/global database - free, no registration)
+        _LOGGER.debug("[CASCADE SEARCH] Trying OpenGTINDB...")
+        result = await self._fetch_from_opengtindb(barcode)
         if result:
-            result["source"] = "EAN-Search"
-            _LOGGER.info("Product found in EAN-Search: %s", barcode)
+            result["source"] = "OpenGTINDB"
+            _LOGGER.info("[CASCADE SEARCH] ✓ Product found in OpenGTINDB: %s (name: %s)", barcode, result.get("name", "N/A"))
             return result
+        _LOGGER.debug("[CASCADE SEARCH] ✗ Not found in OpenGTINDB")
         
-        _LOGGER.info("Product not found in any database: %s", barcode)
+        _LOGGER.warning("[CASCADE SEARCH] Product not found in any of the 3 databases: %s", barcode)
         return None
 
     async def _fetch_from_openfoodfacts(self, barcode: str) -> dict[str, Any] | None:
@@ -258,6 +277,7 @@ class InventoryCoordinator(DataUpdateCoordinator):
                     data = await response.json()
                     
                     if data.get("status") != 1:
+                        _LOGGER.debug("Open Food Facts: Product not found (status=%s)", data.get("status"))
                         return None
 
                     product = data.get("product", {})
@@ -273,8 +293,11 @@ class InventoryCoordinator(DataUpdateCoordinator):
                         "nutriscore": product.get("nutriscore_grade", ""),
                     }
 
-        except (asyncio.TimeoutError, Exception) as err:
-            _LOGGER.debug("Error fetching from Open Food Facts: %s", err)
+        except asyncio.TimeoutError:
+            _LOGGER.warning("Open Food Facts: Request timeout (>15s)")
+            return None
+        except Exception as err:
+            _LOGGER.debug("Open Food Facts: Error - %s", err)
             return None
 
     async def _fetch_from_upcitemdb(self, barcode: str) -> dict[str, Any] | None:
@@ -291,6 +314,7 @@ class InventoryCoordinator(DataUpdateCoordinator):
                     
                     # Check if product found
                     if not data.get("items") or len(data["items"]) == 0:
+                        _LOGGER.debug("UPCitemdb: Product not found (items empty)")
                         return None
                     
                     product = data["items"][0]
@@ -311,13 +335,16 @@ class InventoryCoordinator(DataUpdateCoordinator):
                         "nutriscore": "",
                     }
 
-        except (asyncio.TimeoutError, Exception) as err:
-            _LOGGER.debug("Error fetching from UPCitemdb: %s", err)
+        except asyncio.TimeoutError:
+            _LOGGER.warning("UPCitemdb: Request timeout (>15s)")
+            return None
+        except Exception as err:
+            _LOGGER.debug("UPCitemdb: Error - %s", err)
             return None
 
-    async def _fetch_from_ean_search(self, barcode: str) -> dict[str, Any] | None:
-        """Fetch product information from EAN-Search (European database)."""
-        url = EAN_SEARCH_API_URL.format(barcode=barcode)
+    async def _fetch_from_opengtindb(self, barcode: str) -> dict[str, Any] | None:
+        """Fetch product information from OpenGTINDB (free, no registration required)."""
+        url = OPENGTINDB_API_URL.format(barcode=barcode)
         
         try:
             async with aiohttp.ClientSession() as session:
@@ -325,33 +352,54 @@ class InventoryCoordinator(DataUpdateCoordinator):
                     if response.status != 200:
                         return None
 
-                    data = await response.json()
+                    text = await response.text()
                     
-                    # Check if product found (status 1 = found, 0 = not found)
-                    if not isinstance(data, list) or len(data) == 0:
+                    # Parse the simple key=value format
+                    lines = text.strip().split('\n')
+                    data = {}
+                    for line in lines:
+                        if '=' in line:
+                            key, value = line.split('=', 1)
+                            data[key] = value
+                    
+                    # Check if error=0 (found) or error=1 (not found)
+                    if data.get("error") != "0":
+                        _LOGGER.debug("OpenGTINDB: Product not found (error=%s)", data.get("error"))
                         return None
                     
-                    product = data[0]
-                    
-                    # EAN-Search returns status 0 if not found
-                    if product.get("error"):
+                    # Extract product name (prioritize detailname over name)
+                    product_name = data.get("detailname", "").strip() or data.get("name", "").strip()
+                    if not product_name:
+                        _LOGGER.debug("OpenGTINDB: Product found but no name available")
                         return None
                     
-                    category_name = product.get("categoryName", "")
+                    vendor = data.get("vendor", "").strip()
+                    maincat = data.get("maincat", "").strip()
+                    subcat = data.get("subcat", "").strip()
+                    
+                    # Combine categories for mapping
+                    categories_list = []
+                    if maincat:
+                        categories_list.append(maincat.lower())
+                    if subcat:
+                        categories_list.append(subcat.lower())
                     
                     return {
                         "barcode": barcode,
-                        "name": product.get("name", ""),
-                        "brand": "",  # EAN-Search doesn't provide brand separately
-                        "categories": category_name,
-                        "categories_tags": [category_name.lower()] if category_name else [],  # Convertir en tag pour le mapping
+                        "name": product_name,
+                        "brand": vendor,
+                        "categories": f"{maincat}/{subcat}" if maincat and subcat else maincat or subcat,
+                        "categories_tags": categories_list,
                         "image_url": "",
-                        "quantity_info": "",
+                        "quantity_info": data.get("contents", ""),
                         "nutriscore": "",
                     }
 
-        except (asyncio.TimeoutError, Exception) as err:
-            _LOGGER.debug("Error fetching from EAN-Search: %s", err)
+        except asyncio.TimeoutError:
+            _LOGGER.warning("OpenGTINDB: Request timeout (>15s)")
+            return None
+        except Exception as err:
+            _LOGGER.debug("OpenGTINDB: Error - %s", err)
             return None
 
     def _map_category(self, categories_tags: list[str], location: str = STORAGE_FREEZER, product_name: str = "") -> str:

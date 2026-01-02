@@ -21,7 +21,7 @@ STORAGE_FILE = "inventory_data.json"
 # Barcode APIs (cascade search)
 OPENFOODFACTS_API_URL = "https://world.openfoodfacts.org/api/v2/product/{barcode}.json"
 UPCITEMDB_API_URL = "https://api.upcitemdb.com/prod/trial/lookup?upc={barcode}"
-EAN_SEARCH_API_URL = "https://api.ean-search.org/api?token=free&op=barcode-lookup&format=json&ean={barcode}"
+OPENGTINDB_API_URL = "https://opengtindb.org/?ean={barcode}&cmd=query&queryid=400000000"
 
 # Notification thresholds (in days)
 EXPIRY_THRESHOLD_URGENT = 3  # Rappel d'utilisation le jour même si < 3 jours
