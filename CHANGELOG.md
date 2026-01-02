@@ -5,6 +5,17 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.9.1] - 2026-01-02
+
+### Corrigé
+- **Réinitialisation des catégories Réserve** : Fix du bouton Reset
+  - Les catégories par défaut étaient hardcodées dans le JavaScript avec l'ancienne liste
+  - Mise à jour de la liste dans `pantry.js` avec les nouvelles catégories :
+    - Ajout : Produits ménagers, Hygiène & Cosmétiques, Papeterie & Fournitures, Médicaments & Santé
+    - Retrait : Œufs
+  - Le bouton "🔄 Réinitialiser" fonctionne maintenant correctement
+  - **Aucun redémarrage nécessaire** : Simple rechargement de page (Ctrl+F5)
+
 ## [1.9.0] - 2026-01-02
 
 ### Ajouté

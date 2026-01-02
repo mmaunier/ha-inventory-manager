@@ -1296,7 +1296,8 @@ class InventoryManagerPantry extends HTMLElement {
       this._categories = [
         "Conserves", "Pâtes/Riz/Céréales", "Farines/Sucres", "Huiles/Vinaigres",
         "Épices/Aromates", "Biscuits/Gâteaux secs", "Boissons", "Condiments/Sauces",
-        "Produits d'épicerie", "Œufs", "Autre"
+        "Produits d'épicerie", "Produits ménagers", "Hygiène & Cosmétiques",
+        "Papeterie & Fournitures", "Médicaments & Santé", "Autre"
       ];
       this._renderCategoriesList();
       alert('Catégories réinitialisées !');
