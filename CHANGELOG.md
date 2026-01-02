@@ -5,6 +5,17 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.10.4] - 2026-01-02
+
+### Corrigé
+- **Erreurs 404 dans la console frontend** : Cascade search maintenant gérée côté JavaScript
+  - Problème : Le frontend appelait directement Open Food Facts → erreur 404 visible en console
+  - Solution : Implémentation de la cascade complète dans pantry.js avec gestion d'erreurs
+  - Cascade : Open Food Facts → UPCitemdb → OpenGTINDB (avec try/catch sur chaque API)
+  - Affichage de la source du produit trouvé (Open Food Facts, UPCitemdb ou OpenGTINDB)
+  - Message clair quand produit non trouvé dans les 3 bases
+  - Plus aucune erreur HTTP visible dans la console du navigateur
+
 ## [1.10.3] - 2026-01-02
 
 ### Corrigé
