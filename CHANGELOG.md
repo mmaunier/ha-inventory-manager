@@ -5,6 +5,14 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.10.7] - 2026-01-02
+
+### Corrigé
+- **Erreur format service** : `extra keys not allowed @ data['target']['return_response']`
+  - Problème : Utilisation incorrecte de `callService` avec `return_response`
+  - Solution : Utilisation de `callWS` (WebSocket) pour supporter `return_response`
+  - Le service `lookup_product` retourne maintenant correctement les données
+
 ## [1.10.6] - 2026-01-02
 
 ### Corrigé
