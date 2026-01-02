@@ -5,6 +5,13 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.10.10] - 2026-01-02
+
+### Corrigé
+- **Détection catégorie Nutella** : Ajout keywords "spread", "chocolate", "hazelnut" dans "Produits d'épicerie"
+- **Fallback "Autre"** : Sélection automatique de "Autre" si catégorie non détectée ou vide
+- **Validation select** : Vérification existence catégorie dans le select avant assignation
+
 ## [1.10.9] - 2026-01-02
 
 ### 🧹 Nettoyage du code
