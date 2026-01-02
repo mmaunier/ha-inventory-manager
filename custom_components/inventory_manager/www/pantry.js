@@ -805,10 +805,18 @@ class InventoryManagerPantry extends HTMLElement {
         if (fullName) {
           nameEl.value = fullName;
           
-          // Pré-remplir la catégorie si détectée
+          // Pré-remplir la catégorie détectée ou "Autre" par défaut
           const categoryEl = this.shadowRoot.getElementById('scan-category');
-          if (category && categoryEl) {
-            categoryEl.value = category;
+          if (categoryEl) {
+            const selectedCategory = category || 'Autre';
+            // Vérifier que la catégorie existe dans le select
+            const optionExists = Array.from(categoryEl.options).some(opt => opt.value === selectedCategory);
+            if (optionExists) {
+              categoryEl.value = selectedCategory;
+            } else {
+              // Si la catégorie n'existe pas, sélectionner "Autre"
+              categoryEl.value = 'Autre';
+            }
           }
           
           infoBox.className = 'product-info';

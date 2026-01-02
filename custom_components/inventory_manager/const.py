@@ -136,7 +136,7 @@ CATEGORY_MAPPING = {
     "Huiles/Vinaigres": ["oil", "vinegar", "huile", "huiles", "vinaigre", "vinaigres", "olive-oil", "sunflower", "colza"],
     "Épices/Aromates": ["spice", "herb", "epice", "épice", "aromate", "pepper", "cumin", "paprika", "thym", "basilic", "sel", "salt", "poivre"],
     "Biscuits/Gâteaux secs": ["biscuit", "biscuits", "cookie", "cookies", "cracker", "crackers", "wafer", "dry-cake", "gâteau", "gateau"],
-    "Produits d'épicerie": ["grocery", "epicerie", "épicerie", "snack", "dried-food", "sec", "dry"],"Œufs": ["egg", "oeuf", "œuf", "eggs", "oeufs", "œufs"],
+    "Produits d'épicerie": ["grocery", "epicerie", "épicerie", "snack", "dried-food", "sec", "dry", "spread", "spreads", "pâte à tartiner", "pate a tartiner", "chocolate", "chocolat", "hazelnut", "noisette", "nutella", "jam", "confiture", "marmelade", "honey", "miel"],"Œufs": ["egg", "oeuf", "œuf", "eggs", "oeufs", "œufs"],
     
     # Réserve - Produits ménagers
     "Produits ménagers": [
