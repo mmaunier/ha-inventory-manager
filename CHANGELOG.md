@@ -5,6 +5,13 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.10.6] - 2026-01-02
+
+### Corrigé
+- **Erreur JavaScript** : `Cannot read properties of undefined (reading 'callService')`
+  - Problème : Utilisation de `this.hass` au lieu de `this._hass` dans le frontend
+  - Le service `lookup_product` fonctionne maintenant correctement
+
 ## [1.10.5] - 2026-01-02
 
 ### Corrigé
