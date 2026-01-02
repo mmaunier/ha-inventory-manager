@@ -36,6 +36,11 @@ class InventoryManagerFridge extends HTMLElement {
     const totalSensor = this._hass.states['sensor.gestionnaire_d_inventaire_total_produits'];
     this._productHistory = totalSensor?.attributes?.product_history || [];
     
+    // DEBUG: Afficher les sensors disponibles et l'historique
+    console.log('[Fridge] Tous les sensors:', Object.keys(this._hass.states).filter(k => k.includes('gestionnaire')));
+    console.log('[Fridge] Total sensor:', totalSensor);
+    console.log('[Fridge] Product history:', this._productHistory);
+    
     // Synchroniser catégories et zones depuis le sensor
     if (fridgeSensor?.attributes?.categories) {
       this._categories = fridgeSensor.attributes.categories;

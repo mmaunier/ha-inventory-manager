@@ -36,6 +36,11 @@ class InventoryManagerFreezer extends HTMLElement {
     const totalSensor = this._hass.states['sensor.gestionnaire_d_inventaire_total_produits'];
     this._productHistory = totalSensor?.attributes?.product_history || [];
     
+    // DEBUG: Afficher les sensors disponibles et l'historique
+    console.log('[Freezer] Tous les sensors:', Object.keys(this._hass.states).filter(k => k.includes('gestionnaire')));
+    console.log('[Freezer] Total sensor:', totalSensor);
+    console.log('[Freezer] Product history:', this._productHistory);
+    
     // Synchroniser catégories et zones depuis le sensor
     if (freezerSensor?.attributes?.categories) {
       this._categories = freezerSensor.attributes.categories;
