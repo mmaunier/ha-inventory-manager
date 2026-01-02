@@ -128,7 +128,7 @@ CATEGORY_MAPPING = {
     "Boissons": ["beverage", "drink", "boisson", "juice", "soda", "water", "milk"],
     "Sauces/Condiments": ["sauce", "condiment", "dressing", "marinade", "pesto", "aioli"],
     
-    # Réserve
+    # Réserve - Alimentaire
     "Conserves": ["canned", "conserve", "preserved", "tinned", "jarred"],
     "Pâtes/Riz/Céréales": ["pasta", "rice", "cereal", "pates", "riz", "grain", "noodles", "spaghetti"],
     "Farines/Sucres": ["flour", "sugar", "farine", "sucre", "sweetener", "baking"],
@@ -137,6 +137,38 @@ CATEGORY_MAPPING = {
     "Biscuits/Gâteaux secs": ["biscuit", "cookie", "cracker", "wafer", "dry-cake"],
     "Produits d'épicerie": ["grocery", "epicerie", "snack", "dried-food"],
     "Œufs": ["egg", "oeuf", "eggs"],
+    
+    # Réserve - Produits ménagers
+    "Produits ménagers": [
+        "detergent", "lessive", "laundry", "bleach", "javel", "cleaner", "nettoyant",
+        "dishwashing", "vaisselle", "floor", "sol", "window", "vitre", "disinfectant",
+        "désinfectant", "sponge", "éponge", "trash", "poubelle", "bag", "sac"
+    ],
+    
+    # Réserve - Hygiène & Cosmétiques
+    "Hygiène & Cosmétiques": [
+        "soap", "savon", "shampoo", "shampooing", "gel", "shower", "douche",
+        "toothpaste", "dentifrice", "deodorant", "déodorant", "perfume", "parfum",
+        "cream", "crème", "lotion", "cosmetic", "cosmétique", "makeup", "maquillage",
+        "razor", "rasoir", "tissue", "mouchoir", "cotton", "coton", "hygiene", "hygiène"
+    ],
+    
+    # Réserve - Papeterie
+    "Papeterie & Fournitures": [
+        "paper", "papier", "pen", "stylo", "pencil", "crayon", "notebook", "cahier",
+        "envelope", "enveloppe", "tape", "scotch", "adhesif", "glue", "colle",
+        "stapler", "agrafeuse", "folder", "classeur", "label", "étiquette",
+        "marker", "marqueur", "scissors", "ciseaux", "clip", "trombone"
+    ],
+    
+    # Réserve - Médicaments
+    "Médicaments & Santé": [
+        "medicine", "médicament", "pill", "pilule", "tablet", "comprimé",
+        "capsule", "syrup", "sirop", "drops", "gouttes", "ointment", "pommade",
+        "bandage", "pansement", "gauze", "compresse", "antiseptic", "antiseptique",
+        "vitamin", "vitamine", "supplement", "complément", "painkiller", "analgésique",
+        "antibiotic", "antibiotique", "prescription", "ordonnance", "pharmacy", "pharmacie"
+    ],
 }
 
 # Default zones by location (can be customized by user)

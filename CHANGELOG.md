@@ -5,6 +5,37 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.10.1] - 2026-01-02
+
+### Amélioré
+- **Détection de catégories améliorée** : Reconnaissance des produits non-alimentaires
+  - Ajout des nouvelles catégories dans `CATEGORY_MAPPING` :
+    - **Produits ménagers** : lessive, nettoyants, désinfectants, éponges, etc.
+    - **Hygiène & Cosmétiques** : savon, shampoing, crèmes, maquillage, etc.
+    - **Papeterie & Fournitures** : stylos, cahiers, scotch, étiquettes, etc.
+    - **Médicaments & Santé** : médicaments, vitamines, pansements, etc.
+  - Détection basée sur le **nom du produit** (pas seulement les tags)
+  - Fonctionne avec UPCitemdb et EAN-Search qui ne fournissent pas de tags
+  - Plus de 50 mots-clés ajoutés pour chaque nouvelle catégorie
+
+- **Sécurité et fiabilité**
+  - Timeout augmenté : 10s → 15s pour chaque API
+  - Gestion robuste des timeouts (déjà en place, améliorée)
+  - Si une API ne répond pas, passage automatique à la suivante
+  - Logs détaillés pour le débogage
+
+### Technique
+- `_map_category()` : Nouvelle logique de détection en 2 étapes
+  1. Recherche dans `categories_tags` (Open Food Facts)
+  2. Si vide, recherche dans le nom du produit (UPCitemdb/EAN-Search)
+- UPCitemdb et EAN-Search convertissent maintenant leur `category` en `categories_tags`
+- Timeouts unifiés avec `aiohttp.ClientTimeout(total=15)`
+
+### Exemple
+Scan d'un produit "Ariel Lessive" :
+- UPCitemdb retourne : `{"category": "Household"}`
+- Détection : "lessive" dans le nom → Catégorie : "Produits ménagers" ✅
+
 ## [1.10.0] - 2026-01-02
 
 ### Ajouté

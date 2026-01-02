@@ -251,7 +251,7 @@ class InventoryCoordinator(DataUpdateCoordinator):
         
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(url, timeout=10) as response:
+                async with session.get(url, timeout=aiohttp.ClientTimeout(total=15)) as response:
                     if response.status != 200:
                         return None
 
@@ -283,7 +283,7 @@ class InventoryCoordinator(DataUpdateCoordinator):
         
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(url, timeout=10) as response:
+                async with session.get(url, timeout=aiohttp.ClientTimeout(total=15)) as response:
                     if response.status != 200:
                         return None
 
@@ -298,13 +298,14 @@ class InventoryCoordinator(DataUpdateCoordinator):
                     # Extract name and brand
                     title = product.get("title", "")
                     brand = product.get("brand", "")
+                    category_raw = product.get("category", "")
                     
                     return {
                         "barcode": barcode,
                         "name": title,
                         "brand": brand,
-                        "categories": product.get("category", ""),
-                        "categories_tags": [],
+                        "categories": category_raw,
+                        "categories_tags": [category_raw.lower()] if category_raw else [],  # Convertir en tag pour le mapping
                         "image_url": product.get("images", [""])[0] if product.get("images") else "",
                         "quantity_info": "",
                         "nutriscore": "",
@@ -320,7 +321,7 @@ class InventoryCoordinator(DataUpdateCoordinator):
         
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(url, timeout=10) as response:
+                async with session.get(url, timeout=aiohttp.ClientTimeout(total=15)) as response:
                     if response.status != 200:
                         return None
 
@@ -336,12 +337,14 @@ class InventoryCoordinator(DataUpdateCoordinator):
                     if product.get("error"):
                         return None
                     
+                    category_name = product.get("categoryName", "")
+                    
                     return {
                         "barcode": barcode,
                         "name": product.get("name", ""),
                         "brand": "",  # EAN-Search doesn't provide brand separately
-                        "categories": product.get("categoryName", ""),
-                        "categories_tags": [],
+                        "categories": category_name,
+                        "categories_tags": [category_name.lower()] if category_name else [],  # Convertir en tag pour le mapping
                         "image_url": "",
                         "quantity_info": "",
                         "nutriscore": "",
@@ -351,15 +354,8 @@ class InventoryCoordinator(DataUpdateCoordinator):
             _LOGGER.debug("Error fetching from EAN-Search: %s", err)
             return None
 
-    def _map_category(self, categories_tags: list[str], location: str = STORAGE_FREEZER) -> str:
-        """Map Open Food Facts categories to our simplified categories for a specific location."""
-        if not categories_tags:
-            return "Autre"
-        
-        # Convert tags to lowercase for matching
-        tags_lower = [tag.lower() for tag in categories_tags]
-        tags_str = " ".join(tags_lower)
-        
+    def _map_category(self, categories_tags: list[str], location: str = STORAGE_FREEZER, product_name: str = "") -> str:
+        """Map categories tags or product name to our simplified categories for a specific location."""
         # Get custom categories from config for the specific location
         all_categories = self.entry.options.get("categories", DEFAULT_CATEGORIES)
         if isinstance(all_categories, dict):
@@ -368,14 +364,33 @@ class InventoryCoordinator(DataUpdateCoordinator):
             # Backward compatibility
             location_categories = all_categories if isinstance(all_categories, list) else []
         
-        # Check each category mapping
-        for category, keywords in CATEGORY_MAPPING.items():
-            # Only use categories that exist in the current location
-            if category not in location_categories:
-                continue
-            for keyword in keywords:
-                if keyword in tags_str:
-                    return category
+        # Try to match from categories_tags first (for Open Food Facts)
+        if categories_tags:
+            # Convert tags to lowercase for matching
+            tags_lower = [tag.lower() for tag in categories_tags]
+            tags_str = " ".join(tags_lower)
+            
+            # Check each category mapping
+            for category, keywords in CATEGORY_MAPPING.items():
+                # Only use categories that exist in the current location
+                if category not in location_categories:
+                    continue
+                for keyword in keywords:
+                    if keyword in tags_str:
+                        return category
+        
+        # If no match from tags, try to detect from product name (for UPCitemdb/EAN-Search)
+        if product_name:
+            product_name_lower = product_name.lower()
+            
+            # Check each category mapping against product name
+            for category, keywords in CATEGORY_MAPPING.items():
+                # Only use categories that exist in the current location
+                if category not in location_categories:
+                    continue
+                for keyword in keywords:
+                    if keyword in product_name_lower:
+                        return category
         
         return "Autre"
 
@@ -470,9 +485,9 @@ class InventoryCoordinator(DataUpdateCoordinator):
             if product_info.get("brand"):
                 name = f"{product_info['brand']} - {name}"
             
-            # Déterminer la catégorie depuis Open Food Facts pour le bon emplacement
+            # Déterminer la catégorie depuis les tags ou le nom du produit
             categories_tags = product_info.get("categories_tags", [])
-            category = self._map_category(categories_tags, location)
+            category = self._map_category(categories_tags, location, product_name=product_info["name"])
             
             product_id = await self.async_add_product(
                 name=name,
