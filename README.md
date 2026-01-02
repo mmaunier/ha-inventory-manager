@@ -19,11 +19,13 @@ Cette intégration Home Assistant permet de gérer l'inventaire de votre congél
 
 - **Scan code-barres** : Utilisez la caméra de votre téléphone pour scanner les produits
 - **Open Food Facts** : Récupération automatique du nom, marque et catégorie du produit
+- **Autocomplétion intelligente** : Suggestions basées sur les 100 derniers produits ajoutés
 - **Catégories automatiques** : 10 catégories (Viande, Poisson, Légumes, Fruits, Produits laitiers, Plats préparés, Pain/Pâtisserie, Glaces/Desserts, Condiments/Sauces, Autre)
 - **Zones de stockage** : Organisez votre congélateur en zones (Zone 1, 2, 3)
 - **Tri des produits** : Par date de péremption, nom, catégorie ou zone (cliquez sur les en-têtes)
 - **Indicateurs visuels** : Couleurs selon l'urgence (🟢 OK, 🟡 Bientôt, 🟠 Urgent, 🔴 Périmé)
 - **Notifications** : Alertes automatiques toutes les 6h pour les produits à consommer
+- **Gestion des données** : Boutons pour vider un emplacement ou tout réinitialiser
 
 ## 🚀 Installation
 
@@ -88,6 +90,12 @@ data:
   quantity: 3
   category: "Plats préparés"
   zone: "Zone 1"
+
+# Vider un emplacement
+service: inventory_manager.clear_freezer  # ou clear_fridge, clear_pantry
+
+# Tout réinitialiser (produits + historique)
+service: inventory_manager.reset_all
 ```
 
 ### Capteurs créés
@@ -162,13 +170,23 @@ Les données sont stockées dans `config/inventory_data.json` :
       "expiry_date": "2026-06-15",
       "location": "freezer",
       "quantity": 1,
-      "category": "Condiments/Sauces",
+      "category": "Produits d'épicerie",
       "zone": "Zone 1",
       "barcode": "3017620422003",
       "brand": "Ferrero",
       "added_date": "2026-01-01T10:30:00"
     }
-  }
+  },
+  "product_history": [
+    {
+      "name": "Nutella",
+      "category": "Produits d'épicerie",
+      "zone": "Zone 1",
+      "location": "pantry",
+      "added_date": "2026-01-01T10:30:00"
+    }
+  ],
+  "last_updated": "2026-01-02T14:30:00"
 }
 ```
 

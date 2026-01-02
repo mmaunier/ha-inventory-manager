@@ -31,7 +31,7 @@ scan_product:
 
 lookup_product:
   name: Rechercher un produit
-  description: Recherche un produit par code-barres (cascade Open Food Facts → UPCitemdb → OpenGTINDB) sans l'ajouter à l'inventaire
+  description: Recherche un produit par code-barres via Open Food Facts sans l'ajouter à l'inventaire
   fields:
     barcode:
       name: Code-barres
@@ -197,3 +197,19 @@ update_product:
           min: 1
           max: 100
           mode: box
+
+clear_freezer:
+  name: Vider le congélateur
+  description: Supprime tous les produits du congélateur
+
+clear_fridge:
+  name: Vider le réfrigérateur
+  description: Supprime tous les produits du réfrigérateur
+
+clear_pantry:
+  name: Vider les réserves
+  description: Supprime tous les produits des réserves
+
+reset_all:
+  name: Réinitialisation complète
+  description: Supprime tous les produits et l'historique d'autocomplétion

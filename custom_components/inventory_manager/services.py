@@ -231,7 +231,7 @@ async def async_setup_services(
         barcode = call.data[ATTR_BARCODE]
         location = call.data.get(ATTR_LOCATION, STORAGE_PANTRY)
         
-        # Fetch product info from multiple APIs (cascade search)
+        # Fetch product info from Open Food Facts
         product_info = await coordinator.async_fetch_product_info(barcode)
         
         if product_info:
@@ -596,6 +596,59 @@ async def async_setup_services(
         supports_response=SupportsResponse.OPTIONAL,
     )
 
+    # Clear location services
+    async def handle_clear_freezer(call: ServiceCall) -> ServiceResponse:
+        """Handle clear freezer service call."""
+        count = await coordinator.async_clear_location(STORAGE_FREEZER)
+        return {"success": True, "deleted_count": count, "location": "Congélateur"}
+
+    async def handle_clear_fridge(call: ServiceCall) -> ServiceResponse:
+        """Handle clear fridge service call."""
+        count = await coordinator.async_clear_location(STORAGE_FRIDGE)
+        return {"success": True, "deleted_count": count, "location": "Réfrigérateur"}
+
+    async def handle_clear_pantry(call: ServiceCall) -> ServiceResponse:
+        """Handle clear pantry service call."""
+        count = await coordinator.async_clear_location(STORAGE_PANTRY)
+        return {"success": True, "deleted_count": count, "location": "Réserves"}
+
+    async def handle_reset_all(call: ServiceCall) -> ServiceResponse:
+        """Handle reset all service call."""
+        result = await coordinator.async_reset_all()
+        return {"success": True, **result}
+
+    hass.services.async_register(
+        DOMAIN,
+        "clear_freezer",
+        handle_clear_freezer,
+        schema=vol.Schema({}),
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        "clear_fridge",
+        handle_clear_fridge,
+        schema=vol.Schema({}),
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        "clear_pantry",
+        handle_clear_pantry,
+        schema=vol.Schema({}),
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        "reset_all",
+        handle_reset_all,
+        schema=vol.Schema({}),
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
     _LOGGER.info("Inventory Manager services registered")
 
 
@@ -616,3 +669,7 @@ async def async_unload_services(hass: HomeAssistant) -> None:
     hass.services.async_remove(DOMAIN, SERVICE_REMOVE_ZONE)
     hass.services.async_remove(DOMAIN, SERVICE_RENAME_ZONE)
     hass.services.async_remove(DOMAIN, SERVICE_RESET_ZONES)
+    hass.services.async_remove(DOMAIN, "clear_freezer")
+    hass.services.async_remove(DOMAIN, "clear_fridge")
+    hass.services.async_remove(DOMAIN, "clear_pantry")
+    hass.services.async_remove(DOMAIN, "reset_all")

@@ -4,6 +4,7 @@ class InventoryManagerFreezer extends HTMLElement {
     this.attachShadow({ mode: 'open' });
     this._initialized = false;
     this._localProducts = []; // État local des produits
+    this._productHistory = []; // Historique global pour autocomplete
     this._deletedIds = new Set(); // IDs supprimés à ignorer lors des syncs
     this._sortBy = 'date'; // 'date', 'name', 'category', 'zone'
     this._sortAsc = true; // true = ascendant
@@ -30,6 +31,10 @@ class InventoryManagerFreezer extends HTMLElement {
     
     const freezerSensor = this._hass.states['sensor.gestionnaire_d_inventaire_congelateur'];
     const serverProducts = freezerSensor?.attributes?.products || [];
+    
+    // Récupérer l'historique global depuis le sensor total
+    const totalSensor = this._hass.states['sensor.gestionnaire_d_inventaire_total'];
+    this._productHistory = totalSensor?.attributes?.product_history || [];
     
     // Synchroniser catégories et zones depuis le sensor
     if (freezerSensor?.attributes?.categories) {
@@ -923,23 +928,16 @@ class InventoryManagerFreezer extends HTMLElement {
 
   /**
    * Get recent products suggestions based on query
-   * Returns top 3 matches from all products (prioritizing recent ones)
+   * Returns top 3 matches from global product history
    */
   _getRecentProductsSuggestions(query) {
     if (!query || query.trim().length < 2) return [];
     
-    // Get all products, sorted by added_date if available (most recent first)
-    const allProducts = [...this._localProducts]
-      .sort((a, b) => {
-        // Products with added_date come first, sorted DESC
-        const dateA = a.added_date ? new Date(a.added_date) : new Date(0);
-        const dateB = b.added_date ? new Date(b.added_date) : new Date(0);
-        return dateB - dateA;
-      })
-      .slice(0, 50); // Consider last 50 for performance
+    // Use global product history (already sorted by recency, most recent first)
+    const historyProducts = this._productHistory || [];
     
-    // Calculate score for each product
-    const scoredProducts = allProducts.map(p => ({
+    // Calculate score for each product in history
+    const scoredProducts = historyProducts.map(p => ({
       product: p,
       score: this._calculateMatchScore(query, p.name || '')
     }));
@@ -972,33 +970,14 @@ class InventoryManagerFreezer extends HTMLElement {
       return;
     }
     
-    // Render suggestions
+    // Render suggestions from history
     const html = suggestions.map(p => {
-      // Calculate days until expiry
-      let daysText = '';
-      if (p.expiry_date) {
-        try {
-          const expiryDate = new Date(p.expiry_date);
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          const days = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
-          
-          if (days < 0) daysText = `🔴 Périmé`;
-          else if (days <= 3) daysText = `🟠 ${days}j`;
-          else if (days <= 7) daysText = `🟡 ${days}j`;
-          else daysText = `🟢 ${days}j`;
-        } catch (e) {
-          daysText = '';
-        }
-      }
-      
       return `
-        <div class="autocomplete-item" data-product-id="${p.id}">
+        <div class="autocomplete-item" data-name="${(p.name || '').replace(/"/g, '&quot;')}" data-category="${p.category || ''}" data-zone="${p.zone || ''}">
           <div class="autocomplete-name">${p.name || 'Sans nom'}</div>
           <div class="autocomplete-details">
             <span class="autocomplete-badge">📂 ${p.category || 'Autre'}</span>
             <span class="autocomplete-badge">📍 ${p.zone || 'Zone 1'}</span>
-            ${daysText ? `<span class="autocomplete-badge">${daysText}</span>` : ''}
           </div>
         </div>
       `;
@@ -1010,8 +989,10 @@ class InventoryManagerFreezer extends HTMLElement {
     // Add click handlers
     suggestionsEl.querySelectorAll('.autocomplete-item').forEach(item => {
       item.onclick = () => {
-        const productId = item.dataset.productId;
-        this._selectAutocompleteSuggestion(productId);
+        const name = item.dataset.name;
+        const category = item.dataset.category;
+        const zone = item.dataset.zone;
+        this._selectAutocompleteSuggestion(name, category, zone);
       };
     });
   }
@@ -1028,21 +1009,18 @@ class InventoryManagerFreezer extends HTMLElement {
   }
 
   /**
-   * Select a suggestion and prefill form
+   * Select a suggestion and prefill form from history item
    */
-  _selectAutocompleteSuggestion(productId) {
-    const product = this._localProducts.find(p => p.id === productId);
-    if (!product) return;
-    
-    // Prefill form fields
+  _selectAutocompleteSuggestion(name, category, zone) {
+    // Prefill form fields directly from history data
     const nameEl = this.shadowRoot.getElementById('scan-name');
     const categoryEl = this.shadowRoot.getElementById('scan-category');
     const zoneEl = this.shadowRoot.getElementById('scan-zone');
     const dateEl = this.shadowRoot.getElementById('scan-date');
     
-    if (nameEl) nameEl.value = product.name || '';
-    if (categoryEl && product.category) categoryEl.value = product.category;
-    if (zoneEl && product.zone) zoneEl.value = product.zone;
+    if (nameEl) nameEl.value = name || '';
+    if (categoryEl && category) categoryEl.value = category;
+    if (zoneEl && zone) zoneEl.value = zone;
     
     // Hide autocomplete
     this._hideAutocomplete();

@@ -90,6 +90,54 @@ class InventoryManagerHome extends HTMLElement {
           font-size: 0.9em;
           margin-top: 60px;
         }
+        
+        /* Reset buttons section */
+        .reset-section {
+          margin-top: 40px;
+          padding-top: 30px;
+          border-top: 1px solid var(--divider-color, #e0e0e0);
+        }
+        .reset-title {
+          text-align: center;
+          color: var(--secondary-text-color, #757575);
+          font-size: 0.9em;
+          margin-bottom: 16px;
+        }
+        .reset-buttons {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 12px;
+        }
+        .reset-btn {
+          padding: 10px 20px;
+          border: none;
+          border-radius: 8px;
+          font-size: 0.9em;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .reset-btn.location {
+          background: var(--card-background-color, white);
+          color: var(--primary-text-color, #333);
+          border: 1px solid var(--divider-color, #ddd);
+        }
+        .reset-btn.location:hover {
+          background: #fff3e0;
+          border-color: #ff9800;
+        }
+        .reset-btn.danger {
+          background: #ffebee;
+          color: #c62828;
+          border: 1px solid #ef9a9a;
+        }
+        .reset-btn.danger:hover {
+          background: #ffcdd2;
+          border-color: #c62828;
+        }
       </style>
       
       <div class="container">
@@ -116,8 +164,18 @@ class InventoryManagerHome extends HTMLElement {
           </div>
         </div>
         
+        <div class="reset-section">
+          <p class="reset-title">⚙️ Gestion des données</p>
+          <div class="reset-buttons">
+            <button class="reset-btn location" id="btn-clear-freezer">🧊 Vider congélateur</button>
+            <button class="reset-btn location" id="btn-clear-fridge">🧃 Vider réfrigérateur</button>
+            <button class="reset-btn location" id="btn-clear-pantry">🥫 Vider réserve</button>
+            <button class="reset-btn danger" id="btn-reset-all">🗑️ Tout réinitialiser</button>
+          </div>
+        </div>
+        
         <div class="footer">
-          <p>Version 1.10.2 • Inventory Manager</p>
+          <p>Version 1.13.0 • Inventory Manager</p>
         </div>
       </div>
     `;
@@ -130,6 +188,45 @@ class InventoryManagerHome extends HTMLElement {
     freezerCard.onclick = () => this._navigate('freezer');
     fridgeCard.onclick = () => this._navigate('fridge');
     pantryCard.onclick = () => this._navigate('pantry');
+    
+    // Reset buttons event listeners
+    this.shadowRoot.getElementById('btn-clear-freezer').onclick = () => this._clearLocation('freezer', 'congélateur');
+    this.shadowRoot.getElementById('btn-clear-fridge').onclick = () => this._clearLocation('fridge', 'réfrigérateur');
+    this.shadowRoot.getElementById('btn-clear-pantry').onclick = () => this._clearLocation('pantry', 'réserve');
+    this.shadowRoot.getElementById('btn-reset-all').onclick = () => this._resetAll();
+  }
+  
+  async _clearLocation(location, locationName) {
+    if (!confirm(`⚠️ Voulez-vous vraiment vider le ${locationName} ?\n\nTous les produits de cet emplacement seront supprimés.`)) {
+      return;
+    }
+    
+    try {
+      await this._hass.callService('inventory_manager', `clear_${location}`, {});
+      alert(`✅ Le ${locationName} a été vidé.`);
+    } catch (err) {
+      console.error(`Erreur lors du vidage du ${locationName}:`, err);
+      alert(`❌ Erreur: ${err.message}`);
+    }
+  }
+  
+  async _resetAll() {
+    if (!confirm('⚠️ ATTENTION !\n\nVoulez-vous vraiment tout réinitialiser ?\n\n• Tous les produits seront supprimés\n• L\'historique de saisie sera effacé\n\nCette action est irréversible !')) {
+      return;
+    }
+    
+    // Double confirmation for safety
+    if (!confirm('🚨 DERNIÈRE CONFIRMATION\n\nÊtes-vous absolument sûr de vouloir supprimer toutes les données ?')) {
+      return;
+    }
+    
+    try {
+      await this._hass.callService('inventory_manager', 'reset_all', {});
+      alert('✅ Toutes les données ont été réinitialisées.');
+    } catch (err) {
+      console.error('Erreur lors de la réinitialisation:', err);
+      alert(`❌ Erreur: ${err.message}`);
+    }
   }
 
   _navigate(view) {

@@ -120,6 +120,7 @@ class InventoryTotalSensor(InventoryBaseSensor):
                 }
                 for pid, p in products.items()
             ],
+            "product_history": self.coordinator.product_history,
         }
 
 

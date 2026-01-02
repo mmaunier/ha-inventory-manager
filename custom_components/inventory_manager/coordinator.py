@@ -64,12 +64,18 @@ class InventoryCoordinator(DataUpdateCoordinator):
         self.entry = entry
         self._storage_path = Path(hass.config.path(STORAGE_FILE))
         self._products: dict[str, dict[str, Any]] = {}
+        self._product_history: list[dict[str, Any]] = []  # Historique des 100 derniers produits ajoutés
         self._last_notification_check: datetime | None = None
 
     @property
     def products(self) -> dict[str, dict[str, Any]]:
         """Return all products."""
         return self._products
+
+    @property
+    def product_history(self) -> list[dict[str, Any]]:
+        """Return product history for autocomplete."""
+        return self._product_history
 
     async def async_load_data(self) -> None:
         """Load inventory data from storage."""
@@ -79,13 +85,16 @@ class InventoryCoordinator(DataUpdateCoordinator):
                     self._read_storage_file
                 )
                 self._products = data.get("products", {})
-                _LOGGER.info("Loaded %d products from storage", len(self._products))
+                self._product_history = data.get("product_history", [])
+                _LOGGER.info("Loaded %d products and %d history items from storage", len(self._products), len(self._product_history))
             else:
                 _LOGGER.info("No existing inventory file, starting fresh")
                 self._products = {}
+                self._product_history = []
         except Exception as err:
             _LOGGER.error("Error loading inventory data: %s", err)
             self._products = {}
+            self._product_history = []
 
     def _read_storage_file(self) -> dict:
         """Read storage file (blocking)."""
@@ -97,6 +106,7 @@ class InventoryCoordinator(DataUpdateCoordinator):
         try:
             data = {
                 "products": self._products,
+                "product_history": self._product_history,
                 "last_updated": datetime.now().isoformat(),
             }
             await self.hass.async_add_executor_job(
@@ -274,105 +284,6 @@ class InventoryCoordinator(DataUpdateCoordinator):
             _LOGGER.debug("Open Food Facts: Error - %s", err)
             return None
 
-    async def _fetch_from_upcitemdb(self, barcode: str) -> dict[str, Any] | None:
-        """Fetch product information from UPCitemdb (general products)."""
-        url = UPCITEMDB_API_URL.format(barcode=barcode)
-        
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, timeout=aiohttp.ClientTimeout(total=15)) as response:
-                    if response.status != 200:
-                        return None
-
-                    data = await response.json()
-                    
-                    # Check if product found
-                    if not data.get("items") or len(data["items"]) == 0:
-                        return None
-                    
-                    product = data["items"][0]
-                    
-                    # Extract name and brand
-                    title = product.get("title", "")
-                    brand = product.get("brand", "")
-                    category_raw = product.get("category", "")
-                    
-                    return {
-                        "barcode": barcode,
-                        "name": title,
-                        "brand": brand,
-                        "categories": category_raw,
-                        "categories_tags": [category_raw.lower()] if category_raw else [],  # Convertir en tag pour le mapping
-                        "image_url": product.get("images", [""])[0] if product.get("images") else "",
-                        "quantity_info": "",
-                        "nutriscore": "",
-                    }
-
-        except asyncio.TimeoutError:
-            _LOGGER.warning("UPCitemdb: Request timeout (>15s)")
-            return None
-        except Exception as err:
-            _LOGGER.debug("UPCitemdb: Error - %s", err)
-            return None
-
-    async def _fetch_from_opengtindb(self, barcode: str) -> dict[str, Any] | None:
-        """Fetch product information from OpenGTINDB (free, no registration required)."""
-        url = OPENGTINDB_API_URL.format(barcode=barcode)
-        
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, timeout=aiohttp.ClientTimeout(total=15)) as response:
-                    if response.status != 200:
-                        return None
-
-                    text = await response.text()
-                    
-                    # Parse the simple key=value format
-                    lines = text.strip().split('\n')
-                    data = {}
-                    for line in lines:
-                        if '=' in line:
-                            key, value = line.split('=', 1)
-                            data[key] = value
-                    
-                    # Check if error=0 (found) or error=1 (not found)
-                    if data.get("error") != "0":
-                        return None
-                    
-                    # Extract product name (prioritize detailname over name)
-                    product_name = data.get("detailname", "").strip() or data.get("name", "").strip()
-                    if not product_name:
-                        return None
-                    
-                    vendor = data.get("vendor", "").strip()
-                    maincat = data.get("maincat", "").strip()
-                    subcat = data.get("subcat", "").strip()
-                    
-                    # Combine categories for mapping
-                    categories_list = []
-                    if maincat:
-                        categories_list.append(maincat.lower())
-                    if subcat:
-                        categories_list.append(subcat.lower())
-                    
-                    return {
-                        "barcode": barcode,
-                        "name": product_name,
-                        "brand": vendor,
-                        "categories": f"{maincat}/{subcat}" if maincat and subcat else maincat or subcat,
-                        "categories_tags": categories_list,
-                        "image_url": "",
-                        "quantity_info": data.get("contents", ""),
-                        "nutriscore": "",
-                    }
-
-        except asyncio.TimeoutError:
-            _LOGGER.warning("OpenGTINDB: Request timeout (>15s)")
-            return None
-        except Exception as err:
-            _LOGGER.debug("OpenGTINDB: Error - %s", err)
-            return None
-
     def _map_category(self, categories_tags: list[str], location: str = STORAGE_FREEZER, product_name: str = "") -> str:
         """Map categories tags or product name to our simplified categories for a specific location."""
         # Get custom categories from config for the specific location
@@ -416,6 +327,59 @@ class InventoryCoordinator(DataUpdateCoordinator):
                         return category
         
         return "Autre"
+
+    def _add_to_history(self, name: str, category: str, zone: str, location: str) -> None:
+        """Add a product to history for autocomplete (keep last 100, avoid duplicates)."""
+        # Check if product with same name already exists in history
+        existing_idx = None
+        for i, item in enumerate(self._product_history):
+            if item.get("name", "").lower() == name.lower():
+                existing_idx = i
+                break
+        
+        # Remove existing entry to add fresh one at the beginning
+        if existing_idx is not None:
+            self._product_history.pop(existing_idx)
+        
+        # Add to beginning of history
+        history_item = {
+            "name": name,
+            "category": category,
+            "zone": zone,
+            "location": location,
+            "added_date": datetime.now().isoformat(),
+        }
+        self._product_history.insert(0, history_item)
+        
+        # Keep only last 100
+        if len(self._product_history) > 100:
+            self._product_history = self._product_history[:100]
+
+    async def async_clear_location(self, location: str) -> int:
+        """Clear all products from a specific location. Returns count of deleted products."""
+        to_delete = [pid for pid, p in self._products.items() if p.get("location") == location]
+        for pid in to_delete:
+            del self._products[pid]
+        
+        await self.async_save_data()
+        await self.async_request_refresh()
+        
+        _LOGGER.info("Cleared %d products from %s", len(to_delete), location)
+        return len(to_delete)
+
+    async def async_reset_all(self) -> dict[str, int]:
+        """Reset all data: products and history. Returns counts."""
+        product_count = len(self._products)
+        history_count = len(self._product_history)
+        
+        self._products = {}
+        self._product_history = []
+        
+        await self.async_save_data()
+        await self.async_request_refresh()
+        
+        _LOGGER.info("Reset all: cleared %d products and %d history items", product_count, history_count)
+        return {"products": product_count, "history": history_count}
 
     def get_zones(self, location: str = STORAGE_FREEZER) -> list[str]:
         """Get list of zones from config for a specific location."""
@@ -475,6 +439,10 @@ class InventoryCoordinator(DataUpdateCoordinator):
             product["image_url"] = image_url
 
         self._products[product_id] = product
+        
+        # Add to product history for autocomplete (keep last 100)
+        self._add_to_history(name, category, zone, location)
+        
         await self.async_save_data()
         
         # Fire event
@@ -500,7 +468,7 @@ class InventoryCoordinator(DataUpdateCoordinator):
         quantity: int = 1,
     ) -> dict[str, Any]:
         """Scan a barcode and add the product to inventory."""
-        # Fetch product info from multiple APIs (cascade search)
+        # Fetch product info from Open Food Facts
         product_info = await self.async_fetch_product_info(barcode)
         
         if product_info:

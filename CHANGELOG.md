@@ -5,6 +5,45 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.13.0] - 2026-01-02
+
+### ✨ Historique global des produits pour autocomplétion
+- **Historique persistant** : Les 100 derniers produits ajoutés sont mémorisés
+  - Indépendant des suppressions de produits
+  - Conserve nom, catégorie, zone et emplacement
+  - Dédoublonnage automatique (même produit = mise à jour position)
+- **Autocomplétion améliorée** : Recherche dans l'historique global
+  - Suggestions basées sur TOUS les produits jamais ajoutés (pas juste l'emplacement actuel)
+  - Fonctionne même si les produits ont été supprimés
+  - Top 3 suggestions les plus pertinentes
+
+### 🗑️ Boutons de réinitialisation
+- **Page d'accueil enrichie** avec section "Gestion des données"
+  - 🧊 **Vider congélateur** : Supprime tous les produits du congélateur
+  - 🧃 **Vider réfrigérateur** : Supprime tous les produits du réfrigérateur
+  - 🥫 **Vider réserve** : Supprime tous les produits de la réserve
+  - 🗑️ **Tout réinitialiser** : Supprime tous les produits ET l'historique (double confirmation)
+- **4 nouveaux services** Home Assistant :
+  - `inventory_manager.clear_freezer`
+  - `inventory_manager.clear_fridge`
+  - `inventory_manager.clear_pantry`
+  - `inventory_manager.reset_all`
+
+### 🧹 Nettoyage du code
+- Suppression du code mort des APIs inutilisées (UPCitemdb, OpenGTINDB)
+- Suppression des constantes commentées obsolètes
+- Mise à jour des commentaires et descriptions
+
+### 🔧 Corrections
+- Correction de l'autocomplétion qui ne fonctionnait pas (v1.12.1)
+- L'autocomplétion utilise maintenant l'historique global au lieu des produits locaux
+
+## [1.12.1] - 2026-01-02
+
+### 🐛 Correction bug autocomplétion
+- Suppression du filtre `added_date` qui bloquait les anciens produits
+- Réduction à 3 suggestions maximum (plus pertinentes)
+
 ## [1.12.0] - 2026-01-02
 
 ### ✨ Autocomplétion intelligente des produits
