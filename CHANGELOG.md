@@ -5,6 +5,14 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.15.5] - 2026-01-04
+
+### 🐛 Correction critique de l'import des données
+- **Bug corrigé** : L'import vidait la base de données et rendait les capteurs "unavailable"
+- **Cause** : Format d'export différent du format interne (export par location vs. dict par ID)
+- **Solution** : Conversion automatique du format exporté `{freezer: [...], fridge: [...]}` vers le format interne `{id: product}`
+- L'import gère maintenant les deux formats (export frontend et format interne)
+
 ## [1.15.4] - 2026-01-04
 
 ### 🛡️ Garde-fous catégories/zones

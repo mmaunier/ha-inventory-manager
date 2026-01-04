@@ -396,10 +396,33 @@ class InventoryCoordinator(DataUpdateCoordinator):
         """Import data from a backup. Returns import stats."""
         imported = {"products": 0, "history": 0, "categories": 0, "zones": 0}
         
-        # Import products
+        # Import products - handle both formats:
+        # 1. Export format: { "freezer": [...], "fridge": [...], "pantry": [...] }
+        # 2. Internal format: { "id1": {...}, "id2": {...}, ... }
         if "products" in data and isinstance(data["products"], dict):
-            self._products = data["products"]
-            imported["products"] = len(self._products)
+            products_data = data["products"]
+            
+            # Check if it's export format (keys are location names with arrays)
+            if any(key in products_data for key in [STORAGE_FREEZER, STORAGE_FRIDGE, STORAGE_PANTRY]):
+                # Convert from export format to internal format
+                new_products = {}
+                for location, products_list in products_data.items():
+                    if isinstance(products_list, list):
+                        for product in products_list:
+                            if isinstance(product, dict):
+                                # Use existing ID or generate new one
+                                product_id = product.get("id") or str(uuid.uuid4())[:8]
+                                # Ensure location is set
+                                product["location"] = location
+                                # Remove days_until_expiry as it's computed
+                                product.pop("days_until_expiry", None)
+                                new_products[product_id] = product
+                self._products = new_products
+                imported["products"] = len(new_products)
+            else:
+                # Already in internal format
+                self._products = products_data
+                imported["products"] = len(self._products)
         
         # Import history
         if "product_history" in data and isinstance(data["product_history"], list):
