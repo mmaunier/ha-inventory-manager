@@ -232,7 +232,7 @@ class InventoryManagerHome extends HTMLElement {
         </div>
         
         <div class="footer">
-          <p>Version 1.15.0 • Inventory Manager</p>
+          <p>Version 1.15.1 • Inventory Manager</p>
         </div>
       </div>
     `;
@@ -293,22 +293,50 @@ class InventoryManagerHome extends HTMLElement {
 
   async _exportData() {
     try {
-      const result = await this._hass.callService('inventory_manager', 'export_data', {}, true, true);
+      const result = await this._hass.callWS({
+        type: 'execute_script',
+        sequence: [{
+          service: 'inventory_manager.export_data',
+          response_variable: 'export_result'
+        }]
+      });
       
-      if (result && result.response && result.response.data) {
-        const data = result.response.data;
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        const date = new Date().toISOString().split('T')[0];
-        a.download = `inventory_backup_${date}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-        alert('✅ Export réussi !');
-      } else {
-        throw new Error('Réponse invalide du service');
-      }
+      // Méthode alternative : récupérer les données directement depuis les sensors
+      const freezerSensor = this._hass.states['sensor.gestionnaire_d_inventaire_congelateur'];
+      const fridgeSensor = this._hass.states['sensor.gestionnaire_d_inventaire_refrigerateur'];
+      const pantrySensor = this._hass.states['sensor.gestionnaire_d_inventaire_reserves'];
+      const totalSensor = this._hass.states['sensor.gestionnaire_d_inventaire_total_produits'];
+      
+      const exportData = {
+        version: '1.15.1',
+        export_date: new Date().toISOString(),
+        products: {
+          freezer: freezerSensor?.attributes?.products || [],
+          fridge: fridgeSensor?.attributes?.products || [],
+          pantry: pantrySensor?.attributes?.products || []
+        },
+        product_history: totalSensor?.attributes?.product_history || [],
+        categories: {
+          freezer: freezerSensor?.attributes?.categories || [],
+          fridge: fridgeSensor?.attributes?.categories || [],
+          pantry: pantrySensor?.attributes?.categories || []
+        },
+        zones: {
+          freezer: freezerSensor?.attributes?.zones || [],
+          fridge: fridgeSensor?.attributes?.zones || [],
+          pantry: pantrySensor?.attributes?.zones || []
+        }
+      };
+      
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const date = new Date().toISOString().split('T')[0];
+      a.download = `inventory_backup_${date}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      alert('✅ Export réussi !');
     } catch (err) {
       console.error('Erreur lors de l\'export:', err);
       alert(`❌ Erreur: ${err.message}`);

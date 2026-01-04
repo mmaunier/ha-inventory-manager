@@ -5,6 +5,13 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.15.1] - 2026-01-04
+
+### 🐛 Correction export des données
+- **Bug corrigé** : L'export échouait avec l'erreur "expected a dictionary for dictionary value @ data['target']"
+- **Solution** : L'export récupère maintenant les données directement depuis les sensors au lieu d'appeler le service
+- Export fiable des produits, historique, catégories et zones
+
 ## [1.15.0] - 2026-01-04
 
 ### ✨ Sauvegarde et restauration des données
