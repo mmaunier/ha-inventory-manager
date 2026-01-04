@@ -720,6 +720,11 @@ class InventoryCoordinator(DataUpdateCoordinator):
 
     async def async_remove_category(self, name: str, location: str = STORAGE_FREEZER) -> None:
         """Remove a category for a specific location. Products with this category will be set to 'Autre'."""
+        # Garde-fou: impossible de supprimer la catégorie 'Autre'
+        if name == "Autre":
+            _LOGGER.warning("Cannot remove category 'Autre' - it's the fallback category")
+            raise ValueError("Impossible de supprimer la catégorie 'Autre' - elle sert de catégorie par défaut")
+        
         categories_data = self.entry.options.get("categories", DEFAULT_CATEGORIES)
         
         # Handle migration: if categories is a list, convert to dict
@@ -736,6 +741,12 @@ class InventoryCoordinator(DataUpdateCoordinator):
             return
         
         categories = list(all_categories[location])
+        
+        # Garde-fou: toujours garder au moins une catégorie
+        if len(categories) <= 1:
+            _LOGGER.warning("Cannot remove last category for location '%s'", location)
+            raise ValueError("Impossible de supprimer la dernière catégorie")
+        
         if name in categories:
             categories.remove(name)
             all_categories[location] = categories
@@ -824,6 +835,12 @@ class InventoryCoordinator(DataUpdateCoordinator):
             return
         
         zones = list(all_zones[location])
+        
+        # Garde-fou: toujours garder au moins une zone
+        if len(zones) <= 1:
+            _LOGGER.warning("Cannot remove last zone for location '%s'", location)
+            raise ValueError("Impossible de supprimer la dernière zone")
+        
         if name in zones:
             zones.remove(name)
             all_zones[location] = zones

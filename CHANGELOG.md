@@ -5,6 +5,14 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.15.4] - 2026-01-04
+
+### 🛡️ Garde-fous catégories/zones
+- **Catégorie "Autre"** : Impossible de supprimer la catégorie "Autre" (catégorie par défaut)
+- **Dernière catégorie** : Impossible de supprimer si c'est la dernière catégorie de l'emplacement
+- **Dernière zone** : Impossible de supprimer si c'est la dernière zone de l'emplacement
+- Les erreurs sont remontées à l'utilisateur via une alerte
+
 ## [1.15.3] - 2026-01-04
 
 ### ⚡ Optimisation des sélecteurs catégories/zones
