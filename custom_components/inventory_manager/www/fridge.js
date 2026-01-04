@@ -44,6 +44,10 @@ class InventoryManagerFridge extends HTMLElement {
       this._zones = fridgeSensor.attributes.zones;
     }
     
+    // Mettre à jour les sélecteurs de zones et catégories
+    this._updateZonesSelect();
+    this._updateCategoriesSelect();
+    
     // Filtrer les produits serveur : exclure ceux qu'on a supprimé localement (en attente de confirmation)
     this._localProducts = serverProducts.filter(p => !this._deletedIds.has(p.id));
     
@@ -1470,6 +1474,7 @@ class InventoryManagerFridge extends HTMLElement {
       await this._hass.callService('inventory_manager', 'add_category', { name, location: 'fridge' });
       this._categories.push(name);
       this._renderCategoriesList();
+      this._updateCategoriesSelect();
       input.value = '';
     } catch (err) {
       console.error('Erreur ajout catégorie:', err);
@@ -1484,6 +1489,7 @@ class InventoryManagerFridge extends HTMLElement {
       await this._hass.callService('inventory_manager', 'remove_category', { name, location: 'fridge' });
       this._categories = this._categories.filter(c => c !== name);
       this._renderCategoriesList();
+      this._updateCategoriesSelect();
       // Recharger les produits pour afficher les modifications
       this._syncFromHass();
     } catch (err) {
@@ -1501,6 +1507,7 @@ class InventoryManagerFridge extends HTMLElement {
       const idx = this._categories.indexOf(oldName);
       if (idx !== -1) this._categories[idx] = newName;
       this._renderCategoriesList();
+      this._updateCategoriesSelect();
       // Recharger les produits pour afficher les modifications
       this._syncFromHass();
     } catch (err) {
@@ -1518,6 +1525,7 @@ class InventoryManagerFridge extends HTMLElement {
       await this._hass.callService('inventory_manager', 'add_zone', { name, location: 'fridge' });
       this._zones.push(name);
       this._renderZonesList();
+      this._updateZonesSelect();
       input.value = '';
     } catch (err) {
       console.error('Erreur ajout zone:', err);
@@ -1532,6 +1540,7 @@ class InventoryManagerFridge extends HTMLElement {
       await this._hass.callService('inventory_manager', 'remove_zone', { name, location: 'fridge' });
       this._zones = this._zones.filter(z => z !== name);
       this._renderZonesList();
+      this._updateZonesSelect();
       // Recharger les produits pour afficher les modifications
       this._syncFromHass();
     } catch (err) {
@@ -1549,6 +1558,7 @@ class InventoryManagerFridge extends HTMLElement {
       const idx = this._zones.indexOf(oldName);
       if (idx !== -1) this._zones[idx] = newName;
       this._renderZonesList();
+      this._updateZonesSelect();
       // Recharger les produits pour afficher les modifications
       this._syncFromHass();
     } catch (err) {
@@ -1571,6 +1581,7 @@ class InventoryManagerFridge extends HTMLElement {
         "Plats préparés", "Autre"
       ];
       this._renderCategoriesList();
+      this._updateCategoriesSelect();
       alert('Catégories réinitialisées !');
     } catch (err) {
       console.error('Erreur réinitialisation catégories:', err);
@@ -1588,11 +1599,32 @@ class InventoryManagerFridge extends HTMLElement {
       // Recharger les zones par défaut
       this._zones = ["Zone 1", "Zone 2", "Zone 3"];
       this._renderZonesList();
+      this._updateZonesSelect();
       alert('Zones réinitialisées !');
     } catch (err) {
       console.error('Erreur réinitialisation zones:', err);
       alert('Erreur: ' + err.message);
     }
+  }
+
+  _updateZonesSelect() {
+    const scanZone = this.shadowRoot.getElementById('scan-zone');
+    const editZone = this.shadowRoot.getElementById('edit-zone');
+    
+    const optionsHtml = this._zones.map(z => `<option value="${z}">${z}</option>`).join('');
+    
+    if (scanZone) scanZone.innerHTML = optionsHtml;
+    if (editZone) editZone.innerHTML = optionsHtml;
+  }
+
+  _updateCategoriesSelect() {
+    const scanCategory = this.shadowRoot.getElementById('scan-category');
+    const editCategory = this.shadowRoot.getElementById('edit-category');
+    
+    const optionsHtml = this._categories.map(c => `<option value="${c}">${c}</option>`).join('');
+    
+    if (scanCategory) scanCategory.innerHTML = optionsHtml;
+    if (editCategory) editCategory.innerHTML = optionsHtml;
   }
 
   _navigateHome() {

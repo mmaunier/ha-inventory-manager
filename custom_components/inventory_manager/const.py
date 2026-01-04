@@ -45,6 +45,8 @@ SERVICE_ADD_ZONE = "add_zone"
 SERVICE_REMOVE_ZONE = "remove_zone"
 SERVICE_RENAME_ZONE = "rename_zone"
 SERVICE_RESET_ZONES = "reset_zones"
+SERVICE_EXPORT_DATA = "export_data"
+SERVICE_IMPORT_DATA = "import_data"
 
 # Attributes
 ATTR_BARCODE = "barcode"

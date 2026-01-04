@@ -138,6 +138,54 @@ class InventoryManagerHome extends HTMLElement {
           background: #ffcdd2;
           border-color: #c62828;
         }
+        
+        /* Backup section */
+        .backup-section {
+          margin-top: 30px;
+          padding-top: 20px;
+          border-top: 1px solid var(--divider-color, #e0e0e0);
+        }
+        .backup-title {
+          text-align: center;
+          color: var(--secondary-text-color, #757575);
+          font-size: 0.9em;
+          margin-bottom: 16px;
+        }
+        .backup-buttons {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 12px;
+        }
+        .backup-btn {
+          padding: 10px 20px;
+          border: none;
+          border-radius: 8px;
+          font-size: 0.9em;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .backup-btn.export {
+          background: #e3f2fd;
+          color: #1565c0;
+          border: 1px solid #90caf9;
+        }
+        .backup-btn.export:hover {
+          background: #bbdefb;
+          border-color: #1565c0;
+        }
+        .backup-btn.import {
+          background: #e8f5e9;
+          color: #2e7d32;
+          border: 1px solid #a5d6a7;
+        }
+        .backup-btn.import:hover {
+          background: #c8e6c9;
+          border-color: #2e7d32;
+        }
       </style>
       
       <div class="container">
@@ -174,8 +222,17 @@ class InventoryManagerHome extends HTMLElement {
           </div>
         </div>
         
+        <div class="backup-section">
+          <p class="backup-title">💾 Sauvegarde des données</p>
+          <div class="backup-buttons">
+            <button class="backup-btn export" id="btn-export">📤 Exporter</button>
+            <button class="backup-btn import" id="btn-import">📥 Importer</button>
+          </div>
+          <input type="file" id="import-file" accept=".json" style="display: none;">
+        </div>
+        
         <div class="footer">
-          <p>Version 1.14.0 • Inventory Manager</p>
+          <p>Version 1.15.0 • Inventory Manager</p>
         </div>
       </div>
     `;
@@ -194,6 +251,11 @@ class InventoryManagerHome extends HTMLElement {
     this.shadowRoot.getElementById('btn-clear-fridge').onclick = () => this._clearLocation('fridge', 'réfrigérateur');
     this.shadowRoot.getElementById('btn-clear-pantry').onclick = () => this._clearLocation('pantry', 'réserve');
     this.shadowRoot.getElementById('btn-reset-all').onclick = () => this._resetAll();
+    
+    // Backup buttons event listeners
+    this.shadowRoot.getElementById('btn-export').onclick = () => this._exportData();
+    this.shadowRoot.getElementById('btn-import').onclick = () => this.shadowRoot.getElementById('import-file').click();
+    this.shadowRoot.getElementById('import-file').onchange = (e) => this._importData(e);
   }
   
   async _clearLocation(location, locationName) {
@@ -226,6 +288,57 @@ class InventoryManagerHome extends HTMLElement {
     } catch (err) {
       console.error('Erreur lors de la réinitialisation:', err);
       alert(`❌ Erreur: ${err.message}`);
+    }
+  }
+
+  async _exportData() {
+    try {
+      const result = await this._hass.callService('inventory_manager', 'export_data', {}, true, true);
+      
+      if (result && result.response && result.response.data) {
+        const data = result.response.data;
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const date = new Date().toISOString().split('T')[0];
+        a.download = `inventory_backup_${date}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        alert('✅ Export réussi !');
+      } else {
+        throw new Error('Réponse invalide du service');
+      }
+    } catch (err) {
+      console.error('Erreur lors de l\'export:', err);
+      alert(`❌ Erreur: ${err.message}`);
+    }
+  }
+
+  async _importData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    if (!confirm('⚠️ Voulez-vous vraiment importer ces données ?\n\nLes données actuelles seront remplacées.')) {
+      event.target.value = '';
+      return;
+    }
+    
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      
+      await this._hass.callService('inventory_manager', 'import_data', {
+        data: JSON.stringify(data)
+      });
+      
+      alert('✅ Import réussi ! Rechargement de la page...');
+      location.reload();
+    } catch (err) {
+      console.error('Erreur lors de l\'import:', err);
+      alert(`❌ Erreur: ${err.message}`);
+    } finally {
+      event.target.value = '';
     }
   }
 

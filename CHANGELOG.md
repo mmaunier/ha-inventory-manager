@@ -5,6 +5,30 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.15.0] - 2026-01-04
+
+### ✨ Sauvegarde et restauration des données
+- **Export des données** : Téléchargez un fichier JSON contenant :
+  - Tous vos produits (congélateur, réfrigérateur, réserve)
+  - L'historique des produits pour l'autocomplétion
+  - Vos catégories personnalisées
+  - Vos zones de stockage personnalisées
+- **Import des données** : Restaurez vos données depuis une sauvegarde
+  - Sélection du fichier JSON de sauvegarde
+  - Confirmation avant écrasement des données existantes
+  - Rechargement automatique de l'interface
+- **Nouveaux services** Home Assistant :
+  - `inventory_manager.export_data` : Récupère toutes les données en JSON
+  - `inventory_manager.import_data` : Restaure les données depuis un JSON
+
+### 🐛 Correction du sélecteur de zones
+- **Bug corrigé** : Les zones créées par l'utilisateur n'apparaissaient pas dans le sélecteur lors de l'ajout/modification de produit
+- **Amélioration** : Les sélecteurs de zones et catégories se mettent maintenant à jour automatiquement après chaque modification
+
+### 🔧 Améliorations techniques
+- Ajout des fonctions `_updateZonesSelect()` et `_updateCategoriesSelect()` dans les 3 emplacements
+- Synchronisation en temps réel des sélecteurs avec les données
+
 ## [1.13.1] - 2026-01-02
 
 ### 🐛 Correction bug autocomplete

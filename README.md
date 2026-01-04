@@ -6,13 +6,15 @@
 
 ## 📦 Gestionnaire d'Inventaire Alimentaire
 
-Cette intégration Home Assistant permet de gérer l'inventaire de votre congélateur avec :
+Cette intégration Home Assistant permet de gérer l'inventaire de vos stocks alimentaires :
+- 🧊 **3 emplacements** : Congélateur, Réfrigérateur et Réserve (garde-manger)
 - 📷 **Scan de code-barres** via la caméra du smartphone (Android/iOS)
 - 🔍 **Recherche automatique** des produits via Open Food Facts
 - 📅 **Gestion des dates de péremption** avec tri par date, nom, catégorie ou zone
-- 🗂️ **Catégorisation automatique** des produits (10 catégories)
-- 📍 **Zones de stockage** pour organiser votre congélateur (Zone 1, 2, 3)
+- 🗂️ **Catégories personnalisables** par emplacement
+- 📍 **Zones de stockage** personnalisables par emplacement
 - 🔔 **Notifications intelligentes** pour les produits qui périment
+- 💾 **Sauvegarde/Restauration** de vos données en JSON
 - 📱 **Interface responsive** optimisée pour mobile
 
 ## ✨ Fonctionnalités
@@ -96,6 +98,15 @@ service: inventory_manager.clear_freezer  # ou clear_fridge, clear_pantry
 
 # Tout réinitialiser (produits + historique)
 service: inventory_manager.reset_all
+
+# Exporter toutes les données (produits, historique, catégories, zones)
+service: inventory_manager.export_data
+# Retourne un JSON avec toutes les données
+
+# Importer des données depuis une sauvegarde
+service: inventory_manager.import_data
+data:
+  data: '{"version": "1.15.0", "products": {...}, ...}'
 ```
 
 ### Capteurs créés

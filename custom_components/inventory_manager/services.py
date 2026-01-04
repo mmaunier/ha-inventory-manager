@@ -25,7 +25,9 @@ from .const import (
     SERVICE_ADD_ZONE,
     SERVICE_REMOVE_ZONE,
     SERVICE_RENAME_ZONE,
-    SERVICE_RESET_ZONES,
+    SERVICE_RESET_ZONES,    SERVICE_EXPORT_DATA,
+    SERVICE_IMPORT_DATA,    SERVICE_EXPORT_DATA,
+    SERVICE_IMPORT_DATA,
     ATTR_BARCODE,
     ATTR_NAME,
     ATTR_QUANTITY,
@@ -617,6 +619,22 @@ async def async_setup_services(
         result = await coordinator.async_reset_all()
         return {"success": True, **result}
 
+    async def handle_export_data(call: ServiceCall) -> ServiceResponse:
+        """Handle export data service call."""
+        data = coordinator.get_export_data()
+        return {"success": True, "data": data}
+
+    async def handle_import_data(call: ServiceCall) -> ServiceResponse:
+        """Handle import data service call."""
+        import json
+        data_str = call.data.get("data", "{}")
+        try:
+            data = json.loads(data_str) if isinstance(data_str, str) else data_str
+            result = await coordinator.async_import_data(data)
+            return {"success": True, **result}
+        except json.JSONDecodeError as e:
+            return {"success": False, "error": f"Invalid JSON: {e}"}
+
     hass.services.async_register(
         DOMAIN,
         "clear_freezer",
@@ -649,6 +667,22 @@ async def async_setup_services(
         supports_response=SupportsResponse.OPTIONAL,
     )
 
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_EXPORT_DATA,
+        handle_export_data,
+        schema=vol.Schema({}),
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_IMPORT_DATA,
+        handle_import_data,
+        schema=vol.Schema({vol.Required("data"): cv.string}),
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+
     _LOGGER.info("Inventory Manager services registered")
 
 
@@ -673,3 +707,5 @@ async def async_unload_services(hass: HomeAssistant) -> None:
     hass.services.async_remove(DOMAIN, "clear_fridge")
     hass.services.async_remove(DOMAIN, "clear_pantry")
     hass.services.async_remove(DOMAIN, "reset_all")
+    hass.services.async_remove(DOMAIN, SERVICE_EXPORT_DATA)
+    hass.services.async_remove(DOMAIN, SERVICE_IMPORT_DATA)

@@ -381,6 +381,51 @@ class InventoryCoordinator(DataUpdateCoordinator):
         _LOGGER.info("Reset all: cleared %d products and %d history items", product_count, history_count)
         return {"products": product_count, "history": history_count}
 
+    def get_export_data(self) -> dict:
+        """Get all data for export (products, history, categories, zones)."""
+        return {
+            "version": "1.15.0",
+            "export_date": datetime.now().isoformat(),
+            "products": self._products,
+            "product_history": self._product_history,
+            "categories": self.entry.options.get("categories", DEFAULT_CATEGORIES),
+            "zones": self.entry.options.get("zones", DEFAULT_ZONES),
+        }
+
+    async def async_import_data(self, data: dict) -> dict:
+        """Import data from a backup. Returns import stats."""
+        imported = {"products": 0, "history": 0, "categories": 0, "zones": 0}
+        
+        # Import products
+        if "products" in data and isinstance(data["products"], dict):
+            self._products = data["products"]
+            imported["products"] = len(self._products)
+        
+        # Import history
+        if "product_history" in data and isinstance(data["product_history"], list):
+            self._product_history = data["product_history"]
+            imported["history"] = len(self._product_history)
+        
+        # Import categories
+        if "categories" in data:
+            new_options = dict(self.entry.options)
+            new_options["categories"] = data["categories"]
+            self.hass.config_entries.async_update_entry(self.entry, options=new_options)
+            imported["categories"] = sum(len(cats) for cats in data["categories"].values()) if isinstance(data["categories"], dict) else 0
+        
+        # Import zones
+        if "zones" in data:
+            new_options = dict(self.entry.options)
+            new_options["zones"] = data["zones"]
+            self.hass.config_entries.async_update_entry(self.entry, options=new_options)
+            imported["zones"] = sum(len(zones) for zones in data["zones"].values()) if isinstance(data["zones"], dict) else 0
+        
+        await self.async_save_data()
+        await self.async_request_refresh()
+        
+        _LOGGER.info("Imported data: %s", imported)
+        return imported
+
     def get_zones(self, location: str = STORAGE_FREEZER) -> list[str]:
         """Get list of zones from config for a specific location."""
         all_zones = self.entry.options.get("zones", DEFAULT_ZONES)
