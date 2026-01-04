@@ -5,6 +5,14 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.15.2] - 2026-01-04
+
+### 🐛 Correction sélecteurs catégories/zones
+- **Bug corrigé** : Le choix dans les menus catégorie/zone était réinitialisé au premier élément
+- **Cause** : La reconstruction du HTML des selects perdait la valeur sélectionnée lors des mises à jour HA
+- **Solution** : Sauvegarde et restauration de la valeur sélectionnée après reconstruction
+- **Flickering mobile** : Résolu grâce à la préservation des valeurs
+
 ## [1.15.1] - 2026-01-04
 
 ### 🐛 Correction export des données

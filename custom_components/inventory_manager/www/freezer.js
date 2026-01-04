@@ -1611,20 +1611,40 @@ class InventoryManagerFreezer extends HTMLElement {
     const scanZone = this.shadowRoot.getElementById('scan-zone');
     const editZone = this.shadowRoot.getElementById('edit-zone');
     
+    // Sauvegarder les valeurs sélectionnées
+    const scanValue = scanZone?.value;
+    const editValue = editZone?.value;
+    
     const optionsHtml = this._zones.map(z => `<option value="${z}">${z}</option>`).join('');
     
-    if (scanZone) scanZone.innerHTML = optionsHtml;
-    if (editZone) editZone.innerHTML = optionsHtml;
+    if (scanZone) {
+      scanZone.innerHTML = optionsHtml;
+      if (scanValue && this._zones.includes(scanValue)) scanZone.value = scanValue;
+    }
+    if (editZone) {
+      editZone.innerHTML = optionsHtml;
+      if (editValue && this._zones.includes(editValue)) editZone.value = editValue;
+    }
   }
 
   _updateCategoriesSelect() {
     const scanCategory = this.shadowRoot.getElementById('scan-category');
     const editCategory = this.shadowRoot.getElementById('edit-category');
     
+    // Sauvegarder les valeurs sélectionnées
+    const scanValue = scanCategory?.value;
+    const editValue = editCategory?.value;
+    
     const optionsHtml = this._categories.map(c => `<option value="${c}">${c}</option>`).join('');
     
-    if (scanCategory) scanCategory.innerHTML = optionsHtml;
-    if (editCategory) editCategory.innerHTML = optionsHtml;
+    if (scanCategory) {
+      scanCategory.innerHTML = optionsHtml;
+      if (scanValue && this._categories.includes(scanValue)) scanCategory.value = scanValue;
+    }
+    if (editCategory) {
+      editCategory.innerHTML = optionsHtml;
+      if (editValue && this._categories.includes(editValue)) editCategory.value = editValue;
+    }
   }
 
   _navigateHome() {
