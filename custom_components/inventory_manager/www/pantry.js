@@ -45,10 +45,6 @@ class InventoryManagerPantry extends HTMLElement {
       this._zones = pantrySensor.attributes.zones;
     }
     
-    // Mettre à jour les sélecteurs de zones et catégories
-    this._updateZonesSelect();
-    this._updateCategoriesSelect();
-    
     // Filtrer les produits serveur : exclure ceux qu'on a supprimé localement (en attente de confirmation)
     this._localProducts = serverProducts.filter(p => !this._deletedIds.has(p.id));
     
@@ -819,6 +815,10 @@ class InventoryManagerPantry extends HTMLElement {
   }
 
   _openAddModal() {
+    // Mettre à jour les sélecteurs avec les dernières données
+    this._updateZonesSelect();
+    this._updateCategoriesSelect();
+    
     this.shadowRoot.getElementById('add-modal').classList.add('open');
     // Reset form
     this.shadowRoot.getElementById('scan-barcode').value = '';
@@ -838,6 +838,10 @@ class InventoryManagerPantry extends HTMLElement {
   _openEditModal(productId) {
     const product = this._localProducts.find(p => p.id === productId);
     if (!product) return;
+    
+    // Mettre à jour les sélecteurs avec les dernières données
+    this._updateZonesSelect();
+    this._updateCategoriesSelect();
     
     this.shadowRoot.getElementById('edit-id').value = productId;
     this.shadowRoot.getElementById('edit-name').value = product.name || '';

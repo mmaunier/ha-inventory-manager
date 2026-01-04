@@ -232,7 +232,7 @@ class InventoryManagerHome extends HTMLElement {
         </div>
         
         <div class="footer">
-          <p>Version 1.15.2 • Inventory Manager</p>
+          <p>Version 1.15.3 • Inventory Manager</p>
         </div>
       </div>
     `;

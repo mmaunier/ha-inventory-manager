@@ -5,6 +5,14 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.15.3] - 2026-01-04
+
+### ⚡ Optimisation des sélecteurs catégories/zones
+- **Amélioration** : Mise à jour des sélecteurs déplacée de `_syncFromHass()` vers l'ouverture des modals
+- **Performance** : Plus de reconstruction HTML inutile à chaque sync HA
+- **Multi-utilisateur** : Les données sont récupérées au moment d'ouvrir le modal (toujours fraîches)
+- **Flickering** : Complètement éliminé grâce à cette optimisation
+
 ## [1.15.2] - 2026-01-04
 
 ### 🐛 Correction sélecteurs catégories/zones
