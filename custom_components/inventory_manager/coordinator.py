@@ -477,9 +477,11 @@ class InventoryCoordinator(DataUpdateCoordinator):
         category: str | None = None,
         zone: str | None = None,
     ) -> str:
-        """Add a product to the inventory."""
-        product_id = str(uuid.uuid4())[:8]
+        """Add a product to the inventory.
         
+        If a product with the same name, expiry_date, and location already exists,
+        increment its quantity instead of creating a new entry.
+        """
         # Default zone is the first one for the specified location
         if zone is None:
             zones = self.get_zones(location)
@@ -488,6 +490,54 @@ class InventoryCoordinator(DataUpdateCoordinator):
         # Default category is "Autre"
         if category is None:
             category = "Autre"
+        
+        # Check if product already exists (same name + same expiry date + same location)
+        existing_product_id = None
+        name_lower = name.lower().strip()
+        
+        for pid, product in self._products.items():
+            if (
+                product.get("name", "").lower().strip() == name_lower
+                and product.get("expiry_date") == expiry_date
+                and product.get("location") == location
+            ):
+                existing_product_id = pid
+                break
+        
+        if existing_product_id:
+            # Product exists → increment quantity
+            existing_product = self._products[existing_product_id]
+            old_quantity = existing_product.get("quantity", 1)
+            new_quantity = old_quantity + quantity
+            existing_product["quantity"] = new_quantity
+            
+            # Update other fields if provided
+            if category and category != "Autre":
+                existing_product["category"] = category
+            if zone:
+                existing_product["zone"] = zone
+            if barcode and "barcode" not in existing_product:
+                existing_product["barcode"] = barcode
+            if brand and "brand" not in existing_product:
+                existing_product["brand"] = brand
+            if image_url and "image_url" not in existing_product:
+                existing_product["image_url"] = image_url
+            
+            await self.async_save_data()
+            await self.async_request_refresh()
+            
+            _LOGGER.info(
+                "Incremented quantity for existing product: %s (ID: %s) - %d → %d",
+                name,
+                existing_product_id,
+                old_quantity,
+                new_quantity
+            )
+            
+            return existing_product_id
+        
+        # Product doesn't exist → create new entry
+        product_id = str(uuid.uuid4())[:8]
         
         product = {
             "name": name,
@@ -525,7 +575,7 @@ class InventoryCoordinator(DataUpdateCoordinator):
         # Trigger update
         await self.async_request_refresh()
         
-        _LOGGER.info("Added product: %s (ID: %s)", name, product_id)
+        _LOGGER.info("Added new product: %s (ID: %s)", name, product_id)
         return product_id
 
     async def async_scan_and_add_product(
