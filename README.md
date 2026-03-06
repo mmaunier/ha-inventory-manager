@@ -15,6 +15,8 @@ Cette intégration Home Assistant permet de gérer l'inventaire de vos stocks al
 - 📍 **Zones de stockage** personnalisables par emplacement
 - 🔔 **Notifications intelligentes** pour les produits qui périment
 - 💾 **Sauvegarde/Restauration** de vos données en JSON
+- ➖ **Retrait par scan** : Retirez des produits en scannant leur code-barres ou par recherche
+- 🔄 **Détection de doublons** : Vérification automatique à l'ajout d'un produit
 - 📱 **Interface responsive** optimisée pour mobile
 
 ## ✨ Fonctionnalités
@@ -28,6 +30,9 @@ Cette intégration Home Assistant permet de gérer l'inventaire de vos stocks al
 - **Indicateurs visuels** : Couleurs selon l'urgence (🟢 OK, 🟡 Bientôt, 🟠 Urgent, 🔴 Périmé)
 - **Notifications** : Alertes automatiques toutes les 6h pour les produits à consommer
 - **Gestion des données** : Boutons pour vider un emplacement ou tout réinitialiser
+- **Retrait par scan** : Bouton "➖ Retirer un produit" avec scan code-barres ou recherche par nom
+- **Sélection multiple** : Possibilité de retirer plusieurs produits à la fois
+- **Détection de doublons** : Vérification automatique lors de l'ajout (propose d'incrémenter la quantité ou de créer un nouveau produit)
 
 ## 🚀 Installation
 

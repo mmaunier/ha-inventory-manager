@@ -5,6 +5,25 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.0.0] - 2026-03-06
+
+### ✨ Retrait de produits par scan / recherche
+- **Nouveau bouton "➖ Retirer un produit"** sur chaque emplacement (Congélateur, Réfrigérateur, Réserve)
+  - Placé à côté du bouton "Ajouter" dans la grille d'actions
+- **Modale de retrait complète** :
+  - 📷 **Scan code-barres** via caméra (BarcodeDetector natif + fallback QuaggaJS)
+  - 🔍 **Recherche par nom** en temps réel (debounce 250ms)
+  - 📝 **Saisie manuelle du code-barres** avec bouton de recherche
+  - 📊 **Liste des produits trouvés** avec détails (catégorie, zone, date, quantité, indicateur de péremption)
+  - ☑️ **Sélection multiple** via checkboxes pour retirer plusieurs produits en une fois
+  - 🚨 **Message "Aucun produit correspondant"** si le scan/recherche ne trouve rien dans l'inventaire
+  - ✅ Confirmation avant suppression définitive
+
+### 🔄 Vérification des doublons à l'ajout
+- **Détection automatique** des produits similaires lors de l'ajout (par nom ou code-barres)
+- **Même date de péremption** : Propose d'incrémenter la quantité du produit existant ou de créer un nouveau produit séparé
+- **Date de péremption différente** : Informe de l'existence du/des produit(s) similaire(s) et demande confirmation pour ajouter comme nouveau produit
+
 ## [1.15.5] - 2026-01-04
 
 ### 🐛 Correction critique de l'import des données

@@ -227,9 +227,19 @@ class InventoryManagerPantry extends HTMLElement {
           gap: 16px;
           margin-bottom: 24px;
         }
-        .actions #btn-add {
-          grid-column: 1 / -1;
-        }
+        .btn-remove { background: #f44336; color: white; }
+        .btn-remove:hover { background: #d32f2f; }
+        .remove-results { max-height: 300px; overflow-y: auto; margin: 12px 0; }
+        .remove-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: #f5f5f5; border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: background 0.2s; }
+        .remove-item:hover { background: #e3f2fd; }
+        .remove-item.selected { background: #ffebee; border: 2px solid #f44336; }
+        .remove-item input[type=checkbox] { width: 20px; height: 20px; cursor: pointer; }
+        .remove-item-info { flex: 1; }
+        .remove-item-name { font-weight: 600; font-size: 0.95em; }
+        .remove-item-details { font-size: 0.8em; color: #666; margin-top: 4px; }
+        .remove-count { text-align: center; padding: 8px; color: #f44336; font-weight: 600; margin: 8px 0; }
+        .duplicate-info { background: #fff3e0; border: 1px solid #ff9800; border-radius: 8px; padding: 12px; margin-bottom: 16px; }
+        .duplicate-info .existing-product { background: #f5f5f5; border-radius: 6px; padding: 8px; margin: 8px 0; font-size: 0.9em; }
         button {
           padding: 16px 24px;
           border: none;
@@ -574,6 +584,7 @@ class InventoryManagerPantry extends HTMLElement {
         <div class="actions">
           <button class="btn-secondary" id="btn-manage-categories">🗂️ Gérer catégories</button>
           <button class="btn-secondary" id="btn-manage-zones">📍 Gérer zones</button>
+          <button class="btn-remove" id="btn-remove">➖ Retirer un produit</button>
           <button class="btn-primary" id="btn-add">➕ Ajouter un produit</button>
         </div>
         
@@ -717,11 +728,54 @@ class InventoryManagerPantry extends HTMLElement {
           </div>
         </div>
       </div>
+      
+      <div class="modal" id="remove-modal">
+        <div class="modal-content">
+          <h2>➖ Retirer un produit</h2>
+          
+          <div class="camera-container" id="remove-camera-container" style="display:none;">
+            <video id="remove-camera-video" autoplay playsinline></video>
+            <div class="camera-overlay"></div>
+          </div>
+          <div class="camera-status" id="remove-camera-status"></div>
+          
+          <button class="btn-camera" id="btn-remove-start-camera">📸 Scanner avec la caméra</button>
+          
+          <div class="form-group">
+            <label>Code-barres</label>
+            <div class="barcode-input-row">
+              <input type="text" id="remove-barcode" placeholder="Scannez ou entrez un code-barres">
+              <button class="btn-small" id="btn-remove-lookup" title="Rechercher">🔍</button>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>Ou rechercher par nom</label>
+            <input type="text" id="remove-search-name" placeholder="Nom du produit..." autocomplete="off">
+          </div>
+          
+          <div id="remove-results-container" style="display:none;">
+            <h3 id="remove-results-title">Produits trouvés :</h3>
+            <div class="remove-results" id="remove-results-list"></div>
+            <div class="remove-count" id="remove-count"></div>
+          </div>
+          
+          <div id="remove-not-found" class="product-info not-found" style="display:none;">
+            ❌ Aucun produit correspondant trouvé dans l'inventaire.
+          </div>
+          
+          <div class="modal-actions">
+            <button class="btn-cancel" id="btn-remove-cancel">Annuler</button>
+            <button class="btn-delete" id="btn-remove-confirm" style="display:none;">🗑️ Retirer la sélection</button>
+          </div>
+        </div>
+      </div>
     `;
 
     // Event listeners
     this.shadowRoot.getElementById('btn-back').onclick = () => this._navigateHome();
     this.shadowRoot.getElementById('btn-add').onclick = () => this._openAddModal();
+    this.shadowRoot.getElementById('btn-remove').onclick = () => this._openRemoveModal();
     this.shadowRoot.getElementById('btn-manage-categories').onclick = () => this._openCategoriesModal();
     this.shadowRoot.getElementById('btn-manage-zones').onclick = () => this._openZonesModal();
     this.shadowRoot.getElementById('btn-scan-cancel').onclick = () => this._closeAddModal();
@@ -736,6 +790,23 @@ class InventoryManagerPantry extends HTMLElement {
     this.shadowRoot.getElementById('btn-add-zone').onclick = () => this._addZone();
     this.shadowRoot.getElementById('btn-reset-categories').onclick = () => this._resetCategories();
     this.shadowRoot.getElementById('btn-reset-zones').onclick = () => this._resetZones();
+    this.shadowRoot.getElementById('btn-remove-cancel').onclick = () => this._closeRemoveModal();
+    this.shadowRoot.getElementById('btn-remove-confirm').onclick = () => this._removeSelectedProducts();
+    this.shadowRoot.getElementById('btn-remove-start-camera').onclick = () => this._startRemoveCamera();
+    this.shadowRoot.getElementById('btn-remove-lookup').onclick = () => this._searchByBarcode();
+    
+    // Search by name in remove modal (debounced)
+    let removeSearchTimeout;
+    this.shadowRoot.getElementById('remove-search-name').addEventListener('input', (e) => {
+      const value = e.target.value;
+      clearTimeout(removeSearchTimeout);
+      removeSearchTimeout = setTimeout(() => {
+        this._searchByName(value);
+      }, 250);
+    });
+    
+    // Auto-search when barcode is entered in remove modal
+    this.shadowRoot.getElementById('remove-barcode').addEventListener('change', () => this._searchByBarcode());
     
     // Tri par colonnes
     this.shadowRoot.getElementById('sort-name').onclick = () => this._toggleSort('name');
@@ -794,7 +865,7 @@ class InventoryManagerPantry extends HTMLElement {
     this.shadowRoot.getElementById('scan-date').value = dateStr;
     
     // Allow closing modals by clicking on backdrop
-    ['add-modal', 'edit-modal', 'categories-modal', 'zones-modal'].forEach(modalId => {
+    ['add-modal', 'edit-modal', 'categories-modal', 'zones-modal', 'remove-modal'].forEach(modalId => {
       const modal = this.shadowRoot.getElementById(modalId);
       
       modal.addEventListener('click', (e) => {
@@ -808,6 +879,8 @@ class InventoryManagerPantry extends HTMLElement {
             this._closeCategoriesModal();
           } else if (modalId === 'zones-modal') {
             this._closeZonesModal();
+          } else if (modalId === 'remove-modal') {
+            this._closeRemoveModal();
           }
         }
       });
@@ -1365,6 +1438,64 @@ class InventoryManagerPantry extends HTMLElement {
       return;
     }
 
+    // Vérifier les doublons : produits avec le même nom (ou même code-barres)
+    const nameLower = name.toLowerCase();
+    const duplicates = this._localProducts.filter(p => {
+      if (barcode && p.barcode && p.barcode === barcode) return true;
+      return (p.name || '').toLowerCase() === nameLower;
+    });
+
+    if (duplicates.length > 0) {
+      const sameDateDupes = duplicates.filter(p => p.expiry_date === date);
+      
+      if (sameDateDupes.length > 0) {
+        const existing = sameDateDupes[0];
+        const existingInfo = `"${existing.name}" (${this._formatDateFR(existing.expiry_date)}, Qté: ${existing.quantity || 1})`;
+        const choice = confirm(
+          `⚠️ Un produit similaire existe déjà :\n${existingInfo}\n\n` +
+          `Voulez-vous ajouter ${qty} à la quantité existante ?\n\n` +
+          `• OK = Ajouter à l'existant (nouvelle qté: ${(existing.quantity || 1) + qty})\n` +
+          `• Annuler = Créer un nouveau produit séparé`
+        );
+        
+        if (choice) {
+          btnSave.disabled = true;
+          btnSave.textContent = '⏳ Mise à jour...';
+          try {
+            await this._hass.callService('inventory_manager', 'update_product', {
+              product_id: existing.id,
+              name: existing.name,
+              expiry_date: existing.expiry_date,
+              quantity: (existing.quantity || 1) + qty,
+              category: existing.category || category,
+              zone: existing.zone || zone
+            });
+            barcodeEl.value = '';
+            nameEl.value = '';
+            this.shadowRoot.getElementById('product-info-box').style.display = 'none';
+            this._closeAddModal();
+          } catch (err) {
+            console.error('Erreur mise à jour:', err);
+            alert('Erreur: ' + err.message);
+          } finally {
+            btnSave.disabled = false;
+            btnSave.textContent = 'Ajouter';
+          }
+          return;
+        }
+      } else {
+        const dupeList = duplicates.map(p => 
+          `  • ${p.name} — ${this._formatDateFR(p.expiry_date)} (Qté: ${p.quantity || 1})`
+        ).join('\n');
+        const proceed = confirm(
+          `ℹ️ Produit(s) similaire(s) déjà en stock :\n${dupeList}\n\n` +
+          `Le nouveau produit a une date de péremption différente (${this._formatDateFR(date)}).\n` +
+          `Voulez-vous l'ajouter comme un nouveau produit ?`
+        );
+        if (!proceed) return;
+      }
+    }
+
     // Désactiver le bouton pendant l'ajout
     btnSave.disabled = true;
     btnSave.textContent = '⏳ Ajout...';
@@ -1678,6 +1809,262 @@ class InventoryManagerPantry extends HTMLElement {
       if (editValue && this._categories.includes(editValue)) editCategory.value = editValue;
     }
   }
+
+  // ===== REMOVE MODAL FUNCTIONS =====
+
+  _openRemoveModal() {
+    const modal = this.shadowRoot.getElementById('remove-modal');
+    modal.classList.add('open');
+    this.shadowRoot.getElementById('remove-barcode').value = '';
+    this.shadowRoot.getElementById('remove-search-name').value = '';
+    this.shadowRoot.getElementById('remove-results-container').style.display = 'none';
+    this.shadowRoot.getElementById('remove-not-found').style.display = 'none';
+    this.shadowRoot.getElementById('btn-remove-confirm').style.display = 'none';
+    this.shadowRoot.getElementById('remove-camera-container').style.display = 'none';
+    this.shadowRoot.getElementById('remove-camera-status').textContent = '';
+    this.shadowRoot.getElementById('btn-remove-start-camera').style.display = 'flex';
+    this._removeSelectedIds = new Set();
+  }
+
+  _closeRemoveModal() {
+    this._stopRemoveCamera();
+    this.shadowRoot.getElementById('remove-modal').classList.remove('open');
+    this._removeSelectedIds = new Set();
+  }
+
+  _searchByBarcode() {
+    const barcode = this.shadowRoot.getElementById('remove-barcode').value.trim();
+    if (!barcode) return;
+    const results = this._localProducts.filter(p => p.barcode === barcode);
+    this._displayRemoveResults(results);
+  }
+
+  _searchByName(query) {
+    if (!query || query.trim().length < 2) {
+      this.shadowRoot.getElementById('remove-results-container').style.display = 'none';
+      this.shadowRoot.getElementById('remove-not-found').style.display = 'none';
+      this.shadowRoot.getElementById('btn-remove-confirm').style.display = 'none';
+      return;
+    }
+    const queryLower = query.toLowerCase().trim();
+    const results = this._localProducts.filter(p => {
+      const name = (p.name || '').toLowerCase();
+      return name.includes(queryLower);
+    });
+    this._displayRemoveResults(results);
+  }
+
+  _displayRemoveResults(results) {
+    const container = this.shadowRoot.getElementById('remove-results-container');
+    const list = this.shadowRoot.getElementById('remove-results-list');
+    const notFound = this.shadowRoot.getElementById('remove-not-found');
+    const confirmBtn = this.shadowRoot.getElementById('btn-remove-confirm');
+    const countEl = this.shadowRoot.getElementById('remove-count');
+    this._removeSelectedIds = new Set();
+    
+    if (results.length === 0) {
+      container.style.display = 'none';
+      notFound.style.display = 'block';
+      confirmBtn.style.display = 'none';
+      return;
+    }
+    
+    notFound.style.display = 'none';
+    container.style.display = 'block';
+    
+    const title = this.shadowRoot.getElementById('remove-results-title');
+    title.textContent = `Produits trouvés (${results.length}) :`;
+    
+    list.innerHTML = results.map(p => {
+      const days = p.days_until_expiry;
+      let statusIcon = '🟢';
+      if (days < 0) statusIcon = '🔴';
+      else if (days <= 3) statusIcon = '🟠';
+      else if (days <= 7) statusIcon = '🟡';
+      
+      return `<div class="remove-item" data-id="${p.id}">
+        <input type="checkbox" data-id="${p.id}">
+        <div class="remove-item-info">
+          <div class="remove-item-name">${p.name || 'Sans nom'}</div>
+          <div class="remove-item-details">
+            📂 ${p.category || 'Autre'} · 📍 ${p.zone || 'Zone 1'} · 📅 ${this._formatDateFR(p.expiry_date)} ${statusIcon} · Qté: ${p.quantity || 1}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    
+    countEl.textContent = '';
+    confirmBtn.style.display = 'none';
+    
+    list.querySelectorAll('.remove-item').forEach(item => {
+      item.onclick = (e) => {
+        const checkbox = item.querySelector('input[type=checkbox]');
+        if (e.target !== checkbox) checkbox.checked = !checkbox.checked;
+        const id = item.dataset.id;
+        if (checkbox.checked) {
+          this._removeSelectedIds.add(id);
+          item.classList.add('selected');
+        } else {
+          this._removeSelectedIds.delete(id);
+          item.classList.remove('selected');
+        }
+        this._updateRemoveCount();
+      };
+    });
+  }
+
+  _updateRemoveCount() {
+    const count = this._removeSelectedIds.size;
+    const countEl = this.shadowRoot.getElementById('remove-count');
+    const confirmBtn = this.shadowRoot.getElementById('btn-remove-confirm');
+    if (count > 0) {
+      countEl.textContent = `${count} produit(s) sélectionné(s)`;
+      confirmBtn.style.display = 'inline-flex';
+      confirmBtn.textContent = `🗑️ Retirer ${count} produit(s)`;
+    } else {
+      countEl.textContent = '';
+      confirmBtn.style.display = 'none';
+    }
+  }
+
+  async _removeSelectedProducts() {
+    const ids = [...this._removeSelectedIds];
+    if (ids.length === 0) return;
+    const msg = ids.length === 1
+      ? 'Retirer ce produit de l\'inventaire ?'
+      : `Retirer ces ${ids.length} produits de l'inventaire ?`;
+    if (!confirm(msg)) return;
+    
+    const confirmBtn = this.shadowRoot.getElementById('btn-remove-confirm');
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = '⏳ Suppression...';
+    
+    let errors = 0;
+    for (const id of ids) {
+      try {
+        await this._hass.callService('inventory_manager', 'remove_product', { product_id: String(id) });
+        this._localProducts = this._localProducts.filter(p => p.id !== id);
+        this._deletedIds.add(id);
+      } catch (err) {
+        console.error('Erreur suppression:', err);
+        errors++;
+      }
+    }
+    
+    const totalEl = this.shadowRoot.getElementById('total-count');
+    totalEl.textContent = this._localProducts.length;
+    this._renderProducts();
+    
+    if (errors > 0) alert(`${ids.length - errors} produit(s) retiré(s), ${errors} erreur(s).`);
+    this._closeRemoveModal();
+  }
+
+  async _startRemoveCamera() {
+    const container = this.shadowRoot.getElementById('remove-camera-container');
+    const video = this.shadowRoot.getElementById('remove-camera-video');
+    const status = this.shadowRoot.getElementById('remove-camera-status');
+    const startBtn = this.shadowRoot.getElementById('btn-remove-start-camera');
+    
+    try {
+      status.textContent = '📷 Accès à la caméra...';
+      startBtn.style.display = 'none';
+      this._removeStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+      });
+      video.srcObject = this._removeStream;
+      await video.play();
+      container.style.display = 'block';
+      status.textContent = '🎯 Pointez vers un code-barres...';
+      
+      this._removeScanCanvas = document.createElement('canvas');
+      this._removeScanCtx = this._removeScanCanvas.getContext('2d', { willReadFrequently: true });
+      
+      this._removeUseNativeDetector = false;
+      if ('BarcodeDetector' in window) {
+        try {
+          this._removeBarcodeDetector = new BarcodeDetector({
+            formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'qr_code']
+          });
+          this._removeUseNativeDetector = true;
+        } catch (e) { /* fallback */ }
+      }
+      
+      if (!this._removeUseNativeDetector) {
+        status.textContent = '📦 Chargement du scanner...';
+        await this._loadQuaggaLibrary();
+        if (window.Quagga) {
+          status.textContent = '🎯 Pointez vers un code-barres...';
+        } else {
+          status.textContent = '⚠️ Scanner non disponible - saisissez le code manuellement';
+          startBtn.style.display = 'flex';
+          return;
+        }
+      }
+      
+      this._removeScanInterval = setInterval(() => this._detectRemoveBarcode(), 300);
+    } catch (err) {
+      console.error('Erreur caméra:', err);
+      let errorMsg = err.message;
+      if (err.name === 'NotAllowedError') errorMsg = 'Accès caméra refusé. Vérifiez les permissions.';
+      else if (err.name === 'NotFoundError') errorMsg = 'Aucune caméra trouvée.';
+      status.textContent = '❌ ' + errorMsg;
+      startBtn.style.display = 'flex';
+    }
+  }
+
+  async _detectRemoveBarcode() {
+    const video = this.shadowRoot.getElementById('remove-camera-video');
+    const status = this.shadowRoot.getElementById('remove-camera-status');
+    const barcodeInput = this.shadowRoot.getElementById('remove-barcode');
+    if (!video || video.readyState !== video.HAVE_ENOUGH_DATA) return;
+    if (this._isRemoveScanning) return;
+    this._isRemoveScanning = true;
+    
+    try {
+      let code = null;
+      if (this._removeUseNativeDetector && this._removeBarcodeDetector) {
+        const barcodes = await this._removeBarcodeDetector.detect(video);
+        if (barcodes.length > 0) code = barcodes[0].rawValue;
+      } else if (window.Quagga) {
+        const canvas = this._removeScanCanvas;
+        const ctx = this._removeScanCtx;
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0);
+        const imageData = canvas.toDataURL('image/png');
+        const result = await new Promise((resolve) => {
+          Quagga.decodeSingle({
+            src: imageData, numOfWorkers: 0, locate: true,
+            decoder: { readers: ['ean_reader', 'ean_8_reader', 'upc_reader', 'upc_e_reader', 'code_128_reader', 'code_39_reader'] }
+          }, (res) => resolve(res?.codeResult?.code || null));
+        });
+        if (result) code = result;
+      }
+      
+      if (code) {
+        this._stopRemoveCamera();
+        barcodeInput.value = code;
+        status.textContent = '✅ Code détecté : ' + code;
+        if (navigator.vibrate) navigator.vibrate(200);
+        this._searchByBarcode();
+      }
+    } catch (err) {
+      console.error('Erreur détection:', err);
+    } finally {
+      this._isRemoveScanning = false;
+    }
+  }
+
+  _stopRemoveCamera() {
+    if (this._removeScanInterval) { clearInterval(this._removeScanInterval); this._removeScanInterval = null; }
+    if (this._removeStream) { this._removeStream.getTracks().forEach(track => track.stop()); this._removeStream = null; }
+    const container = this.shadowRoot.getElementById('remove-camera-container');
+    const startBtn = this.shadowRoot.getElementById('btn-remove-start-camera');
+    if (container) container.style.display = 'none';
+    if (startBtn) startBtn.style.display = 'flex';
+  }
+
+  // ===== END REMOVE MODAL FUNCTIONS =====
 
   _navigateHome() {
     this.dispatchEvent(new CustomEvent('navigate', {
