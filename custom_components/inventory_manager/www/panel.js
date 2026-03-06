@@ -1,12 +1,15 @@
-// Cache-busting: propagate version from module URL to sub-imports
+// Cache-busting: version from module URL query param
 const _v = new URL(import.meta.url).searchParams.get('v') || '';
 const _qs = _v ? `?v=${_v}` : '';
 
-// Import components with cache-busting
-await import(`./home.js${_qs}`);
-await import(`./freezer.js${_qs}`);
-await import(`./fridge.js${_qs}`);
-await import(`./pantry.js${_qs}`);
+const _moduleMap = {
+  home: `./home.js${_qs}`,
+  freezer: `./freezer.js${_qs}`,
+  fridge: `./fridge.js${_qs}`,
+  pantry: `./pantry.js${_qs}`,
+};
+
+const _loaded = {};
 
 class InventoryManagerPanel extends HTMLElement {
   constructor() {
@@ -53,7 +56,7 @@ class InventoryManagerPanel extends HTMLElement {
     });
   }
 
-  _updateView() {
+  async _updateView() {
     const container = this.shadowRoot.getElementById('view-container');
     if (!container) return;
 
@@ -61,19 +64,24 @@ class InventoryManagerPanel extends HTMLElement {
     container.innerHTML = '';
     this._currentComponent = null;
 
-    // Create and append appropriate component
-    let component;
-    if (this._currentView === 'home') {
-      component = document.createElement('inventory-manager-home');
-    } else if (this._currentView === 'freezer') {
-      component = document.createElement('inventory-manager-freezer');
-    } else if (this._currentView === 'fridge') {
-      component = document.createElement('inventory-manager-fridge');
-    } else if (this._currentView === 'pantry') {
-      component = document.createElement('inventory-manager-pantry');
+    // Lazy-load the module if not yet loaded
+    const mod = _moduleMap[this._currentView];
+    if (mod && !_loaded[this._currentView]) {
+      await import(mod);
+      _loaded[this._currentView] = true;
     }
 
-    if (component) {
+    // Create and append appropriate component
+    const tagMap = {
+      home: 'inventory-manager-home',
+      freezer: 'inventory-manager-freezer',
+      fridge: 'inventory-manager-fridge',
+      pantry: 'inventory-manager-pantry',
+    };
+
+    const tag = tagMap[this._currentView];
+    if (tag) {
+      const component = document.createElement(tag);
       if (this._hass) {
         component.hass = this._hass;
       }

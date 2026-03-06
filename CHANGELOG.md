@@ -5,6 +5,11 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.0.3] - 2026-03-07
+
+### 🐛 Corrections
+- **Page blanche corrigée** : Le chargement des modules JS avec `await import()` au top-level bloquait le rendu du panel dans Home Assistant. Passage au chargement lazy des composants (import dynamique à la demande dans `_updateView`) qui règle le problème et améliore aussi le temps de chargement initial
+
 ## [2.0.2] - 2026-03-07
 
 ### 🐛 Corrections
