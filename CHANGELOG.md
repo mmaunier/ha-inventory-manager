@@ -5,6 +5,11 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.0.2] - 2026-03-07
+
+### 🐛 Corrections
+- **Cache-busting automatique** : Les fichiers JS sont désormais chargés avec un paramètre de version (`?v=2.0.2`) pour forcer le rechargement après mise à jour, notamment sur l'app Android qui cachait agressivement les anciens fichiers
+
 ## [2.0.1] - 2026-03-06
 
 ### 🐛 Corrections

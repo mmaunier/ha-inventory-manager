@@ -1,8 +1,12 @@
-// Import components
-import './home.js';
-import './freezer.js';
-import './fridge.js';
-import './pantry.js';
+// Cache-busting: propagate version from module URL to sub-imports
+const _v = new URL(import.meta.url).searchParams.get('v') || '';
+const _qs = _v ? `?v=${_v}` : '';
+
+// Import components with cache-busting
+await import(`./home.js${_qs}`);
+await import(`./freezer.js${_qs}`);
+await import(`./fridge.js${_qs}`);
+await import(`./pantry.js${_qs}`);
 
 class InventoryManagerPanel extends HTMLElement {
   constructor() {

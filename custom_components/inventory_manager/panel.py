@@ -1,6 +1,7 @@
 """Panel for Inventory Manager."""
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 
@@ -13,8 +14,17 @@ PANEL_ICON = "mdi:fridge-industrial-outline"
 PANEL_NAME = "inventory-manager-panel"
 
 
+def _get_version() -> str:
+    """Read version from manifest.json for cache-busting."""
+    manifest_path = Path(__file__).parent / "manifest.json"
+    with open(manifest_path, encoding="utf-8") as f:
+        return json.load(f).get("version", "0")
+
+
 async def async_setup_panel(hass: HomeAssistant) -> None:
     """Set up the Inventory Manager panel."""
+    version = _get_version()
+
     # Register the panel
     hass.http.register_static_path(
         "/inventory_manager",
@@ -28,7 +38,7 @@ async def async_setup_panel(hass: HomeAssistant) -> None:
         frontend_url_path="inventory-manager",
         sidebar_title=PANEL_TITLE,
         sidebar_icon=PANEL_ICON,
-        module_url="/inventory_manager/panel.js",
+        module_url=f"/inventory_manager/panel.js?v={version}",
         embed_iframe=False,
         require_admin=False,
     )
