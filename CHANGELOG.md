@@ -5,6 +5,12 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.0.1] - 2026-03-06
+
+### 🐛 Corrections
+- **Caméra en HTTP local** : Ajout de la vérification de disponibilité de `navigator.mediaDevices` avant l'accès caméra. Affiche un message explicite indiquant que HTTPS est requis au lieu de crasher avec "Cannot read properties of undefined"
+- **Modale d'ajout scrollable** : Ajout de `max-height: 90vh` et `overflow-y: auto` sur les modales pour que le bouton "Ajouter" reste accessible après scan sur petits écrans (app Android)
+
 ## [2.0.0] - 2026-03-06
 
 ### ✨ Retrait de produits par scan / recherche

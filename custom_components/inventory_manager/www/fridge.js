@@ -385,6 +385,8 @@ class InventoryManagerFridge extends HTMLElement {
           padding: 24px;
           width: 90%;
           max-width: 400px;
+          max-height: 90vh;
+          overflow-y: auto;
         }
         .modal h2 { margin-top: 0; }
         .form-group { margin-bottom: 16px; }
@@ -1218,6 +1220,13 @@ class InventoryManagerFridge extends HTMLElement {
       status.textContent = '📷 Accès à la caméra...';
       startBtn.style.display = 'none';
       
+      // Vérifier que l'API caméra est disponible (nécessite HTTPS ou localhost)
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        status.textContent = '❌ Caméra non disponible. L\'accès à la caméra nécessite une connexion HTTPS. Utilisez le champ code-barres ci-dessous pour saisir le code manuellement.';
+        startBtn.style.display = 'flex';
+        return;
+      }
+      
       // Demander accès à la caméra (préférer caméra arrière)
       this._stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
@@ -1942,6 +1951,13 @@ class InventoryManagerFridge extends HTMLElement {
     try {
       status.textContent = '📷 Accès à la caméra...';
       startBtn.style.display = 'none';
+      
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        status.textContent = '❌ Caméra non disponible. L\'accès à la caméra nécessite une connexion HTTPS. Utilisez le champ code-barres ci-dessous pour saisir le code manuellement.';
+        startBtn.style.display = 'flex';
+        return;
+      }
+      
       this._removeStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
       });
