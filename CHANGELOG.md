@@ -5,6 +5,14 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.0.5] - 2026-03-08
+
+### 🐛 Corrections
+- **Scan retrait produit** : Les produits n'étaient pas détectés lors du scan pour retrait car le champ `barcode` n'était pas exposé dans les attributs du sensor HA. Corrigé dans `sensor.py`
+
+### ✨ Améliorations
+- **Choix de la quantité à retirer** : Quand un produit a une quantité > 1, un sélecteur permet de choisir combien retirer (décrémentation au lieu de suppression totale)
+
 ## [2.0.4] - 2026-03-07
 
 ### 🐛 Corrections

@@ -237,6 +237,10 @@ class InventoryManagerPantry extends HTMLElement {
         .remove-item-info { flex: 1; }
         .remove-item-name { font-weight: 600; font-size: 0.95em; }
         .remove-item-details { font-size: 0.8em; color: #666; margin-top: 4px; }
+        .remove-qty-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 0.85em; }
+        .remove-qty-row label { color: #333; font-weight: 500; }
+        .remove-qty-row input[type=number] { width: 60px; padding: 4px 6px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.95em; text-align: center; }
+        .remove-qty-row .qty-hint { color: #999; font-size: 0.85em; }
         .remove-count { text-align: center; padding: 8px; color: #f44336; font-weight: 600; margin: 8px 0; }
         .duplicate-info { background: #fff3e0; border: 1px solid #ff9800; border-radius: 8px; padding: 12px; margin-bottom: 16px; }
         .duplicate-info .existing-product { background: #f5f5f5; border-radius: 6px; padding: 8px; margin: 8px 0; font-size: 0.9em; }
@@ -1870,6 +1874,7 @@ class InventoryManagerPantry extends HTMLElement {
     const confirmBtn = this.shadowRoot.getElementById('btn-remove-confirm');
     const countEl = this.shadowRoot.getElementById('remove-count');
     this._removeSelectedIds = new Set();
+    this._removeQtyMap = {};
     
     if (results.length === 0) {
       container.style.display = 'none';
@@ -1890,14 +1895,24 @@ class InventoryManagerPantry extends HTMLElement {
       if (days < 0) statusIcon = '🔴';
       else if (days <= 3) statusIcon = '🟠';
       else if (days <= 7) statusIcon = '🟡';
+      const qty = p.quantity || 1;
       
-      return `<div class="remove-item" data-id="${p.id}">
+      const qtyRow = qty > 1
+        ? `<div class="remove-qty-row">
+            <label>Retirer :</label>
+            <input type="number" class="remove-qty-input" data-id="${p.id}" min="1" max="${qty}" value="${qty}">
+            <span class="qty-hint">/ ${qty}</span>
+          </div>`
+        : '';
+      
+      return `<div class="remove-item" data-id="${p.id}" data-qty="${qty}">
         <input type="checkbox" data-id="${p.id}">
         <div class="remove-item-info">
           <div class="remove-item-name">${p.name || 'Sans nom'}</div>
           <div class="remove-item-details">
-            📂 ${p.category || 'Autre'} · 📍 ${p.zone || 'Zone 1'} · 📅 ${this._formatDateFR(p.expiry_date)} ${statusIcon} · Qté: ${p.quantity || 1}
+            📂 ${p.category || 'Autre'} · 📍 ${p.zone || 'Zone 1'} · 📅 ${this._formatDateFR(p.expiry_date)} ${statusIcon} · Qté: ${qty}
           </div>
+          ${qtyRow}
         </div>
       </div>`;
     }).join('');
@@ -1907,18 +1922,37 @@ class InventoryManagerPantry extends HTMLElement {
     
     list.querySelectorAll('.remove-item').forEach(item => {
       item.onclick = (e) => {
+        if (e.target.classList.contains('remove-qty-input')) return;
         const checkbox = item.querySelector('input[type=checkbox]');
         if (e.target !== checkbox) checkbox.checked = !checkbox.checked;
         const id = item.dataset.id;
         if (checkbox.checked) {
           this._removeSelectedIds.add(id);
           item.classList.add('selected');
+          const qtyInput = item.querySelector('.remove-qty-input');
+          this._removeQtyMap[id] = qtyInput ? parseInt(qtyInput.value) : parseInt(item.dataset.qty);
         } else {
           this._removeSelectedIds.delete(id);
+          delete this._removeQtyMap[id];
           item.classList.remove('selected');
         }
         this._updateRemoveCount();
       };
+    });
+    
+    list.querySelectorAll('.remove-qty-input').forEach(input => {
+      input.addEventListener('change', (e) => {
+        const id = e.target.dataset.id;
+        const max = parseInt(e.target.max);
+        let val = parseInt(e.target.value) || 1;
+        if (val < 1) val = 1;
+        if (val > max) val = max;
+        e.target.value = val;
+        if (this._removeSelectedIds.has(id)) {
+          this._removeQtyMap[id] = val;
+        }
+      });
+      input.addEventListener('click', (e) => e.stopPropagation());
     });
   }
 
@@ -1951,9 +1985,20 @@ class InventoryManagerPantry extends HTMLElement {
     let errors = 0;
     for (const id of ids) {
       try {
-        await this._hass.callService('inventory_manager', 'remove_product', { product_id: String(id) });
-        this._localProducts = this._localProducts.filter(p => p.id !== id);
-        this._deletedIds.add(id);
+        const product = this._localProducts.find(p => p.id === id);
+        const currentQty = product ? (product.quantity || 1) : 1;
+        const removeQty = this._removeQtyMap[id] || currentQty;
+        
+        if (removeQty >= currentQty) {
+          await this._hass.callService('inventory_manager', 'remove_product', { product_id: String(id) });
+          this._localProducts = this._localProducts.filter(p => p.id !== id);
+          this._deletedIds.add(id);
+        } else {
+          const newQty = currentQty - removeQty;
+          await this._hass.callService('inventory_manager', 'update_product', { product_id: String(id), quantity: newQty });
+          const idx = this._localProducts.findIndex(p => p.id === id);
+          if (idx !== -1) this._localProducts[idx].quantity = newQty;
+        }
       } catch (err) {
         console.error('Erreur suppression:', err);
         errors++;
