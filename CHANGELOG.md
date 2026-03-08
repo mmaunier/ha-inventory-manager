@@ -5,6 +5,11 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.0.8] - 2026-03-08
+
+### 🐛 Corrections
+- **Compteur « bientôt périmé » corrigé** : Chaque compartiment (congélateur, réfrigérateur, réserves) affichait le compteur global de produits périmant bientôt au lieu de celui propre à l’emplacement. Le compteur est désormais calculé localement à partir des produits du compartiment concerné (produits expirant dans les 7 prochains jours).
+
 ## [2.0.7] - 2026-03-08
 
 ### 🐛 Corrections

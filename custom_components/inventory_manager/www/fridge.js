@@ -52,15 +52,15 @@ class InventoryManagerFridge extends HTMLElement {
     this._deletedIds = new Set([...this._deletedIds].filter(id => serverIds.has(id)));
     
     // Mettre à jour les stats
-    const expiringSensor = this._hass.states['sensor.gestionnaire_d_inventaire_produits_perimant_bientot'];
     const expiredSensor = this._hass.states['sensor.gestionnaire_d_inventaire_expired_fridge'];
+    const expiringCount = this._localProducts.filter(p => p.days_until_expiry >= 0 && p.days_until_expiry <= 7).length;
     
     const totalEl = this.shadowRoot.getElementById('total-count');
     const expiringEl = this.shadowRoot.getElementById('expiring-count');
     const expiredEl = this.shadowRoot.getElementById('expired-count');
     
     if (totalEl) totalEl.textContent = this._localProducts.length;
-    if (expiringEl) expiringEl.textContent = expiringSensor?.state || '0';
+    if (expiringEl) expiringEl.textContent = expiringCount;
     if (expiredEl) expiredEl.textContent = expiredSensor?.state || '0';
     
     // Mettre à jour le tableau
