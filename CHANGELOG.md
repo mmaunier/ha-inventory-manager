@@ -5,6 +5,12 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.1.2] - 2026-03-08
+
+### 🐛 Corrections
+- **Export corrigé (ERR_INVALID_RESPONSE)** : Le `window.location.href` utilisé précédemment naviguait hors de HA et provoquait `ERR_INVALID_RESPONSE`. Remplacé par un **iframe caché** qui charge l'URL signée en arrière-plan : le header `Content-Disposition: attachment` déclenche le download manager sans quitter la page.
+- **Robustesse de l'endpoint** : Ajout d'un sérialiseur JSON par défaut (datetime, UUID), gestion d'erreur avec traceback, content-type `application/octet-stream` pour forcer le comportement de téléchargement.
+
 ## [2.1.1] - 2026-03-08
 
 ### 🐛 Corrections

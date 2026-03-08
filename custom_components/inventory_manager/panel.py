@@ -69,6 +69,13 @@ class InventoryManagerJSView(HomeAssistantView):
         )
 
 
+def _json_default(obj: object) -> str:
+    """Fallback serializer for non-standard types (datetime, UUID, etc.)."""
+    if hasattr(obj, "isoformat"):
+        return obj.isoformat()
+    return str(obj)
+
+
 class InventoryManagerExportView(HomeAssistantView):
     """Serve inventory data as a downloadable JSON file.
 
@@ -81,52 +88,68 @@ class InventoryManagerExportView(HomeAssistantView):
     requires_auth = True
 
     async def get(self, request: web.Request) -> web.Response:
-        hass = request.app["hass"]
+        try:
+            hass = request.app["hass"]
 
-        # Find the coordinator from hass.data
-        coordinator = None
-        for entry_data in hass.data.get(DOMAIN, {}).values():
-            if isinstance(entry_data, dict) and "coordinator" in entry_data:
-                coordinator = entry_data["coordinator"]
-                break
+            # Find the coordinator from hass.data
+            coordinator = None
+            for entry_data in hass.data.get(DOMAIN, {}).values():
+                if isinstance(entry_data, dict) and "coordinator" in entry_data:
+                    coordinator = entry_data["coordinator"]
+                    break
 
-        if coordinator is None:
-            return web.Response(status=503, text="Coordinator not available")
+            if coordinator is None:
+                return web.Response(
+                    status=503,
+                    body="Coordinator not available",
+                    content_type="text/plain",
+                )
 
-        version = _get_version()
-        locations = {
-            STORAGE_FREEZER: "freezer",
-            STORAGE_FRIDGE: "fridge",
-            STORAGE_PANTRY: "pantry",
-        }
+            version = _get_version()
+            locations = {
+                STORAGE_FREEZER: "freezer",
+                STORAGE_FRIDGE: "fridge",
+                STORAGE_PANTRY: "pantry",
+            }
 
-        products_by_loc = {}
-        categories_by_loc = {}
-        zones_by_loc = {}
-        for key, label in locations.items():
-            products_by_loc[label] = coordinator.get_products_by_location(key)
-            categories_by_loc[label] = coordinator.get_categories(key)
-            zones_by_loc[label] = coordinator.get_zones(key)
+            products_by_loc = {}
+            categories_by_loc = {}
+            zones_by_loc = {}
+            for key, label in locations.items():
+                products_by_loc[label] = coordinator.get_products_by_location(key)
+                categories_by_loc[label] = coordinator.get_categories(key)
+                zones_by_loc[label] = coordinator.get_zones(key)
 
-        export_data = {
-            "version": version,
-            "export_date": datetime.now().isoformat(),
-            "products": products_by_loc,
-            "product_history": coordinator.product_history,
-            "categories": categories_by_loc,
-            "zones": zones_by_loc,
-        }
+            export_data = {
+                "version": version,
+                "export_date": datetime.now().isoformat(),
+                "products": products_by_loc,
+                "product_history": coordinator.product_history,
+                "categories": categories_by_loc,
+                "zones": zones_by_loc,
+            }
 
-        date = datetime.now().strftime("%Y-%m-%d")
-        filename = f"inventory_backup_{date}.json"
+            date_str = datetime.now().strftime("%Y-%m-%d")
+            filename = f"inventory_backup_{date_str}.json"
 
-        return web.Response(
-            body=json.dumps(export_data, ensure_ascii=False, indent=2),
-            content_type="application/json; charset=utf-8",
-            headers={
-                "Content-Disposition": f'attachment; filename="{filename}"',
-            },
-        )
+            body = json.dumps(
+                export_data, ensure_ascii=False, indent=2, default=_json_default
+            )
+
+            return web.Response(
+                body=body,
+                content_type="application/octet-stream",
+                headers={
+                    "Content-Disposition": f'attachment; filename="{filename}"',
+                },
+            )
+        except Exception:
+            import traceback
+            return web.Response(
+                status=500,
+                body=traceback.format_exc(),
+                content_type="text/plain",
+            )
 
 
 async def async_setup_panel(hass: HomeAssistant) -> None:

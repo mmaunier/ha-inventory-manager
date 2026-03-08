@@ -232,7 +232,7 @@ class InventoryManagerHome extends HTMLElement {
         </div>
         
         <div class="footer">
-          <p>Version 2.1.1 • Inventory Manager</p>
+          <p>Version 2.1.2 • Inventory Manager</p>
         </div>
       </div>
     `;
@@ -299,9 +299,13 @@ class InventoryManagerHome extends HTMLElement {
         path: '/inventory_manager/export',
       });
 
-      // La navigation vers une URL avec Content-Disposition: attachment
-      // déclenche le download manager Android — seule méthode fiable dans un WebView.
-      window.location.href = result.path;
+      // Iframe caché : déclenche le download manager Android via
+      // Content-Disposition: attachment SANS naviguer hors de HA.
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = result.path;
+      document.body.appendChild(iframe);
+      setTimeout(() => document.body.removeChild(iframe), 60000);
     } catch (err) {
       console.error('Erreur lors de l\'export:', err);
       alert(`❌ Erreur: ${err.message}`);
