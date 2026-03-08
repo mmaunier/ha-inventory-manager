@@ -232,7 +232,7 @@ class InventoryManagerHome extends HTMLElement {
         </div>
         
         <div class="footer">
-          <p>Version 2.1.0 • Inventory Manager</p>
+          <p>Version 2.1.1 • Inventory Manager</p>
         </div>
       </div>
     `;
@@ -293,60 +293,15 @@ class InventoryManagerHome extends HTMLElement {
 
   async _exportData() {
     try {
+      // Obtenir une URL signée (authentifiée, valide 30s) depuis HA
       const result = await this._hass.callWS({
-        type: 'execute_script',
-        sequence: [{
-          service: 'inventory_manager.export_data',
-          response_variable: 'export_result'
-        }]
+        type: 'auth/sign_path',
+        path: '/inventory_manager/export',
       });
-      
-      // Méthode alternative : récupérer les données directement depuis les sensors
-      const freezerSensor = this._hass.states['sensor.gestionnaire_d_inventaire_congelateur'];
-      const fridgeSensor = this._hass.states['sensor.gestionnaire_d_inventaire_refrigerateur'];
-      const pantrySensor = this._hass.states['sensor.gestionnaire_d_inventaire_reserves'];
-      const totalSensor = this._hass.states['sensor.gestionnaire_d_inventaire_total_produits'];
-      
-      const exportData = {
-        version: '2.1.0',
-        export_date: new Date().toISOString(),
-        products: {
-          freezer: freezerSensor?.attributes?.products || [],
-          fridge: fridgeSensor?.attributes?.products || [],
-          pantry: pantrySensor?.attributes?.products || []
-        },
-        product_history: totalSensor?.attributes?.product_history || [],
-        categories: {
-          freezer: freezerSensor?.attributes?.categories || [],
-          fridge: fridgeSensor?.attributes?.categories || [],
-          pantry: pantrySensor?.attributes?.categories || []
-        },
-        zones: {
-          freezer: freezerSensor?.attributes?.zones || [],
-          fridge: fridgeSensor?.attributes?.zones || [],
-          pantry: pantrySensor?.attributes?.zones || []
-        }
-      };
-      
-      const date = new Date().toISOString().split('T')[0];
-      const filename = `inventory_backup_${date}.json`;
-      const jsonStr = JSON.stringify(exportData, null, 2);
-      const blob = new Blob([jsonStr], { type: 'application/json' });
 
-      // Sur Android WebView, <a download> ne fonctionne pas.
-      // On utilise l'API Web Share (partage natif) si disponible.
-      if (navigator.canShare && navigator.canShare({ files: [new File([blob], filename)] })) {
-        const file = new File([blob], filename, { type: 'application/json' });
-        await navigator.share({ files: [file], title: 'Inventory Backup' });
-      } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        a.click();
-        URL.revokeObjectURL(url);
-      }
-      alert('✅ Export réussi !');
+      // La navigation vers une URL avec Content-Disposition: attachment
+      // déclenche le download manager Android — seule méthode fiable dans un WebView.
+      window.location.href = result.path;
     } catch (err) {
       console.error('Erreur lors de l\'export:', err);
       alert(`❌ Erreur: ${err.message}`);

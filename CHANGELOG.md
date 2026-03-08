@@ -5,6 +5,11 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.1.1] - 2026-03-08
+
+### 🐛 Corrections
+- **Export fonctionnel sur Android** : Ni `<a download>` ni `navigator.share()` ne fonctionnent dans le WebView de l’app companion Android. L’export est désormais généré **côté serveur** via un endpoint HTTP (`/inventory_manager/export`) qui renvoie le fichier avec un header `Content-Disposition: attachment`. C’est la méthode standard de téléchargement dans les WebViews, interceptée par le download manager Android. L’authentification est gérée via les signed URLs de HA.
+
 ## [2.1.0] - 2026-03-08
 
 ### 🐛 Corrections
