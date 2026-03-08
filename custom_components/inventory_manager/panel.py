@@ -64,7 +64,7 @@ class InventoryManagerJSView(HomeAssistantView):
 
         return web.Response(
             body=filepath.read_bytes(),
-            content_type="application/javascript; charset=utf-8",
+            content_type="application/javascript",
             headers=NO_CACHE_HEADERS,
         )
 
@@ -137,7 +137,7 @@ class InventoryManagerExportView(HomeAssistantView):
             )
 
             return web.Response(
-                body=body,
+                body=body.encode("utf-8"),
                 content_type="application/octet-stream",
                 headers={
                     "Content-Disposition": f'attachment; filename="{filename}"',

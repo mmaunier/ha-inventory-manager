@@ -5,6 +5,12 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.1.4] - 2026-03-09
+
+### 🐛 Corrections
+- **Fix 500 Internal Server Error sur panel.js** : `content_type="application/javascript; charset=utf-8"` provoquait un `ValueError` dans aiohttp 3.9+ (HA récent). Le charset doit être omis du paramètre `content_type`. Corrigé en `content_type="application/javascript"`.
+- **Fix body export** : `json.dumps()` retourne un `str`, mais `web.Response(body=...)` attend des `bytes`. Ajout de `.encode("utf-8")`.
+
 ## [2.1.3] - 2026-03-08
 
 ### 🐛 Corrections majeures

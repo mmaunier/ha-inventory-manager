@@ -232,7 +232,7 @@ class InventoryManagerHome extends HTMLElement {
         </div>
         
         <div class="footer">
-          <p>Version 2.1.3 • Inventory Manager</p>
+          <p>Version 2.1.4 • Inventory Manager</p>
         </div>
       </div>
     `;
@@ -300,7 +300,7 @@ class InventoryManagerHome extends HTMLElement {
       const totalSensor = this._hass.states['sensor.gestionnaire_d_inventaire_total_produits'];
 
       const exportData = {
-        version: '2.1.3',
+        version: '2.1.4',
         export_date: new Date().toISOString(),
         products: {
           freezer: freezerSensor?.attributes?.products || [],
