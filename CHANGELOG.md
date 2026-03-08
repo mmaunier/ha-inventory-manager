@@ -5,6 +5,14 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.1.5] - 2026-03-09
+
+### 🐛 Corrections
+- **Fix extension .bin sur Android** : L'export était téléchargé avec l'extension `.bin` au lieu de `.json` car `content_type` était `application/octet-stream`. Android déduit l'extension du MIME type. Corrigé en `application/json` (le header `Content-Disposition: attachment` force toujours le téléchargement).
+
+### 📝 Documentation
+- **README** : Ajout d'une section Dépannage pour la gestion du cache sur l'app Companion Android (Paramètres → Application Companion → Dépannage → Réinitialiser le cache).
+
 ## [2.1.4] - 2026-03-09
 
 ### 🐛 Corrections

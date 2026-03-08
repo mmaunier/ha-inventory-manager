@@ -138,7 +138,7 @@ class InventoryManagerExportView(HomeAssistantView):
 
             return web.Response(
                 body=body.encode("utf-8"),
-                content_type="application/octet-stream",
+                content_type="application/json",
                 headers={
                     "Content-Disposition": f'attachment; filename="{filename}"',
                 },

@@ -225,6 +225,16 @@ La catégorie est détectée automatiquement depuis Open Food Facts lors du scan
 
 ## 🔧 Dépannage
 
+### 📱 Cache sur Android (App Companion)
+
+Après une mise à jour de l'intégration, il peut être nécessaire de vider le cache de l'application Android pour voir les changements :
+
+1. Ouvrez **Paramètres** sur votre téléphone
+2. Allez dans **Applications** → **Application Companion** (Home Assistant)
+3. Allez dans **Dépannage**
+4. Appuyez sur **Réinitialiser le cache de l'interface utilisateur**
+5. Relancez l'application
+
 ### Le produit n'est pas trouvé dans Open Food Facts
 
 Le champ nom restera vide. Saisissez le nom manuellement.
