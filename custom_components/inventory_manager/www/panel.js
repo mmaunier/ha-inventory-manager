@@ -1,12 +1,9 @@
-// Cache-busting: version from module URL query param
-const _v = new URL(import.meta.url).searchParams.get('v') || '';
-const _qs = _v ? `?v=${_v}` : '';
-
+// Sub-components are lazy-loaded on first navigation
 const _moduleMap = {
-  home: `./home.js${_qs}`,
-  freezer: `./freezer.js${_qs}`,
-  fridge: `./fridge.js${_qs}`,
-  pantry: `./pantry.js${_qs}`,
+  home: './home.js',
+  freezer: './freezer.js',
+  fridge: './fridge.js',
+  pantry: './pantry.js',
 };
 
 const _loaded = {};

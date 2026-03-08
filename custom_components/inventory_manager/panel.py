@@ -25,9 +25,11 @@ async def async_setup_panel(hass: HomeAssistant) -> None:
     """Set up the Inventory Manager panel."""
     version = _get_version()
 
-    # Register the panel
+    # Register with versioned path for cache-busting
+    # Android WebView ignores query strings for caching,
+    # so we use a versioned URL path instead
     hass.http.register_static_path(
-        "/inventory_manager",
+        f"/inventory_manager/{version}",
         str(Path(__file__).parent / "www"),
         cache_headers=False,
     )
@@ -38,7 +40,7 @@ async def async_setup_panel(hass: HomeAssistant) -> None:
         frontend_url_path="inventory-manager",
         sidebar_title=PANEL_TITLE,
         sidebar_icon=PANEL_ICON,
-        module_url=f"/inventory_manager/panel.js?v={version}",
+        module_url=f"/inventory_manager/{version}/panel.js",
         embed_iframe=False,
         require_admin=False,
     )

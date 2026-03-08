@@ -5,6 +5,11 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.0.6] - 2026-03-08
+
+### 🐛 Corrections
+- **Cache mobile résolu définitivement** : Le cache-busting par query string (`?v=x.y.z`) était ignoré par le WebView Android. Les fichiers JS sont désormais servis depuis un chemin URL versionné (`/inventory_manager/2.0.6/panel.js`). Plus aucune réinitialisation manuelle du cache nécessaire après mise à jour.
+
 ## [2.0.5] - 2026-03-08
 
 ### 🐛 Corrections
