@@ -232,7 +232,7 @@ class InventoryManagerHome extends HTMLElement {
         </div>
         
         <div class="footer">
-          <p>Version 2.0.8 • Inventory Manager</p>
+          <p>Version 2.0.9 • Inventory Manager</p>
         </div>
       </div>
     `;
@@ -308,7 +308,7 @@ class InventoryManagerHome extends HTMLElement {
       const totalSensor = this._hass.states['sensor.gestionnaire_d_inventaire_total_produits'];
       
       const exportData = {
-        version: '2.0.8',
+        version: '2.0.9',
         export_date: new Date().toISOString(),
         products: {
           freezer: freezerSensor?.attributes?.products || [],
@@ -328,14 +328,24 @@ class InventoryManagerHome extends HTMLElement {
         }
       };
       
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
       const date = new Date().toISOString().split('T')[0];
-      a.download = `inventory_backup_${date}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
+      const filename = `inventory_backup_${date}.json`;
+      const jsonStr = JSON.stringify(exportData, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+
+      // Sur Android WebView, <a download> ne fonctionne pas.
+      // On utilise l'API Web Share (partage natif) si disponible.
+      if (navigator.canShare && navigator.canShare({ files: [new File([blob], filename)] })) {
+        const file = new File([blob], filename, { type: 'application/json' });
+        await navigator.share({ files: [file], title: 'Inventory Backup' });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
       alert('✅ Export réussi !');
     } catch (err) {
       console.error('Erreur lors de l\'export:', err);

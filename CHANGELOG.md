@@ -5,6 +5,11 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.0.9] - 2026-03-08
+
+### 🐛 Corrections
+- **Export impossible sur Android** : Le téléchargement via `<a download>` était ignoré par le WebView de l’app companion Android. L’export utilise désormais l’API Web Share (partage natif Android) quand elle est disponible, avec fallback sur la méthode classique pour les navigateurs desktop.
+
 ## [2.0.8] - 2026-03-08
 
 ### 🐛 Corrections
