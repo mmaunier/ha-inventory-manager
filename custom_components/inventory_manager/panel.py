@@ -21,16 +21,30 @@ NO_CACHE_HEADERS = {
 }
 
 
-class InventoryManagerJSView(HomeAssistantView):
-    """Serve JS files with no-store headers to defeat aggressive WebView caching."""
+def _get_version() -> str:
+    """Read version from manifest.json."""
+    manifest = Path(__file__).parent / "manifest.json"
+    with open(manifest, encoding="utf-8") as fh:
+        return json.load(fh).get("version", "0")
 
-    url = "/inventory_manager/{requested_file:.+}"
+
+class InventoryManagerJSView(HomeAssistantView):
+    """Serve JS files with versioned URL + no-store headers.
+
+    URL pattern: /inventory_manager/v{version}/{file}
+    The version segment is only used for cache-busting (forces service-worker
+    and browser cache miss on every upgrade). The actual file is resolved from
+    the www/ directory ignoring the version prefix.
+    """
+
+    url = "/inventory_manager/v{version}/{requested_file:.+}"
     name = "inventory_manager_js"
     requires_auth = False
 
     async def get(
-        self, request: web.Request, requested_file: str
+        self, request: web.Request, version: str, requested_file: str
     ) -> web.Response:
+        # version is intentionally ignored — only used for cache-busting
         safe_path = Path(requested_file)
         if ".." in safe_path.parts:
             return web.Response(status=403)
@@ -54,6 +68,8 @@ class InventoryManagerJSView(HomeAssistantView):
 
 async def async_setup_panel(hass: HomeAssistant) -> None:
     """Set up the Inventory Manager panel."""
+    version = _get_version()
+
     hass.http.register_view(InventoryManagerJSView())
 
     await panel_custom.async_register_panel(
@@ -62,7 +78,7 @@ async def async_setup_panel(hass: HomeAssistant) -> None:
         frontend_url_path="inventory-manager",
         sidebar_title=PANEL_TITLE,
         sidebar_icon=PANEL_ICON,
-        module_url="/inventory_manager/panel.js",
+        module_url=f"/inventory_manager/v{version}/panel.js",
         embed_iframe=False,
         require_admin=False,
     )

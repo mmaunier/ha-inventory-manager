@@ -5,6 +5,15 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.1.0] - 2026-03-08
+
+### 🐛 Corrections
+- **Cache définitivement résolu (service worker + WebView)** : Les headers `no-store` seuls ne suffisaient pas car le service worker du frontend HA intercepte les requêtes avant qu’elles n’atteignent le serveur. La solution combine désormais :
+  - **URL versionnée** (`/inventory_manager/v2.1.0/panel.js`) → le service worker n’a pas de cache pour la nouvelle URL → requête réseau obligatoire
+  - **Headers no-store** → le serveur empêche la mise en cache de la nouvelle URL
+  - **Vue HTTP custom** → le préfixe version est ignoré côté serveur (sert toujours les fichiers courants)
+  - Les imports relatifs (`./home.js`, etc.) héritent du chemin versionné automatiquement
+
 ## [2.0.9] - 2026-03-08
 
 ### 🐛 Corrections
