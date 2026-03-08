@@ -5,6 +5,18 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.1.3] - 2026-03-08
+
+### 🐛 Corrections majeures
+- **Cause racine identifiée et corrigée** : `__init__.py` enregistrait un chemin statique (`async_register_static_paths`) qui interceptait TOUTES les requêtes sous `/inventory_manager/*` avant que nos vues custom HTTP ne soient atteintes. Ceci était la cause de :
+  - **Cache** : `panel.py` n’était jamais appelé → les URLs versionnées et les headers no-store n’étaient jamais appliqués
+  - **Export 404** : la route `/inventory_manager/export` n’était jamais enregistrée
+- **Correctif** : `__init__.py` délègue désormais entièrement à `panel.py` qui gère :
+  - Les fichiers JS via `HomeAssistantView` (URL versionnée + headers no-store)
+  - L’endpoint d’export avec `Content-Disposition: attachment`
+- **Export dual-mode** : navigateur desktop (→ `<a download>` blob), Android WebView (→ endpoint serveur via iframe + signed URL)
+- **Garde de ré-enregistrement** des vues HTTP pour éviter les erreurs au rechargement de l’intégration
+
 ## [2.1.2] - 2026-03-08
 
 ### 🐛 Corrections

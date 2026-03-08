@@ -232,7 +232,7 @@ class InventoryManagerHome extends HTMLElement {
         </div>
         
         <div class="footer">
-          <p>Version 2.1.2 • Inventory Manager</p>
+          <p>Version 2.1.3 • Inventory Manager</p>
         </div>
       </div>
     `;
@@ -293,19 +293,76 @@ class InventoryManagerHome extends HTMLElement {
 
   async _exportData() {
     try {
-      // Obtenir une URL signée (authentifiée, valide 30s) depuis HA
-      const result = await this._hass.callWS({
-        type: 'auth/sign_path',
-        path: '/inventory_manager/export',
-      });
+      // Construire les données d'export depuis les sensors HA
+      const freezerSensor = this._hass.states['sensor.gestionnaire_d_inventaire_congelateur'];
+      const fridgeSensor = this._hass.states['sensor.gestionnaire_d_inventaire_refrigerateur'];
+      const pantrySensor = this._hass.states['sensor.gestionnaire_d_inventaire_reserves'];
+      const totalSensor = this._hass.states['sensor.gestionnaire_d_inventaire_total_produits'];
 
-      // Iframe caché : déclenche le download manager Android via
-      // Content-Disposition: attachment SANS naviguer hors de HA.
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      iframe.src = result.path;
-      document.body.appendChild(iframe);
-      setTimeout(() => document.body.removeChild(iframe), 60000);
+      const exportData = {
+        version: '2.1.3',
+        export_date: new Date().toISOString(),
+        products: {
+          freezer: freezerSensor?.attributes?.products || [],
+          fridge: fridgeSensor?.attributes?.products || [],
+          pantry: pantrySensor?.attributes?.products || []
+        },
+        product_history: totalSensor?.attributes?.product_history || [],
+        categories: {
+          freezer: freezerSensor?.attributes?.categories || [],
+          fridge: fridgeSensor?.attributes?.categories || [],
+          pantry: pantrySensor?.attributes?.categories || []
+        },
+        zones: {
+          freezer: freezerSensor?.attributes?.zones || [],
+          fridge: fridgeSensor?.attributes?.zones || [],
+          pantry: pantrySensor?.attributes?.zones || []
+        }
+      };
+
+      const date = new Date().toISOString().split('T')[0];
+      const filename = `inventory_backup_${date}.json`;
+      const jsonStr = JSON.stringify(exportData, null, 2);
+
+      // Détection Android WebView (companion app)
+      const isAndroid = /Android/.test(navigator.userAgent);
+
+      if (isAndroid) {
+        // Android WebView : <a download> ne fonctionne pas.
+        // On utilise l'endpoint serveur via iframe + Content-Disposition: attachment
+        // qui déclenche le download manager natif Android.
+        try {
+          const result = await this._hass.callWS({
+            type: 'auth/sign_path',
+            path: '/inventory_manager/export',
+          });
+          const iframe = document.createElement('iframe');
+          iframe.style.display = 'none';
+          iframe.src = result.path;
+          document.body.appendChild(iframe);
+          setTimeout(() => { try { document.body.removeChild(iframe); } catch(e) {} }, 60000);
+          alert('✅ Export lancé ! Vérifiez vos téléchargements.');
+        } catch (serverErr) {
+          // Fallback : copier dans le presse-papier
+          await navigator.clipboard.writeText(jsonStr);
+          alert('📋 Export copié dans le presse-papier.\nCollez dans un fichier .json pour sauvegarder.');
+        }
+      } else {
+        // Navigateur desktop : <a download> fonctionne
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, 1000);
+        alert('✅ Export réussi !');
+      }
     } catch (err) {
       console.error('Erreur lors de l\'export:', err);
       alert(`❌ Erreur: ${err.message}`);

@@ -4,8 +4,6 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from homeassistant.components import frontend
-from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
@@ -14,6 +12,7 @@ from homeassistant.helpers import config_validation as cv
 from .const import DOMAIN
 from .const import DEFAULT_CATEGORIES, DEFAULT_ZONES, STORAGE_FREEZER, STORAGE_FRIDGE, STORAGE_PANTRY
 from .coordinator import InventoryCoordinator
+from .panel import async_setup_panel, async_remove_panel
 from .services import async_setup_services, async_unload_services
 
 _LOGGER = logging.getLogger(__name__)
@@ -91,36 +90,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await async_setup_services(hass, coordinator)
 
     # Register panel (web interface)
-    await _async_register_panel(hass)
+    await async_setup_panel(hass)
 
     _LOGGER.info("Inventory Manager integration setup complete")
     return True
-
-
-async def _async_register_panel(hass: HomeAssistant) -> None:
-    """Register the Inventory Manager panel."""
-    www_path = Path(__file__).parent / "www"
-    
-    # Register static path for panel files
-    await hass.http.async_register_static_paths([
-        StaticPathConfig("/inventory_manager", str(www_path), cache_headers=False)
-    ])
-    
-    # Register the panel in sidebar
-    frontend.async_register_built_in_panel(
-        hass,
-        component_name="custom",
-        sidebar_title="Inventaire",
-        sidebar_icon="mdi:fridge-industrial-outline",
-        frontend_url_path="inventory-manager",
-        config={
-            "_panel_custom": {
-                "name": "inventory-manager-panel",
-                "module_url": "/inventory_manager/panel.js",
-            }
-        },
-        require_admin=False,
-    )
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -133,7 +106,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await async_unload_services(hass)
         
         # Remove panel
-        frontend.async_remove_panel(hass, "inventory-manager")
+        await async_remove_panel(hass)
         
         # Remove data
         hass.data[DOMAIN].pop(entry.entry_id)

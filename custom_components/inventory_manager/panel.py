@@ -152,12 +152,18 @@ class InventoryManagerExportView(HomeAssistantView):
             )
 
 
+_VIEWS_REGISTERED_KEY = DOMAIN + "_views_registered"
+
+
 async def async_setup_panel(hass: HomeAssistant) -> None:
     """Set up the Inventory Manager panel."""
     version = _get_version()
 
-    hass.http.register_view(InventoryManagerJSView())
-    hass.http.register_view(InventoryManagerExportView())
+    # Only register HTTP views once (survives integration reloads)
+    if _VIEWS_REGISTERED_KEY not in hass.data:
+        hass.http.register_view(InventoryManagerJSView())
+        hass.http.register_view(InventoryManagerExportView())
+        hass.data[_VIEWS_REGISTERED_KEY] = True
 
     await panel_custom.async_register_panel(
         hass,
@@ -173,4 +179,7 @@ async def async_setup_panel(hass: HomeAssistant) -> None:
 
 async def async_remove_panel(hass: HomeAssistant) -> None:
     """Remove the Inventory Manager panel."""
-    hass.components.frontend.async_remove_panel("inventory-manager")
+    try:
+        hass.components.frontend.async_remove_panel("inventory-manager")
+    except Exception:  # noqa: BLE001
+        pass
