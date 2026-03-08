@@ -5,6 +5,11 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.0.7] - 2026-03-08
+
+### 🐛 Corrections
+- **Cache Android résolu (no-store)** : Remplacement de `register_static_path` par un `HomeAssistantView` personnalisé qui sert les fichiers JS avec des headers HTTP `Cache-Control: no-store`. Le WebView Android ne met plus en cache les fichiers du panel — les mises à jour sont désormais appliquées automatiquement sans réinitialisation manuelle du cache.
+
 ## [2.0.6] - 2026-03-08
 
 ### 🐛 Corrections

@@ -2,37 +2,59 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 
+from aiohttp import web
 from homeassistant.components import panel_custom
+from homeassistant.components.http import HomeAssistantView
 from homeassistant.core import HomeAssistant
 
-PANEL_URL = "/api/panel_custom/inventory_manager"
 PANEL_TITLE = "Inventaire"
 PANEL_ICON = "mdi:fridge-industrial-outline"
-PANEL_NAME = "inventory-manager-panel"
+
+_WWW_PATH = Path(__file__).parent / "www"
+
+NO_CACHE_HEADERS = {
+    "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+    "Pragma": "no-cache",
+    "Expires": "0",
+}
 
 
-def _get_version() -> str:
-    """Read version from manifest.json for cache-busting."""
-    manifest_path = Path(__file__).parent / "manifest.json"
-    with open(manifest_path, encoding="utf-8") as f:
-        return json.load(f).get("version", "0")
+class InventoryManagerJSView(HomeAssistantView):
+    """Serve JS files with no-store headers to defeat aggressive WebView caching."""
+
+    url = "/inventory_manager/{requested_file:.+}"
+    name = "inventory_manager_js"
+    requires_auth = False
+
+    async def get(
+        self, request: web.Request, requested_file: str
+    ) -> web.Response:
+        safe_path = Path(requested_file)
+        if ".." in safe_path.parts:
+            return web.Response(status=403)
+
+        filepath = _WWW_PATH / safe_path
+        if filepath.suffix != ".js" or not filepath.is_file():
+            return web.Response(status=404)
+
+        # Ensure resolved path stays within www/
+        try:
+            filepath.resolve().relative_to(_WWW_PATH.resolve())
+        except ValueError:
+            return web.Response(status=403)
+
+        return web.Response(
+            body=filepath.read_bytes(),
+            content_type="application/javascript; charset=utf-8",
+            headers=NO_CACHE_HEADERS,
+        )
 
 
 async def async_setup_panel(hass: HomeAssistant) -> None:
     """Set up the Inventory Manager panel."""
-    version = _get_version()
-
-    # Register with versioned path for cache-busting
-    # Android WebView ignores query strings for caching,
-    # so we use a versioned URL path instead
-    hass.http.register_static_path(
-        f"/inventory_manager/{version}",
-        str(Path(__file__).parent / "www"),
-        cache_headers=False,
-    )
+    hass.http.register_view(InventoryManagerJSView())
 
     await panel_custom.async_register_panel(
         hass,
@@ -40,7 +62,7 @@ async def async_setup_panel(hass: HomeAssistant) -> None:
         frontend_url_path="inventory-manager",
         sidebar_title=PANEL_TITLE,
         sidebar_icon=PANEL_ICON,
-        module_url=f"/inventory_manager/{version}/panel.js",
+        module_url="/inventory_manager/panel.js",
         embed_iframe=False,
         require_admin=False,
     )
