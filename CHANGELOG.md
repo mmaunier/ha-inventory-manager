@@ -5,6 +5,11 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.1.6] - 2026-03-21
+
+### 🐛 Corrections
+- **Fix bouton "Retirer" grisé après une suppression** : Après avoir retiré un produit, le bouton de confirmation restait `disabled = true` car il n'était jamais réinitialisé à la réouverture du modal. Corrigé dans les 3 emplacements (congélateur, réfrigérateur, réserve).
+
 ## [2.1.5] - 2026-03-09
 
 ### 🐛 Corrections

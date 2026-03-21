@@ -1806,7 +1806,9 @@ class InventoryManagerFridge extends HTMLElement {
     this.shadowRoot.getElementById('remove-search-name').value = '';
     this.shadowRoot.getElementById('remove-results-container').style.display = 'none';
     this.shadowRoot.getElementById('remove-not-found').style.display = 'none';
-    this.shadowRoot.getElementById('btn-remove-confirm').style.display = 'none';
+    const confirmBtn = this.shadowRoot.getElementById('btn-remove-confirm');
+    confirmBtn.style.display = 'none';
+    confirmBtn.disabled = false;
     this.shadowRoot.getElementById('remove-camera-container').style.display = 'none';
     this.shadowRoot.getElementById('remove-camera-status').textContent = '';
     this.shadowRoot.getElementById('btn-remove-start-camera').style.display = 'flex';
