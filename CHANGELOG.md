@@ -5,6 +5,19 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.2.0] - 2026-03-22
+
+### ✨ Nouveautés
+- **Date de péremption optionnelle (Réserve)** : Ajout d'une case à cocher "Périssable" à côté du sélecteur de date dans les modals d'ajout et de modification de la Réserve. Permet de stocker des produits non périssables (produits ménagers, hygiène, papeterie…) sans date d'expiration.
+
+### 🛡️ Résilience
+- **Congélateur & Réfrigérateur** : Gestion robuste des produits sans date d'expiration dans les tableaux et les modals de retrait (affichage `➖ N/A` au lieu d'un crash).
+- **Fix crash sensor** : `sensor.py` pouvait crasher avec `TypeError` si `expiry_date` était `None` (la clé existait avec valeur `None`, donc `p.get("expiry_date", "")` retournait `None` et non `""`). Corrigé avec `p.get("expiry_date") or ""` et `except (ValueError, TypeError)`.
+
+### 🔧 Backend
+- **Services** : `expiry_date` désormais `vol.Optional` dans les schémas `add_product` et `scan_product`.
+- **Coordinator** : Signatures `async_add_product()` et `async_scan_and_add_product()` acceptent `expiry_date: str | None = None`. `async_update_product()` gère la suppression de date (stocke `None`, retire `days_until_expiry`).
+
 ## [2.1.6] - 2026-03-21
 
 ### 🐛 Corrections

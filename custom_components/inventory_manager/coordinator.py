@@ -468,7 +468,7 @@ class InventoryCoordinator(DataUpdateCoordinator):
     async def async_add_product(
         self,
         name: str,
-        expiry_date: str,
+        expiry_date: str | None = None,
         location: str = STORAGE_FREEZER,
         quantity: int = 1,
         barcode: str | None = None,
@@ -531,7 +531,7 @@ class InventoryCoordinator(DataUpdateCoordinator):
     async def async_scan_and_add_product(
         self,
         barcode: str,
-        expiry_date: str,
+        expiry_date: str | None = None,
         location: str = STORAGE_FREEZER,
         quantity: int = 1,
     ) -> dict[str, Any]:
@@ -657,14 +657,17 @@ class InventoryCoordinator(DataUpdateCoordinator):
             product["name"] = name
         
         if expiry_date is not None:
-            product["expiry_date"] = expiry_date
+            product["expiry_date"] = expiry_date if expiry_date else None
             # Recalculate days until expiry
-            now = dt_util.now().date()
-            try:
-                expiry = datetime.fromisoformat(expiry_date).date()
-                product["days_until_expiry"] = (expiry - now).days
-            except ValueError:
-                pass
+            if expiry_date:
+                now = dt_util.now().date()
+                try:
+                    expiry = datetime.fromisoformat(expiry_date).date()
+                    product["days_until_expiry"] = (expiry - now).days
+                except ValueError:
+                    product.pop("days_until_expiry", None)
+            else:
+                product.pop("days_until_expiry", None)
         
         if quantity is not None:
             if quantity <= 0:

@@ -51,7 +51,7 @@ _LOGGER = logging.getLogger(__name__)
 SCAN_PRODUCT_SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_BARCODE): cv.string,
-        vol.Required(ATTR_EXPIRY_DATE): cv.string,
+        vol.Optional(ATTR_EXPIRY_DATE): cv.string,
         vol.Optional(ATTR_LOCATION, default=STORAGE_FREEZER): vol.In(
             [STORAGE_FREEZER, STORAGE_FRIDGE, STORAGE_PANTRY]
         ),
@@ -73,7 +73,7 @@ LOOKUP_PRODUCT_SCHEMA = vol.Schema(
 ADD_PRODUCT_SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_NAME): cv.string,
-        vol.Required(ATTR_EXPIRY_DATE): cv.string,
+        vol.Optional(ATTR_EXPIRY_DATE): cv.string,
         vol.Optional(ATTR_LOCATION, default=STORAGE_FREEZER): vol.In(
             [STORAGE_FREEZER, STORAGE_FRIDGE, STORAGE_PANTRY]
         ),
@@ -197,27 +197,28 @@ async def async_setup_services(
     async def handle_scan_product(call: ServiceCall) -> ServiceResponse:
         """Handle scan product service call."""
         barcode = call.data[ATTR_BARCODE]
-        expiry_date = call.data[ATTR_EXPIRY_DATE]
+        expiry_date = call.data.get(ATTR_EXPIRY_DATE)
         location = call.data.get(ATTR_LOCATION, STORAGE_FREEZER)
         quantity = call.data.get(ATTR_QUANTITY, 1)
 
-        # Validate expiry date format
-        try:
-            datetime.fromisoformat(expiry_date)
-        except ValueError:
-            # Try to parse common date formats
-            for fmt in ["%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y"]:
-                try:
-                    parsed_date = datetime.strptime(expiry_date, fmt)
-                    expiry_date = parsed_date.date().isoformat()
-                    break
-                except ValueError:
-                    continue
-            else:
-                return {
-                    "success": False,
-                    "error": f"Format de date invalide: {expiry_date}. Utilisez YYYY-MM-DD",
-                }
+        # Validate expiry date format (skip if not provided)
+        if expiry_date:
+            try:
+                datetime.fromisoformat(expiry_date)
+            except ValueError:
+                # Try to parse common date formats
+                for fmt in ["%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y"]:
+                    try:
+                        parsed_date = datetime.strptime(expiry_date, fmt)
+                        expiry_date = parsed_date.date().isoformat()
+                        break
+                    except ValueError:
+                        continue
+                else:
+                    return {
+                        "success": False,
+                        "error": f"Format de date invalide: {expiry_date}. Utilisez YYYY-MM-DD",
+                    }
 
         result = await coordinator.async_scan_and_add_product(
             barcode=barcode,
@@ -267,29 +268,30 @@ async def async_setup_services(
     async def handle_add_product(call: ServiceCall) -> ServiceResponse:
         """Handle add product service call."""
         name = call.data[ATTR_NAME]
-        expiry_date = call.data[ATTR_EXPIRY_DATE]
+        expiry_date = call.data.get(ATTR_EXPIRY_DATE)
         location = call.data.get(ATTR_LOCATION, STORAGE_FREEZER)
         quantity = call.data.get(ATTR_QUANTITY, 1)
         barcode = call.data.get(ATTR_BARCODE)
         category = call.data.get(ATTR_CATEGORY)
         zone = call.data.get(ATTR_ZONE)
 
-        # Validate expiry date format
-        try:
-            datetime.fromisoformat(expiry_date)
-        except ValueError:
-            for fmt in ["%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y"]:
-                try:
-                    parsed_date = datetime.strptime(expiry_date, fmt)
-                    expiry_date = parsed_date.date().isoformat()
-                    break
-                except ValueError:
-                    continue
-            else:
-                return {
-                    "success": False,
-                    "error": f"Format de date invalide: {expiry_date}. Utilisez YYYY-MM-DD",
-                }
+        # Validate expiry date format (skip if not provided)
+        if expiry_date:
+            try:
+                datetime.fromisoformat(expiry_date)
+            except ValueError:
+                for fmt in ["%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y"]:
+                    try:
+                        parsed_date = datetime.strptime(expiry_date, fmt)
+                        expiry_date = parsed_date.date().isoformat()
+                        break
+                    except ValueError:
+                        continue
+                else:
+                    return {
+                        "success": False,
+                        "error": f"Format de date invalide: {expiry_date}. Utilisez YYYY-MM-DD",
+                    }
 
         product_id = await coordinator.async_add_product(
             name=name,

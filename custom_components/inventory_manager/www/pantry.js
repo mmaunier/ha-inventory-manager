@@ -143,22 +143,29 @@ class InventoryManagerPantry extends HTMLElement {
       const sortedProducts = this._getSortedProducts();
       tbody.innerHTML = sortedProducts.map(p => {
         const days = p.days_until_expiry;
+        const hasDate = !!p.expiry_date;
         const isTemp = p.id.toString().startsWith('temp_');
         let statusClass = 'status-ok';
         let statusIcon = '🟢';
         
-        if (days < 0) { statusClass = 'status-danger'; statusIcon = '🔴'; }
+        if (!hasDate || days === undefined || days === null || days === 999) {
+          statusClass = '';
+          statusIcon = '➖';
+        } else if (days < 0) { statusClass = 'status-danger'; statusIcon = '🔴'; }
         else if (days <= 3) { statusClass = 'status-danger'; statusIcon = '🟠'; }
         else if (days <= 7) { statusClass = 'status-warning'; statusIcon = '🟡'; }
         
         // Produits temporaires ont un style légèrement différent
         const rowClass = isTemp ? 'temp-row' : '';
+        const dateDisplay = hasDate
+          ? `${this._formatDateFR(p.expiry_date)} <span class="${statusClass}">${statusIcon}${days !== undefined && days !== 999 ? days + 'j' : ''}</span>`
+          : `<span style="color:var(--secondary-text-color,#999)">➖ N/A</span>`;
         
         return `<tr class="${rowClass}" data-product-id="${p.id}">
           <td class="col-name">${p.name || 'Sans nom'}</td>
           <td class="col-category">${p.category || 'Autre'}</td>
           <td class="col-zone">${p.zone || 'Zone 1'}</td>
-          <td class="col-date">${this._formatDateFR(p.expiry_date)} <span class="${statusClass}">${statusIcon}${days !== undefined ? days + 'j' : ''}</span></td>
+          <td class="col-date">${dateDisplay}</td>
           <td class="col-qty">${p.quantity || 1}</td>
           <td class="col-action">
             <button type="button" class="btn-edit" data-id="${p.id}" title="Modifier">✏️</button>
@@ -408,6 +415,29 @@ class InventoryManagerPantry extends HTMLElement {
           font-size: 1em;
           box-sizing: border-box;
         }
+        .date-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .date-row input[type="date"] {
+          flex: 1;
+          min-width: 0;
+        }
+        .date-row label.checkbox-label {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          white-space: nowrap;
+          font-size: 0.85em;
+          cursor: pointer;
+          margin-bottom: 0;
+        }
+        .date-row input[type="checkbox"] {
+          width: auto;
+          margin: 0;
+          cursor: pointer;
+        }
         .modal-actions {
           display: flex;
           gap: 12px;
@@ -641,7 +671,10 @@ class InventoryManagerPantry extends HTMLElement {
           </div>
           <div class="form-group">
             <label>Date de péremption</label>
-            <input type="date" id="scan-date">
+            <div class="date-row">
+              <input type="date" id="scan-date">
+              <label class="checkbox-label"><input type="checkbox" id="scan-date-enabled" checked> Périssable</label>
+            </div>
           </div>
           <div class="form-group">
             <label>Quantité</label>
@@ -676,7 +709,10 @@ class InventoryManagerPantry extends HTMLElement {
           </div>
           <div class="form-group">
             <label>Date de péremption</label>
-            <input type="date" id="edit-date">
+            <div class="date-row">
+              <input type="date" id="edit-date">
+              <label class="checkbox-label"><input type="checkbox" id="edit-date-enabled" checked> Périssable</label>
+            </div>
           </div>
           <div class="form-group">
             <label>Quantité</label>
@@ -869,6 +905,22 @@ class InventoryManagerPantry extends HTMLElement {
     defaultDate.setDate(defaultDate.getDate() + 30);
     const dateStr = defaultDate.toISOString().split('T')[0];
     this.shadowRoot.getElementById('scan-date').value = dateStr;
+
+    // Checkbox "Périssable" logic for add modal
+    const scanDateEnabled = this.shadowRoot.getElementById('scan-date-enabled');
+    const scanDateInput = this.shadowRoot.getElementById('scan-date');
+    scanDateEnabled.addEventListener('change', () => {
+      scanDateInput.disabled = !scanDateEnabled.checked;
+      if (!scanDateEnabled.checked) scanDateInput.value = '';
+    });
+
+    // Checkbox "Périssable" logic for edit modal
+    const editDateEnabled = this.shadowRoot.getElementById('edit-date-enabled');
+    const editDateInput = this.shadowRoot.getElementById('edit-date');
+    editDateEnabled.addEventListener('change', () => {
+      editDateInput.disabled = !editDateEnabled.checked;
+      if (!editDateEnabled.checked) editDateInput.value = '';
+    });
     
     // Allow closing modals by clicking on backdrop
     ['add-modal', 'edit-modal', 'categories-modal', 'zones-modal', 'remove-modal'].forEach(modalId => {
@@ -907,10 +959,14 @@ class InventoryManagerPantry extends HTMLElement {
     this.shadowRoot.getElementById('camera-container').style.display = 'none';
     this.shadowRoot.getElementById('camera-status').textContent = '';
     this.shadowRoot.getElementById('btn-start-camera').style.display = 'flex';
-    // Reset date to +30 days
+    // Reset date to +30 days with checkbox enabled
+    const scanDateEnabled = this.shadowRoot.getElementById('scan-date-enabled');
+    const scanDateInput = this.shadowRoot.getElementById('scan-date');
+    scanDateEnabled.checked = true;
+    scanDateInput.disabled = false;
     const defaultDate = new Date();
     defaultDate.setDate(defaultDate.getDate() + 30);
-    this.shadowRoot.getElementById('scan-date').value = defaultDate.toISOString().split('T')[0];
+    scanDateInput.value = defaultDate.toISOString().split('T')[0];
     this.shadowRoot.getElementById('scan-qty').value = 1;
   }
 
@@ -924,7 +980,13 @@ class InventoryManagerPantry extends HTMLElement {
     
     this.shadowRoot.getElementById('edit-id').value = productId;
     this.shadowRoot.getElementById('edit-name').value = product.name || '';
-    this.shadowRoot.getElementById('edit-date').value = product.expiry_date || '';
+    // Set date checkbox and field based on product
+    const hasDate = !!product.expiry_date;
+    const editDateEnabled = this.shadowRoot.getElementById('edit-date-enabled');
+    const editDateInput = this.shadowRoot.getElementById('edit-date');
+    editDateEnabled.checked = hasDate;
+    editDateInput.disabled = !hasDate;
+    editDateInput.value = product.expiry_date || '';
     this.shadowRoot.getElementById('edit-qty').value = product.quantity || 1;
     this.shadowRoot.getElementById('edit-category').value = product.category || 'Autre';
     this.shadowRoot.getElementById('edit-zone').value = product.zone || 'Zone 1';
@@ -1199,13 +1261,19 @@ class InventoryManagerPantry extends HTMLElement {
   async _saveEditProduct() {
     const productId = this.shadowRoot.getElementById('edit-id').value;
     const name = this.shadowRoot.getElementById('edit-name').value.trim();
-    const date = this.shadowRoot.getElementById('edit-date').value;
+    const dateEnabled = this.shadowRoot.getElementById('edit-date-enabled').checked;
+    const date = dateEnabled ? this.shadowRoot.getElementById('edit-date').value : '';
     const qty = parseInt(this.shadowRoot.getElementById('edit-qty').value) || 1;
     const category = this.shadowRoot.getElementById('edit-category').value;
     const zone = this.shadowRoot.getElementById('edit-zone').value;
 
-    if (!name || !date) {
-      alert('Veuillez remplir le nom et la date');
+    if (!name) {
+      alert('Veuillez remplir le nom du produit');
+      return;
+    }
+
+    if (dateEnabled && !date) {
+      alert('Veuillez remplir la date de péremption ou décochez "Périssable"');
       return;
     }
 
@@ -1213,11 +1281,11 @@ class InventoryManagerPantry extends HTMLElement {
     const productIndex = this._localProducts.findIndex(p => p.id === productId);
     if (productIndex !== -1) {
       this._localProducts[productIndex].name = name;
-      this._localProducts[productIndex].expiry_date = date;
+      this._localProducts[productIndex].expiry_date = date || null;
       this._localProducts[productIndex].quantity = qty;
       this._localProducts[productIndex].category = category;
       this._localProducts[productIndex].zone = zone;
-      this._localProducts[productIndex].days_until_expiry = this._calculateDaysUntilExpiry(date);
+      this._localProducts[productIndex].days_until_expiry = date ? this._calculateDaysUntilExpiry(date) : undefined;
       this._renderProducts();
     }
 
@@ -1228,7 +1296,7 @@ class InventoryManagerPantry extends HTMLElement {
       await this._hass.callService('inventory_manager', 'update_product', {
         product_id: productId,
         name: name,
-        expiry_date: date,
+        expiry_date: date || '',
         quantity: qty,
         category: category,
         zone: zone
@@ -1434,6 +1502,7 @@ class InventoryManagerPantry extends HTMLElement {
     const barcodeEl = this.shadowRoot.getElementById('scan-barcode');
     const nameEl = this.shadowRoot.getElementById('scan-name');
     const dateEl = this.shadowRoot.getElementById('scan-date');
+    const dateEnabled = this.shadowRoot.getElementById('scan-date-enabled').checked;
     const qtyEl = this.shadowRoot.getElementById('scan-qty');
     const categoryEl = this.shadowRoot.getElementById('scan-category');
     const zoneEl = this.shadowRoot.getElementById('scan-zone');
@@ -1441,13 +1510,18 @@ class InventoryManagerPantry extends HTMLElement {
     
     const barcode = barcodeEl.value.trim();
     const name = nameEl.value.trim();
-    const date = dateEl.value;
+    const date = dateEnabled ? dateEl.value : '';
     const qty = parseInt(qtyEl.value) || 1;
     const category = categoryEl.value;
     const zone = zoneEl.value;
 
-    if (!name || !date) {
-      alert('Veuillez remplir le nom du produit et la date de péremption');
+    if (!name) {
+      alert('Veuillez remplir le nom du produit');
+      return;
+    }
+
+    if (dateEnabled && !date) {
+      alert('Veuillez remplir la date de péremption ou décochez "Périssable"');
       return;
     }
 
@@ -1459,11 +1533,12 @@ class InventoryManagerPantry extends HTMLElement {
     });
 
     if (duplicates.length > 0) {
-      const sameDateDupes = duplicates.filter(p => p.expiry_date === date);
+      const sameDateDupes = duplicates.filter(p => (p.expiry_date || '') === date);
       
       if (sameDateDupes.length > 0) {
         const existing = sameDateDupes[0];
-        const existingInfo = `"${existing.name}" (${this._formatDateFR(existing.expiry_date)}, Qté: ${existing.quantity || 1})`;
+        const dateInfo = existing.expiry_date ? this._formatDateFR(existing.expiry_date) : 'Sans date';
+        const existingInfo = `"${existing.name}" (${dateInfo}, Qté: ${existing.quantity || 1})`;
         const choice = confirm(
           `⚠️ Un produit similaire existe déjà :\n${existingInfo}\n\n` +
           `Voulez-vous ajouter ${qty} à la quantité existante ?\n\n` +
@@ -1478,7 +1553,7 @@ class InventoryManagerPantry extends HTMLElement {
             await this._hass.callService('inventory_manager', 'update_product', {
               product_id: existing.id,
               name: existing.name,
-              expiry_date: existing.expiry_date,
+              ...(existing.expiry_date ? { expiry_date: existing.expiry_date } : {}),
               quantity: (existing.quantity || 1) + qty,
               category: existing.category || category,
               zone: existing.zone || zone
@@ -1498,11 +1573,12 @@ class InventoryManagerPantry extends HTMLElement {
         }
       } else {
         const dupeList = duplicates.map(p => 
-          `  • ${p.name} — ${this._formatDateFR(p.expiry_date)} (Qté: ${p.quantity || 1})`
+          `  • ${p.name} — ${p.expiry_date ? this._formatDateFR(p.expiry_date) : 'Sans date'} (Qté: ${p.quantity || 1})`
         ).join('\n');
+        const newDateInfo = date ? this._formatDateFR(date) : 'Sans date';
         const proceed = confirm(
           `ℹ️ Produit(s) similaire(s) déjà en stock :\n${dupeList}\n\n` +
-          `Le nouveau produit a une date de péremption différente (${this._formatDateFR(date)}).\n` +
+          `Le nouveau produit a une date de péremption différente (${newDateInfo}).\n` +
           `Voulez-vous l'ajouter comme un nouveau produit ?`
         );
         if (!proceed) return;
@@ -1515,15 +1591,16 @@ class InventoryManagerPantry extends HTMLElement {
 
     try {
       // Appeler le service et attendre la confirmation
-      await this._hass.callService('inventory_manager', 'add_product', {
+      const serviceData = {
         name: name,
-        expiry_date: date,
         location: 'pantry',
         quantity: qty,
         category: category,
         zone: zone,
-        barcode: barcode || undefined
-      });
+      };
+      if (date) serviceData.expiry_date = date;
+      if (barcode) serviceData.barcode = barcode;
+      await this._hass.callService('inventory_manager', 'add_product', serviceData);
       
       // Fermer le modal et reset
       barcodeEl.value = '';
@@ -1893,8 +1970,10 @@ class InventoryManagerPantry extends HTMLElement {
     
     list.innerHTML = results.map(p => {
       const days = p.days_until_expiry;
+      const hasDate = !!p.expiry_date;
       let statusIcon = '🟢';
-      if (days < 0) statusIcon = '🔴';
+      if (!hasDate || days === undefined || days === null || days === 999) statusIcon = '➖';
+      else if (days < 0) statusIcon = '🔴';
       else if (days <= 3) statusIcon = '🟠';
       else if (days <= 7) statusIcon = '🟡';
       const qty = p.quantity || 1;
@@ -1907,12 +1986,13 @@ class InventoryManagerPantry extends HTMLElement {
           </div>`
         : '';
       
+      const dateStr = hasDate ? `📅 ${this._formatDateFR(p.expiry_date)} ${statusIcon}` : '📅 N/A';
       return `<div class="remove-item" data-id="${p.id}" data-qty="${qty}">
         <input type="checkbox" data-id="${p.id}">
         <div class="remove-item-info">
           <div class="remove-item-name">${p.name || 'Sans nom'}</div>
           <div class="remove-item-details">
-            📂 ${p.category || 'Autre'} · 📍 ${p.zone || 'Zone 1'} · 📅 ${this._formatDateFR(p.expiry_date)} ${statusIcon} · Qté: ${qty}
+            📂 ${p.category || 'Autre'} · 📍 ${p.zone || 'Zone 1'} · ${dateStr} · Qté: ${qty}
           </div>
           ${qtyRow}
         </div>

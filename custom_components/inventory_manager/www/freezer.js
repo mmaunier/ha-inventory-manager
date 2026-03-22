@@ -142,22 +142,29 @@ class InventoryManagerFreezer extends HTMLElement {
       const sortedProducts = this._getSortedProducts();
       tbody.innerHTML = sortedProducts.map(p => {
         const days = p.days_until_expiry;
+        const hasDate = !!p.expiry_date;
         const isTemp = p.id.toString().startsWith('temp_');
         let statusClass = 'status-ok';
         let statusIcon = '🟢';
         
-        if (days < 0) { statusClass = 'status-danger'; statusIcon = '🔴'; }
+        if (!hasDate || days === undefined || days === null || days === 999) {
+          statusClass = '';
+          statusIcon = '➖';
+        } else if (days < 0) { statusClass = 'status-danger'; statusIcon = '🔴'; }
         else if (days <= 3) { statusClass = 'status-danger'; statusIcon = '🟠'; }
         else if (days <= 7) { statusClass = 'status-warning'; statusIcon = '🟡'; }
         
         // Produits temporaires ont un style légèrement différent
         const rowClass = isTemp ? 'temp-row' : '';
+        const dateDisplay = hasDate
+          ? `${this._formatDateFR(p.expiry_date)} <span class="${statusClass}">${statusIcon}${days !== undefined && days !== 999 ? days + 'j' : ''}</span>`
+          : `<span style="color:var(--secondary-text-color,#999)">➖ N/A</span>`;
         
         return `<tr class="${rowClass}" data-product-id="${p.id}">
           <td class="col-name">${p.name || 'Sans nom'}</td>
           <td class="col-category">${p.category || 'Autre'}</td>
           <td class="col-zone">${p.zone || 'Zone 1'}</td>
-          <td class="col-date">${this._formatDateFR(p.expiry_date)} <span class="${statusClass}">${statusIcon}${days !== undefined ? days + 'j' : ''}</span></td>
+          <td class="col-date">${dateDisplay}</td>
           <td class="col-qty">${p.quantity || 1}</td>
           <td class="col-action">
             <button type="button" class="btn-edit" data-id="${p.id}" title="Modifier">✏️</button>
@@ -1880,8 +1887,10 @@ class InventoryManagerFreezer extends HTMLElement {
     
     list.innerHTML = results.map(p => {
       const days = p.days_until_expiry;
+      const hasDate = !!p.expiry_date;
       let statusIcon = '🟢';
-      if (days < 0) statusIcon = '🔴';
+      if (!hasDate || days === undefined || days === null || days === 999) statusIcon = '➖';
+      else if (days < 0) statusIcon = '🔴';
       else if (days <= 3) statusIcon = '🟠';
       else if (days <= 7) statusIcon = '🟡';
       const qty = p.quantity || 1;
@@ -1894,12 +1903,13 @@ class InventoryManagerFreezer extends HTMLElement {
           </div>`
         : '';
       
+      const dateStr = hasDate ? `📅 ${this._formatDateFR(p.expiry_date)} ${statusIcon}` : '📅 N/A';
       return `<div class="remove-item" data-id="${p.id}" data-qty="${qty}">
         <input type="checkbox" data-id="${p.id}">
         <div class="remove-item-info">
           <div class="remove-item-name">${p.name || 'Sans nom'}</div>
           <div class="remove-item-details">
-            📂 ${p.category || 'Autre'} · 📍 ${p.zone || 'Zone 1'} · 📅 ${this._formatDateFR(p.expiry_date)} ${statusIcon} · Qté: ${qty}
+            📂 ${p.category || 'Autre'} · 📍 ${p.zone || 'Zone 1'} · ${dateStr} · Qté: ${qty}
           </div>
           ${qtyRow}
         </div>

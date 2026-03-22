@@ -11,8 +11,8 @@ scan_product:
         text:
     expiry_date:
       name: Date de péremption
-      description: La date de péremption du produit (format YYYY-MM-DD)
-      required: true
+      description: La date de péremption du produit (format YYYY-MM-DD, optionnel)
+      required: false
       example: "2026-06-15"
       selector:
         date:
@@ -78,8 +78,8 @@ add_product:
         text:
     expiry_date:
       name: Date de péremption
-      description: La date de péremption du produit (format YYYY-MM-DD)
-      required: true
+      description: La date de péremption du produit (format YYYY-MM-DD, optionnel)
+      required: false
       example: "2026-06-15"
       selector:
         date:

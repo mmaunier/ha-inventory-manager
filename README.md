@@ -11,6 +11,7 @@ Cette intégration Home Assistant permet de gérer l'inventaire de vos stocks al
 - 📷 **Scan de code-barres** via la caméra du smartphone (Android/iOS)
 - 🔍 **Recherche automatique** des produits via Open Food Facts
 - 📅 **Gestion des dates de péremption** avec tri par date, nom, catégorie ou zone
+- ✅ **Date optionnelle (Réserve)** : Case à cocher "Périssable" pour stocker aussi des produits sans date (ménager, hygiène…)
 - 🗂️ **Catégories personnalisables** par emplacement
 - 📍 **Zones de stockage** personnalisables par emplacement
 - 🔔 **Notifications intelligentes** pour les produits qui périment
@@ -33,6 +34,7 @@ Cette intégration Home Assistant permet de gérer l'inventaire de vos stocks al
 - **Retrait par scan** : Bouton "➖ Retirer un produit" avec scan code-barres ou recherche par nom
 - **Sélection multiple** : Possibilité de retirer plusieurs produits à la fois
 - **Détection de doublons** : Vérification automatique lors de l'ajout (propose d'incrémenter la quantité ou de créer un nouveau produit)
+- **Date optionnelle** : Dans la Réserve, décochez "Périssable" pour ajouter un produit sans date d'expiration (produits ménagers, hygiène, papeterie…). Les produits sans date affichent "➖ N/A" au lieu d'un indicateur de péremption.
 
 ## 🚀 Installation
 
@@ -77,11 +79,19 @@ data:
 service: inventory_manager.add_product
 data:
   name: "Pizza 4 fromages"
-  expiry_date: "2026-06-15"
+  expiry_date: "2026-06-15"  # Optionnel (surtout utile pour la réserve)
   location: "freezer"
   quantity: 2
   category: "Plats préparés"
   zone: "Zone 2"
+
+# Ajouter un produit sans date (réserve)
+service: inventory_manager.add_product
+data:
+  name: "Liquide vaisselle"
+  location: "pantry"
+  quantity: 1
+  category: "Produits ménagers"
 
 # Supprimer un produit
 service: inventory_manager.remove_product
@@ -120,7 +130,7 @@ data:
 |---------|-------------|
 | `sensor.gestionnaire_d_inventaire_congelateur` | Produits dans le congélateur |
 | `sensor.gestionnaire_d_inventaire_refrigerateur` | Produits dans le réfrigérateur |
-| `sensor.gestionnaire_d_inventaire_reserve` | Produits dans la réserve |
+| `sensor.gestionnaire_d_inventaire_reserves` | Produits dans la réserve |
 | `sensor.gestionnaire_d_inventaire_produits_perimant_bientot` | Produits expirant sous 7 jours (tous emplacements) |
 | `sensor.gestionnaire_d_inventaire_produits_perimes` | Produits déjà périmés (tous emplacements) |
 | `sensor.gestionnaire_d_inventaire_expired_freezer` | Produits périmés dans le congélateur |
@@ -191,6 +201,15 @@ Les données sont stockées dans `config/inventory_data.json` :
       "barcode": "3017620422003",
       "brand": "Ferrero",
       "added_date": "2026-01-01T10:30:00"
+    },
+    "e5f6g7h8": {
+      "name": "Liquide vaisselle",
+      "expiry_date": null,
+      "location": "pantry",
+      "quantity": 1,
+      "category": "Produits ménagers",
+      "zone": "Zone 1",
+      "added_date": "2026-03-22T09:00:00"
     }
   },
   "product_history": [
@@ -208,6 +227,8 @@ Les données sont stockées dans `config/inventory_data.json` :
 
 ### Catégories disponibles (v1.5.0+)
 
+**Congélateur / Réfrigérateur :**
+
 | Catégorie | Exemples |
 |-----------|----------|
 | Viande | Poulet, bœuf, porc... |
@@ -219,6 +240,25 @@ Les données sont stockées dans `config/inventory_data.json` :
 | Pain/Pâtisserie | Pain, croissants, brioches... |
 | Glaces/Desserts | Glaces, sorbets, gâteaux... |
 | Condiments/Sauces | Pesto, sauce tomate, herbes... |
+| Autre | Produits non classés |
+
+**Réserve (v2.2.0+) :**
+
+| Catégorie | Exemples |
+|-----------|----------|
+| Conserves | Boîtes de conserve, bocaux... |
+| Pâtes/Riz/Céréales | Spaghetti, riz basmati, flocons... |
+| Farines/Sucres | Farine de blé, sucre en poudre... |
+| Huiles/Vinaigres | Huile d'olive, vinaigre balsamique... |
+| Épices/Aromates | Poivre, cumin, thym... |
+| Biscuits/Gâteaux secs | Petits beurre, spéculoos... |
+| Boissons | Jus, café, thé... |
+| Condiments/Sauces | Ketchup, moutarde, sauce soja... |
+| Produits d'épicerie | Chocolat, miel, confiture... |
+| Produits ménagers | Liquide vaisselle, lessive... |
+| Hygiène & Cosmétiques | Savon, shampoing, dentifrice... |
+| Papeterie & Fournitures | Mouchoirs, essuie-tout... |
+| Médicaments & Santé | Pharmacie courante... |
 | Autre | Produits non classés |
 
 La catégorie est détectée automatiquement depuis Open Food Facts lors du scan.

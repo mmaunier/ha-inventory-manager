@@ -166,11 +166,11 @@ class InventoryLocationSensor(InventoryBaseSensor):
         # Sort by expiry date
         sorted_products = []
         for p in products:
-            expiry_str = p.get("expiry_date", "")
+            expiry_str = p.get("expiry_date") or ""
             try:
                 expiry_date = datetime.fromisoformat(expiry_str).date()
                 days_until = (expiry_date - now).days
-            except ValueError:
+            except (ValueError, TypeError):
                 days_until = 999
             
             sorted_products.append({
