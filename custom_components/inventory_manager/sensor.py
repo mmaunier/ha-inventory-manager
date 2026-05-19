@@ -108,19 +108,19 @@ class InventoryTotalSensor(InventoryBaseSensor):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return additional attributes."""
-        products = self.coordinator.products
+        # Only expose product_history (used for autocomplete).
+        # The full products list is redundant with location sensors and causes
+        # the Recorder 16 kB limit to be exceeded on medium-sized inventories.
+        # Trim each history item to the 3 fields actually used by the JS UI.
         return {
-            "products": [
+            "product_history": [
                 {
-                    "id": pid,
-                    "name": p.get("name", "Inconnu"),
-                    "location": STORAGE_LOCATIONS.get(p.get("location", ""), p.get("location", "")),
-                    "expiry_date": p.get("expiry_date", ""),
-                    "quantity": p.get("quantity", 1),
+                    "name": p.get("name", ""),
+                    "category": p.get("category", ""),
+                    "zone": p.get("zone", ""),
                 }
-                for pid, p in products.items()
+                for p in self.coordinator.product_history
             ],
-            "product_history": self.coordinator.product_history,
         }
 
 
@@ -179,7 +179,6 @@ class InventoryLocationSensor(InventoryBaseSensor):
                 "expiry_date": expiry_str,
                 "days_until_expiry": days_until,
                 "quantity": p.get("quantity", 1),
-                "brand": p.get("brand", ""),
                 "category": p.get("category", "Autre"),
                 "zone": p.get("zone", "Zone 1"),
                 "barcode": p.get("barcode", ""),

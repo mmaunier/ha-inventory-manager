@@ -5,6 +5,14 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.2.1] - 2026-05-19
+
+### 🐛 Corrections
+- **Fix avertissement Recorder "16384 bytes"** : Les capteurs dépassaient la limite de 16 kB d'attributs de Home Assistant Recorder sur les inventaires de taille moyenne/grande.
+  - `InventoryTotalSensor` : suppression de la liste `products` (redondante avec les capteurs par emplacement, non utilisée par l'interface) — économie de 10–15 kB.
+  - `InventoryTotalSensor` : `product_history` réduit aux 3 champs utilisés par l'autocomplete (`name`, `category`, `zone`) — économie de ~4 kB.
+  - `InventoryLocationSensor` : suppression du champ `brand` (déjà inclus dans le nom du produit, non relu depuis le capteur par l'interface) — économie de ~20 octets par produit.
+
 ## [2.2.0] - 2026-03-22
 
 ### ✨ Nouveautés
