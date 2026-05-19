@@ -92,4 +92,6 @@ class InventoryManagerPanel extends HTMLElement {
   }
 }
 
-customElements.define('inventory-manager-panel', InventoryManagerPanel);
+if (!customElements.get('inventory-manager-panel')) {
+  customElements.define('inventory-manager-panel', InventoryManagerPanel);
+}

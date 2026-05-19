@@ -2168,4 +2168,6 @@ class InventoryManagerFreezer extends HTMLElement {
   }
 }
 
-customElements.define('inventory-manager-freezer', InventoryManagerFreezer);
+if (!customElements.get('inventory-manager-freezer')) {
+  customElements.define('inventory-manager-freezer', InventoryManagerFreezer);
+}

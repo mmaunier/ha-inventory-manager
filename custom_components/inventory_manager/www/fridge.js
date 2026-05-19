@@ -2122,4 +2122,6 @@ class InventoryManagerFridge extends HTMLElement {
   }
 }
 
-customElements.define('inventory-manager-fridge', InventoryManagerFridge);
+if (!customElements.get('inventory-manager-fridge')) {
+  customElements.define('inventory-manager-fridge', InventoryManagerFridge);
+}

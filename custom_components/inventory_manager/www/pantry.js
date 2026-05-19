@@ -2218,4 +2218,6 @@ class InventoryManagerPantry extends HTMLElement {
   }
 }
 
-customElements.define('inventory-manager-pantry', InventoryManagerPantry);
+if (!customElements.get('inventory-manager-pantry')) {
+  customElements.define('inventory-manager-pantry', InventoryManagerPantry);
+}
