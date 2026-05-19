@@ -52,7 +52,13 @@ class InventoryManagerJSView(HomeAssistantView):
             return web.Response(status=403)
 
         filepath = _WWW_PATH / safe_path
-        if filepath.suffix != ".js" or not filepath.is_file():
+        if filepath.suffix != ".js":
+            return web.Response(status=404)
+
+        hass: HomeAssistant = request.app["hass"]
+
+        # is_file() and read_bytes() are blocking I/O — delegate to executor
+        if not await hass.async_add_executor_job(filepath.is_file):
             return web.Response(status=404)
 
         # Ensure resolved path stays within www/
@@ -61,8 +67,9 @@ class InventoryManagerJSView(HomeAssistantView):
         except ValueError:
             return web.Response(status=403)
 
+        body = await hass.async_add_executor_job(filepath.read_bytes)
         return web.Response(
-            body=filepath.read_bytes(),
+            body=body,
             content_type="application/javascript",
             headers=NO_CACHE_HEADERS,
         )
