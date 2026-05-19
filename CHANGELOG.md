@@ -5,6 +5,11 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.2.3] - 2026-05-19
+
+### 🐛 Corrections
+- **Fix définitif avertissement Recorder 16 kB** : La réduction des champs (v2.2.1) ne suffisait pas pour les gros inventaires (ex. 163 produits en réserve → 35 kB). Utilisation de l'API HA `_unrecorded_attributes` sur `InventoryLocationSensor` (exclut `products`) et `InventoryTotalSensor` (exclut `product_history`). Ces attributs restent **entièrement disponibles en mémoire** pour l'interface, seule leur persistence en base de données Recorder est désactivée. Fonctionne quelle que soit la taille de l'inventaire.
+
 ## [2.2.2] - 2026-05-19
 
 ### 🐛 Corrections

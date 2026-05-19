@@ -85,6 +85,10 @@ class InventoryBaseSensor(CoordinatorEntity, SensorEntity):
 class InventoryTotalSensor(InventoryBaseSensor):
     """Sensor showing total products in inventory."""
 
+    # product_history can exceed 10 kB on large inventories.
+    # Exclude from Recorder — it is still available in hass.states for the UI.
+    _unrecorded_attributes = frozenset({"product_history"})
+
     def __init__(
         self,
         coordinator: InventoryCoordinator,
@@ -126,6 +130,11 @@ class InventoryTotalSensor(InventoryBaseSensor):
 
 class InventoryLocationSensor(InventoryBaseSensor):
     """Sensor for a specific storage location."""
+
+    # products list grows with inventory size and easily exceeds the Recorder
+    # 16 kB limit (163 pantry items → 35 kB). Excluding it from Recorder keeps
+    # the sensor storable while the UI still reads it from hass.states (memory).
+    _unrecorded_attributes = frozenset({"products"})
 
     def __init__(
         self,
