@@ -5,6 +5,11 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [2.2.2] - 2026-05-19
+
+### 🐛 Corrections
+- **Fix avertissement "Detected blocking call to open"** : `panel.py` lisait `manifest.json` avec `open()` à l'intérieur d'une coroutine (`async_setup_panel`), ce qu'interdit Home Assistant / Python 3.14+. La lecture de la version est désormais effectuée une seule fois à l'import du module (synchrone, hors boucle d'événements) via `Path.read_text()`.
+
 ## [2.2.1] - 2026-05-19
 
 ### 🐛 Corrections

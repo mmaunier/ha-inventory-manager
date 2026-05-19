@@ -23,12 +23,11 @@ NO_CACHE_HEADERS = {
     "Expires": "0",
 }
 
-
-def _get_version() -> str:
-    """Read version from manifest.json."""
-    manifest = Path(__file__).parent / "manifest.json"
-    with open(manifest, encoding="utf-8") as fh:
-        return json.load(fh).get("version", "0")
+# Read version once at module import time (synchronous, outside the event loop).
+# Calling open() inside an async function triggers a blocking-call warning in HA.
+_VERSION: str = json.loads(
+    (Path(__file__).parent / "manifest.json").read_text(encoding="utf-8")
+).get("version", "0")
 
 
 class InventoryManagerJSView(HomeAssistantView):
@@ -157,7 +156,6 @@ _VIEWS_REGISTERED_KEY = DOMAIN + "_views_registered"
 
 async def async_setup_panel(hass: HomeAssistant) -> None:
     """Set up the Inventory Manager panel."""
-    version = _get_version()
 
     # Only register HTTP views once (survives integration reloads)
     if _VIEWS_REGISTERED_KEY not in hass.data:
@@ -171,7 +169,7 @@ async def async_setup_panel(hass: HomeAssistant) -> None:
         frontend_url_path="inventory-manager",
         sidebar_title=PANEL_TITLE,
         sidebar_icon=PANEL_ICON,
-        module_url=f"/inventory_manager/v{version}/panel.js",
+        module_url=f"/inventory_manager/v{_VERSION}/panel.js",
         embed_iframe=False,
         require_admin=False,
     )
